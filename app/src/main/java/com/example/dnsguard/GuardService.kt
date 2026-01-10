@@ -17,11 +17,19 @@ class GuardService : AccessibilityService() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
 
+    // SHIELD: Invisible Touch Blocker
+    private var windowManager: android.view.WindowManager? = null
+    private var shieldView: android.view.View? = null
+    private var isShieldActive = false
+
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // INIT SHIELD
+        windowManager = getSystemService(android.view.WindowManager::class.java)
+        
         // ELEVATE PRIORITY: Persistent Notification
         startForegroundService()
         startMonitoring()
@@ -54,6 +62,28 @@ class GuardService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
+
+        // 0. DIALOG TRAP (The Backup Plan)
+        // If a system dialog pops up asking to "Stop" or "Deactivate", kill it.
+        if (event.className?.toString()?.contains("Dialog") == true || 
+            event.className?.toString()?.contains("AlertDialog") == true) {
+            val source = event.source
+            if (source != null) {
+                // Check if this dialog is about US
+                val dialogText = StringBuilder()
+                recursiveScan(source, dialogText)
+                val text = dialogText.toString()
+                
+                if (text.contains("DNS Guard", ignoreCase = true) && 
+                   (text.contains("Stop", ignoreCase = true) || text.contains("Deactivate", ignoreCase = true))) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    // Also try to find the "Cancel" button and click it
+                    val cancelNodes = source.findAccessibilityNodeInfosByText("Cancel")
+                    cancelNodes.firstOrNull()?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    return
+                }
+            }
+        }
 
         // 1. INTERACTION DETECTED: Pause the background loop if we are in Settings
         if (pkg == "com.android.settings" || pkg == "com.samsung.accessibility") {
@@ -100,12 +130,17 @@ class GuardService : AccessibilityService() {
                 // A. ACCESSIBILITY TRAP (Broadened)
                 // We check for EITHER part of the unique description string.
                 // This handles cases where UI nodes split the sentence or valid layouts differ.
-                if (screenText.contains("Monitors system settings", ignoreCase = true) || 
-                    screenText.contains("enforce Private DNS", ignoreCase = true)) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                    break
-                }
+                // A. ACCESSIBILITY TRAP
+                val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
+                val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
+                
+                if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
+                    // SHIELD UP: Block touches immediately
+                    setShield(true)
 
+                    // AGGRESSIVE DEFENSE: 
+                    // 1. Go Home (Harder to fight than Back)
+                    performGlobalAction(GLOBAL_ACTION_HOME)
                 // B. ADMIN TRAP
                 // B. SELF-DEFENSE (App Info & Storage Guard)
                 // If he tries to open "DNS Guard" in Settings to Force Stop or Clear Data.
@@ -117,6 +152,8 @@ class GuardService : AccessibilityService() {
                         root.findAccessibilityNodeInfosByText("Storage").isNotEmpty() ||
                         root.findAccessibilityNodeInfosByText("Force stop").isNotEmpty()) {
                         
+                        // SHIELD UP
+                        setShield(true)
                         performGlobalAction(GLOBAL_ACTION_HOME)
                         
                         // Punishment: Lock immediately if he tries to kill the guard
@@ -130,12 +167,64 @@ class GuardService : AccessibilityService() {
                 }
 
                 // C. ADMIN TRAP
+                // C. ADMIN TRAP
                 // We search for 'DNS Guard Admin' AND 'Deactivate'/'Remove' in the same window
                 val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
                 if (adminTitle.isNotEmpty()) {
-        }
+                     if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
+                         root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
+                         root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
+                             setShield(true)
+                             performGlobalAction(GLOBAL_ACTION_HOME)
+                             break
+                     }
+                }
+            }
+            
+            // If we reached here, no trap was triggered in any window.
+            // We can lower the shield (if it was up).
+            // Note: This might cause a tiny flicker if scanning is slow, but it's safe.
+            setShield(false)
     }
 
+    // SHIELD LOGIC
+    private fun setShield(active: Boolean) {
+        if (active == isShieldActive) return
+        
+        try {
+            if (active) {
+                if (shieldView == null) {
+                    shieldView = android.view.View(this).apply {
+                        setBackgroundColor(0x00000000) // Transparent
+                        isClickable = true
+                        isFocusable = true
+                    }
+                }
+                val params = android.view.WindowManager.LayoutParams(
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, // Priority Overlay
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                    android.graphics.PixelFormat.TRANSLUCENT
+                )
+                windowManager?.addView(shieldView, params)
+                isShieldActive = true
+            } else {
+                if (shieldView != null) {
+                    windowManager?.removeView(shieldView)
+                    isShieldActive = false
+                }
+            }
+        } catch (e: Exception) {
+            // Use standard overlay if accessibility overlay fails
+            try {
+                 // Fallback logic if needed, but Accessibility Overlay usually works for Services
+            } catch (e2: Exception) {}
+        }
+    }
+    
+    // HELPER: Recursive scan for the Dialog Trap
     private fun recursiveScan(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         if (node == null) return
         if (node.text != null) sb.append(node.text).append(" ")
