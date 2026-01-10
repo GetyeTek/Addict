@@ -67,7 +67,8 @@ class GuardService : AccessibilityService() {
         // This prevents uninstalling or changing Language/Time unless Nuked.
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // This prevents uninstalling or changing Language/Time unless Nuked.
-        if (pkg == "com.android.settings") {
+        // BYPASS: If Uninstall Mode is ON (via UI Checkbox), skip this entire block.
+        if (pkg == "com.android.settings" && !LockManager.isUninstallMode(applicationContext)) {
             
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows (Split-screen, Pop-up, Dialogs)
             // This prevents hiding the "Deactivate" button in a floating window while focus is elsewhere.
@@ -126,7 +127,8 @@ class GuardService : AccessibilityService() {
                 }
 
                 // 1. SELF-HEALING: Check if Overlay Permission was revoked
-                if (!Settings.canDrawOverlays(applicationContext)) {
+                // FIX: Do not force this loop if Uninstall Mode is active
+                if (!Settings.canDrawOverlays(applicationContext) && !LockManager.isUninstallMode(applicationContext)) {
                     val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                     i.data = Uri.parse("package:$packageName")
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
