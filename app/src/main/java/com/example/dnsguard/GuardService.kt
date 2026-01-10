@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import kotlinx.coroutines.*
 
 class GuardService : AccessibilityService() {
@@ -18,8 +19,35 @@ class GuardService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // We don't need to read screen content, we just need the service to exist
-        // so we can launch activities from background.
+        if (event == null || event.packageName != "com.android.settings") return
+
+        val root = rootInActiveWindow ?: return
+        val content = StringBuilder()
+        recursiveScan(root, content)
+        val screenText = content.toString()
+
+        // 1. DEVICE ADMIN: Detects "DNS Guard Admin" header + "Deactivate" button
+        // The presence of "Deactivate" confirms it is currently granted/active.
+        if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
+            screenText.contains("Deactivate", ignoreCase = true)) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+
+        // 2. ACCESSIBILITY: Detects Unique Description + "On" status
+        // Uses the unique string from strings.xml to avoid false positives on other apps.
+        if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
+            screenText.contains("On", ignoreCase = true)) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+    }
+
+    private fun recursiveScan(node: AccessibilityNodeInfo?, sb: StringBuilder) {
+        if (node == null) return
+        if (node.text != null) sb.append(node.text).append(" ")
+        if (node.contentDescription != null) sb.append(node.contentDescription).append(" ")
+        for (i in 0 until node.childCount) {
+            recursiveScan(node.getChild(i), sb)
+        }
     }
 
     override fun onInterrupt() {}
