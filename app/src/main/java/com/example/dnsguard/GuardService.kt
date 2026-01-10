@@ -104,16 +104,7 @@ class GuardService : AccessibilityService() {
                     break
                 }
 
-                // C. Language & Time Trap
-                if (screenText.contains("Language", ignoreCase = true) ||
-                    screenText.contains("Date", ignoreCase = true) ||
-                    screenText.contains("Time", ignoreCase = true)) {
-                    
-                    if (!screenText.contains("DNS Guard", ignoreCase = true)) {
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                        break
-                    }
-                }
+
             }
         }
     }
@@ -147,13 +138,28 @@ class GuardService : AccessibilityService() {
 
                 // 1. SELF-HEALING: Check if Overlay Permission was revoked
                 // FIX: Do not force this loop if Uninstall Mode is active
+                // 1. CHECK OVERLAYS
                 if (!Settings.canDrawOverlays(applicationContext) && !LockManager.isUninstallMode(applicationContext)) {
                     val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                     i.data = Uri.parse("package:$packageName")
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(i)
-                } 
-                // 2. CORE LOGIC: Check DNS
+                }
+                // 2. ENFORCE AUTO TIME (Required for Nuke Timer)
+                else if ((Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) != 1 ||
+                          Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) != 1) &&
+                          !LockManager.isUninstallMode(applicationContext)) {
+                    val i = Intent(Settings.ACTION_DATE_SETTINGS)
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(i)
+                }
+                // 3. ENFORCE ENGLISH LANGUAGE (Required for Text Scanners)
+                else if (java.util.Locale.getDefault().language != "en" && !LockManager.isUninstallMode(applicationContext)) {
+                    val i = Intent(Settings.ACTION_LOCALE_SETTINGS)
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(i)
+                }
+                // 4. CHECK DNS
                 else if (!DnsManager.isSecure(applicationContext)) {
                     // UNSAFE: Launch Lockdown
                     try {
