@@ -19,25 +19,36 @@ class GuardService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.packageName != "com.android.settings") return
+        if (event == null) return
+        val pkg = event.packageName?.toString() ?: ""
 
-        val root = rootInActiveWindow ?: return
-        val content = StringBuilder()
-        recursiveScan(root, content)
-        val screenText = content.toString()
-
-        // 1. DEVICE ADMIN: Detects "DNS Guard Admin" header + "Deactivate" button
-        // The presence of "Deactivate" confirms it is currently granted/active.
-        if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
-            screenText.contains("Deactivate", ignoreCase = true)) {
-            performGlobalAction(GLOBAL_ACTION_BACK)
+        // --- MODE A: UNLOCKED (BROWSER KILLED) ---
+        if (LockManager.isUnlocked(applicationContext)) {
+            // 1. Browser Guard: If a prohibited browser opens, Kill it (Go Home)
+            if (LockManager.isBlacklistedBrowser(pkg)) {
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }
+            return // Stop here, don't check permissions or DNS in unlocked mode
         }
 
-        // 2. ACCESSIBILITY: Detects Unique Description + "On" status
-        // Uses the unique string from strings.xml to avoid false positives on other apps.
-        if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
-            screenText.contains("On", ignoreCase = true)) {
-            performGlobalAction(GLOBAL_ACTION_BACK)
+        // --- MODE B: LOCKED (PROTECTION ACTIVE) ---
+        
+        // Permission Trap (Only check in Settings)
+        if (pkg == "com.android.settings") {
+            val root = rootInActiveWindow ?: return
+            val content = StringBuilder()
+            recursiveScan(root, content)
+            val screenText = content.toString()
+
+            if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
+                screenText.contains("Deactivate", ignoreCase = true)) {
+                performGlobalAction(GLOBAL_ACTION_BACK)
+            }
+
+            if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
+                screenText.contains("On", ignoreCase = true)) {
+                performGlobalAction(GLOBAL_ACTION_BACK)
+            }
         }
     }
 
@@ -55,6 +66,12 @@ class GuardService : AccessibilityService() {
     private fun startMonitoring() {
         scope.launch {
             while (isActive) {
+                // SKIP CHECKS IF UNLOCKED
+                if (LockManager.isUnlocked(applicationContext)) {
+                    delay(2000)
+                    continue
+                }
+
                 // 1. SELF-HEALING: Check if Overlay Permission was revoked
                 if (!Settings.canDrawOverlays(applicationContext)) {
                     val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
@@ -65,7 +82,6 @@ class GuardService : AccessibilityService() {
                 // 2. CORE LOGIC: Check DNS
                 else if (!DnsManager.isSecure(applicationContext)) {
                     // UNSAFE: Launch Lockdown
-                    // Being an AccessibilityService allows starting activities from background
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
