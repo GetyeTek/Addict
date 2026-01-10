@@ -1,0 +1,3 @@
+-keep class com.example.dnsguard.MainActivity { *; }
+-keep class androidx.compose.material3.** { *; }
+-dontwarn com.google.errorprone.annotations.**
