@@ -45,6 +45,13 @@ class MainActivity : ComponentActivity() {
                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
                 }) { Text("3. Allow Overlays") }
 
+                Button(onClick = {
+                   // 4. Battery Immunity (Unkillable)
+                   val i = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                   i.data = android.net.Uri.parse("package:$packageName")
+                   startActivity(i)
+                }) { Text("4. Unrestricted Battery") }
+
                 Spacer(modifier = Modifier.height(30.dp))
 
                 Button(
