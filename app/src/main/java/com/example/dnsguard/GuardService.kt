@@ -107,14 +107,32 @@ class GuardService : AccessibilityService() {
                 }
 
                 // B. ADMIN TRAP
-                if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
-                   (screenText.contains("Deactivate", ignoreCase = true) || 
-                    screenText.contains("Remove", ignoreCase = true) ||
-                    screenText.contains("Uninstall", ignoreCase = true))) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                    break
+                // B. SELF-DEFENSE (App Info & Storage Guard)
+                // If he tries to open "DNS Guard" in Settings to Force Stop or Clear Data.
+                // We look for our App Name appearing alongside "App info" or "Storage".
+                val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
+                if (selfName.isNotEmpty()) {
+                    // If we see our name AND (App info OR Storage OR Force Stop)
+                    if (root.findAccessibilityNodeInfosByText("App info").isNotEmpty() ||
+                        root.findAccessibilityNodeInfosByText("Storage").isNotEmpty() ||
+                        root.findAccessibilityNodeInfosByText("Force stop").isNotEmpty()) {
+                        
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        
+                        // Punishment: Lock immediately if he tries to kill the guard
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
+                        startActivity(i)
+                        break
+                    }
                 }
-            }
+
+                // C. ADMIN TRAP
+                // We search for 'DNS Guard Admin' AND 'Deactivate'/'Remove' in the same window
+                val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
+                if (adminTitle.isNotEmpty()) {
         }
     }
 
