@@ -169,19 +169,21 @@ class GuardService : AccessibilityService() {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 // B. ADMIN TRAP
                 // B. SELF-DEFENSE (App Info & Storage Guard)
-                // If he tries to open "DNS Guard" in Settings to Force Stop or Clear Data.
-                // We look for our App Name appearing alongside "App info" or "Storage".
-                val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
-                if (selfName.isNotEmpty()) {
-                    // If we see our name AND (App info OR Storage OR Force Stop)
-                    if (root.findAccessibilityNodeInfosByText("App info").isNotEmpty() ||
-                        root.findAccessibilityNodeInfosByText("Storage").isNotEmpty() ||
-                        root.findAccessibilityNodeInfosByText("Force stop").isNotEmpty()) {
-                        
-                        // DANGER DETECTED: Keep Shield UP
+                // We combine the Native Class check (cls) with the Text check.
+                // Rule: If we are in 'App Details' AND we see 'DNS Guard', it's an attack.
+                
+                val isAppInfoPage = cls.contains("installedappdetails") || 
+                                    cls.contains("appmanagement") ||
+                                    root.findAccessibilityNodeInfosByText("App info").isNotEmpty()
+
+                if (isAppInfoPage) {
+                    val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
+                    if (selfName.isNotEmpty()) {
+                        // DANGER: User is looking at our App Info.
+                        // Keep Shield UP and Exit.
                         performGlobalAction(GLOBAL_ACTION_HOME)
                         
-                        // Punishment: Lock immediately if he tries to kill the guard
+                        // Punishment: Lock immediately
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
