@@ -2,6 +2,8 @@ package com.example.dnsguard
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import kotlinx.coroutines.*
 
@@ -25,7 +27,15 @@ class GuardService : AccessibilityService() {
     private fun startMonitoring() {
         scope.launch {
             while (isActive) {
-                if (!DnsManager.isSecure(applicationContext)) {
+                // 1. SELF-HEALING: Check if Overlay Permission was revoked
+                if (!Settings.canDrawOverlays(applicationContext)) {
+                    val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                    i.data = Uri.parse("package:$packageName")
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(i)
+                } 
+                // 2. CORE LOGIC: Check DNS
+                else if (!DnsManager.isSecure(applicationContext)) {
                     // UNSAFE: Launch Lockdown
                     // Being an AccessibilityService allows starting activities from background
                     try {
