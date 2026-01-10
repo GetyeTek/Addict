@@ -65,46 +65,41 @@ class GuardService : AccessibilityService() {
 
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // This prevents uninstalling or changing Language/Time unless Nuked.
+        // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
+        // This prevents uninstalling or changing Language/Time unless Nuked.
         if (pkg == "com.android.settings") {
-            val root = rootInActiveWindow ?: return
-            val content = StringBuilder()
-            recursiveScan(root, content)
-            val screenText = content.toString()
+            
+            // MULTI-WINDOW DEFENSE: Iterate ALL visible windows (Split-screen, Pop-up, Dialogs)
+            // This prevents hiding the "Deactivate" button in a floating window while focus is elsewhere.
+            val allWindows = this.windows
+            if (allWindows.isEmpty()) return
 
-            // A. Admin & Accessibility Trap
-            if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
-                screenText.contains("On", ignoreCase = true)) {
-                performGlobalAction(GLOBAL_ACTION_BACK)
-            }
+            for (window in allWindows) {
+                val root = window.root ?: continue
+                val content = StringBuilder()
+                recursiveScan(root, content)
+                val screenText = content.toString()
 
-            // 3. SETTINGS GUARD: Prevent Language & Time Tampering
-            // Blocking these screens prevents the "Polyglot Attack" (changing language to bypass string checks)
-            // and prevents manipulating the system clock to bypass the Nuke/Lock timers.
-            if (screenText.contains("Language", ignoreCase = true) ||
-                screenText.contains("Input", ignoreCase = true) ||
-                screenText.contains("Date", ignoreCase = true) ||
-                screenText.contains("Time", ignoreCase = true) ||
-                screenText.contains("Region", ignoreCase = true) ||
-                screenText.contains("Locale", ignoreCase = true)) {
-                
-                // Safety: Ensure we aren't detecting our own app name in the list
-                if (!screenText.contains("DNS Guard", ignoreCase = true)) {
+                // A. Admin & Accessibility Trap
+                if ((screenText.contains("DNS Guard Admin", ignoreCase = true) && screenText.contains("Deactivate", ignoreCase = true)) ||
+                    (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && screenText.contains("On", ignoreCase = true))) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
+                    break // Found threat, action taken, stop scanning
                 }
-            }
-        }
 
-            // B. Language & Time Trap
-            if (screenText.contains("Language", ignoreCase = true) ||
-                screenText.contains("Input", ignoreCase = true) ||
-                screenText.contains("Date", ignoreCase = true) ||
-                screenText.contains("Time", ignoreCase = true) ||
-                screenText.contains("Region", ignoreCase = true) ||
-                screenText.contains("Locale", ignoreCase = true)) {
-                
-                // Safety: Ensure we aren't detecting our own app name in the list
-                if (!screenText.contains("DNS Guard", ignoreCase = true)) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
+                // B. Language & Time Trap
+                if (screenText.contains("Language", ignoreCase = true) ||
+                    screenText.contains("Input", ignoreCase = true) ||
+                    screenText.contains("Date", ignoreCase = true) ||
+                    screenText.contains("Time", ignoreCase = true) ||
+                    screenText.contains("Region", ignoreCase = true) ||
+                    screenText.contains("Locale", ignoreCase = true)) {
+                    
+                    // Safety: Ensure we aren't detecting our own app name in the list
+                    if (!screenText.contains("DNS Guard", ignoreCase = true)) {
+                        performGlobalAction(GLOBAL_ACTION_BACK)
+                        break
+                    }
                 }
             }
         }
