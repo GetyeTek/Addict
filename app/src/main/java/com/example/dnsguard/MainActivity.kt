@@ -44,6 +44,13 @@ class MainActivity : ComponentActivity() {
                    // 3. Overlay (Optional, but good for backup)
                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
                 }) { Text("3. Allow Overlays") }
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                Button(
+                    onClick = { LockManager.lock(applicationContext) },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) { Text("LOCK NOW") }
             }
         }
     }
