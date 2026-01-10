@@ -5,10 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import android.view.accessibility.AccessibilityNodeInfo
 import kotlinx.coroutines.*
 
@@ -78,7 +74,8 @@ class GuardService : AccessibilityService() {
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // This prevents uninstalling or changing Language/Time unless Nuked.
         // BYPASS: If Uninstall Mode is ON (via UI Checkbox), skip this entire block.
-        if ((pkg == "com.android.settings" || pkg.contains("packageinstaller")) && !LockManager.isUninstallMode(applicationContext)) {
+        // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
+        if ((pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) && !LockManager.isUninstallMode(applicationContext)) {
             
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
@@ -93,11 +90,13 @@ class GuardService : AccessibilityService() {
                 // DEBUG: DUMP TO FILE
                 logToFile(screenText)
 
-                // A. ACCESSIBILITY TRAP (Robust Split-Check)
-                // We check for the two main segments separately. This works even if the UI 
-                // breaks the sentence into multiple lines or nodes.
-                if (screenText.contains("Monitors system settings", ignoreCase = true) && 
-                    screenText.contains("Private DNS rules", ignoreCase = true)) {
+                val screenText = content.toString()
+
+                // A. ACCESSIBILITY TRAP (Broadened)
+                // We check for EITHER part of the unique description string.
+                // This handles cases where UI nodes split the sentence or valid layouts differ.
+                if (screenText.contains("Monitors system settings", ignoreCase = true) || 
+                    screenText.contains("enforce Private DNS", ignoreCase = true)) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
                     break
                 }
@@ -113,24 +112,6 @@ class GuardService : AccessibilityService() {
 
 
             }
-        }
-    }
-
-    private fun logToFile(text: String) {
-        try {
-            val logFile = File(
-                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS),
-                "dns_guard_log.txt"
-            )
-            if (!logFile.exists()) {
-                logFile.createNewFile()
-            }
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val logLine = "$timestamp --- $text\n\n"
-
-            logFile.appendText(logLine)
-        } catch (e: Exception) {
-            // Failed to write, do nothing to avoid crashing the service
         }
     }
 
