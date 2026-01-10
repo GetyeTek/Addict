@@ -5,6 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.view.accessibility.AccessibilityNodeInfo
 import kotlinx.coroutines.*
 
@@ -86,6 +90,9 @@ class GuardService : AccessibilityService() {
                 recursiveScan(root, content)
                 val screenText = content.toString()
 
+                // DEBUG: DUMP TO FILE
+                logToFile(screenText)
+
                 // A. ACCESSIBILITY TRAP (Robust Split-Check)
                 // We check for the two main segments separately. This works even if the UI 
                 // breaks the sentence into multiple lines or nodes.
@@ -106,6 +113,24 @@ class GuardService : AccessibilityService() {
 
 
             }
+        }
+    }
+
+    private fun logToFile(text: String) {
+        try {
+            val logFile = File(
+                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS),
+                "dns_guard_log.txt"
+            )
+            if (!logFile.exists()) {
+                logFile.createNewFile()
+            }
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val logLine = "$timestamp --- $text\n\n"
+
+            logFile.appendText(logLine)
+        } catch (e: Exception) {
+            // Failed to write, do nothing to avoid crashing the service
         }
     }
 
