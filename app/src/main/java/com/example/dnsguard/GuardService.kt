@@ -15,7 +15,33 @@ class GuardService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // ELEVATE PRIORITY: Persistent Notification
+        startForegroundService()
         startMonitoring()
+    }
+
+    private fun startForegroundService() {
+        val channelId = "dns_guard_channel"
+        val nm = getSystemService(android.app.NotificationManager::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val chan = android.app.NotificationChannel(
+                channelId, 
+                "DNS Monitor", 
+                android.app.NotificationManager.IMPORTANCE_MIN // Minimal intrusion
+            )
+            nm.createNotificationChannel(chan)
+        }
+
+        val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Protection Active")
+            .setContentText("DNS Guard is monitoring network security.")
+            .setSmallIcon(android.R.drawable.ic_secure)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
+            .setOngoing(true)
+            .build()
+        
+        // 1337 is the notification ID
+        startForeground(1337, notif)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
