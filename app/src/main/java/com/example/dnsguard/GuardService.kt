@@ -48,37 +48,47 @@ class GuardService : AccessibilityService() {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
 
-        // --- MODE A: UNLOCKED (BROWSER KILLED) ---
+        // 1. BROWSER & VPN GUARD (Active ONLY when Unlocked)
+        // When unlocked, we kill blacklisted browsers and check for VPNs.
+        // We do NOT return here, because the Settings Guard must remain active.
         if (LockManager.isUnlocked(applicationContext)) {
-            // 1. Browser Guard: If a prohibited browser opens, Kill it (Go Home)
             if (LockManager.isBlacklistedBrowser(pkg)) {
                 performGlobalAction(GLOBAL_ACTION_HOME)
             }
-            return // Stop here, don't check permissions or DNS in unlocked mode
         }
 
-        // --- MODE B: LOCKED (PROTECTION ACTIVE) ---
-        
-        // Permission Trap (Only check in Settings)
-        if (pkg == "com.android.settings") {
-            // IF NUKE IS ACTIVE, WE DISABLE THE TRAP
-            if (NukeManager.isProtectionDisabled(applicationContext)) {
-                return
-            }
+        // 2. NUKE CHECK: If Nuke Protocol is active, we STOP here.
+        // This is the ONLY way to bypass the Settings Guard below.
+        if (NukeManager.isProtectionDisabled(applicationContext)) {
+            return
+        }
 
+        // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
+        // This prevents uninstalling or changing Language/Time unless Nuked.
+        if (pkg == "com.android.settings") {
             val root = rootInActiveWindow ?: return
             val content = StringBuilder()
             recursiveScan(root, content)
             val screenText = content.toString()
 
-            if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
-                screenText.contains("Deactivate", ignoreCase = true)) {
+            // A. Admin & Accessibility Trap
+            if ((screenText.contains("DNS Guard Admin", ignoreCase = true) && screenText.contains("Deactivate", ignoreCase = true)) ||
+                (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && screenText.contains("On", ignoreCase = true))) {
                 performGlobalAction(GLOBAL_ACTION_BACK)
             }
 
-            if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
-                screenText.contains("On", ignoreCase = true)) {
-                performGlobalAction(GLOBAL_ACTION_BACK)
+            // B. Language & Time Trap
+            if (screenText.contains("Language", ignoreCase = true) ||
+                screenText.contains("Input", ignoreCase = true) ||
+                screenText.contains("Date", ignoreCase = true) ||
+                screenText.contains("Time", ignoreCase = true) ||
+                screenText.contains("Region", ignoreCase = true) ||
+                screenText.contains("Locale", ignoreCase = true)) {
+                
+                // Safety: Ensure we aren't detecting our own app name in the list
+                if (!screenText.contains("DNS Guard", ignoreCase = true)) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                }
             }
         }
     }
