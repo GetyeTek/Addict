@@ -35,6 +35,11 @@ class GuardService : AccessibilityService() {
         
         // Permission Trap (Only check in Settings)
         if (pkg == "com.android.settings") {
+            // IF NUKE IS ACTIVE, WE DISABLE THE TRAP
+            if (NukeManager.isProtectionDisabled(applicationContext)) {
+                return
+            }
+
             val root = rootInActiveWindow ?: return
             val content = StringBuilder()
             recursiveScan(root, content)
