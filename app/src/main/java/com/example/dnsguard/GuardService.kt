@@ -113,12 +113,22 @@ class GuardService : AccessibilityService() {
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
+
+            // OPTIMIZED SHIELDING: Zone-Based Activation
+            // We only raise the pre-emptive shield if we are entering a "Danger Zone".
+            // This prevents lag in safe menus like Wi-Fi or Display.
             
-            // STRATEGY CHANGE: PRE-EMPTIVE SHIELDING
-            // We raise the shield IMMEDIATELY upon entering any settings page.
-            // We only lower it if the scan proves the page is SAFE.
-            // This eliminates the race condition entirely.
-            setShield(true)
+            val eventText = event.text.toString().lowercase()
+            val isDangerZone = 
+                pkg.contains("accessibility") || // Samsung/Pixel Accessibility App
+                eventText.contains("accessibility") ||
+                eventText.contains("admin") ||
+                eventText.contains("app info") ||
+                eventText.contains("dns guard") // Catches our own App Info page
+
+            if (isDangerZone) {
+                setShield(true)
+            }
             
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
