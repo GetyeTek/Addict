@@ -86,9 +86,11 @@ class GuardService : AccessibilityService() {
                 recursiveScan(root, content)
                 val screenText = content.toString()
 
-                // A. ACCESSIBILITY TRAP (Fixed for Samsung)
-                // If we see the unique description, we are on the control screen.
-                if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true)) {
+                // A. ACCESSIBILITY TRAP (Robust Split-Check)
+                // We check for the two main segments separately. This works even if the UI 
+                // breaks the sentence into multiple lines or nodes.
+                if (screenText.contains("Monitors system settings", ignoreCase = true) && 
+                    screenText.contains("Private DNS rules", ignoreCase = true)) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
                     break
                 }
