@@ -1,4 +1,0 @@
-<resources>
-    <string name="app_name">System Policy</string>
-    <string name="admin_desc">Prevents removal of DNS security policies.</string>
-</resources>
