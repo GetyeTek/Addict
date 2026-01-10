@@ -63,7 +63,14 @@ class GuardService : AccessibilityService() {
         // 1. BROWSER & VPN GUARD (Active ONLY when Unlocked)
         if (LockManager.isUnlocked(applicationContext)) {
             if (LockManager.isBlacklistedBrowser(pkg)) {
-                performGlobalAction(GLOBAL_ACTION_HOME)
+                // Launch Lockdown UI with Browser Block message
+                val i = Intent(applicationContext, LockdownActivity::class.java)
+                i.putExtra("BLOCK_TYPE", "BROWSER")
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                i.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                startActivity(i)
             }
         }
 
@@ -148,9 +155,9 @@ class GuardService : AccessibilityService() {
                     continue
                 }
 
-                // FIX: GRACE PERIOD
-                if (System.currentTimeMillis() - lastSettingsInteraction < 3000) {
-                    delay(1000)
+                // FIX: GRACE PERIOD (2000ms flicker)
+                if (System.currentTimeMillis() - lastSettingsInteraction < 2000) {
+                    delay(500)
                     continue
                 }
 
