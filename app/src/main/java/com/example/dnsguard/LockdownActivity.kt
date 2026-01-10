@@ -65,6 +65,38 @@ class LockdownActivity : ComponentActivity() {
                     ) {
                         Text("FIX NOW", color = Color.White, fontWeight = FontWeight.Bold)
                     }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+                    
+                    // UNLOCK BUTTON
+                    var showDialog by remember { mutableStateOf(false) }
+                    var password by remember { mutableStateOf("") }
+
+                    androidx.compose.material3.TextButton(onClick = { showDialog = true }) {
+                        Text("UNLOCK ADMIN", color = Color.DarkGray, fontSize = 12.sp)
+                    }
+
+                    if (showDialog) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { showDialog = false },
+                            title = { Text("Enter Password") },
+                            text = { 
+                                androidx.compose.material3.TextField(
+                                    value = password, 
+                                    onValueChange = { password = it },
+                                    singleLine = true
+                                )
+                            },
+                            confirmButton = {
+                                androidx.compose.material3.Button(onClick = {
+                                    if (password == LockManager.ADMIN_PASS) {
+                                        LockManager.unlock(applicationContext)
+                                        finishAffinity()
+                                    }
+                                }) { Text("UNLOCK") }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -73,7 +105,8 @@ class LockdownActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 scope.launch {
                     while(true) {
-                        if (DnsManager.isSecure(applicationContext)) {
+                        // Exit if DNS is fixed OR if we just unlocked it
+                        if (DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)) {
                             finishAffinity() // Release lock
                         }
                         delay(1000)
