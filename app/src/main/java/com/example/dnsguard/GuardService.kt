@@ -80,8 +80,9 @@ class GuardService : AccessibilityService() {
         }
 
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
+        // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
-        if ((pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) && !LockManager.isUninstallMode(applicationContext)) {
+        if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
             
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
@@ -162,7 +163,7 @@ class GuardService : AccessibilityService() {
                 }
 
                 // 1. SELF-HEALING: Check if Overlay Permission was revoked
-                if (!Settings.canDrawOverlays(applicationContext) && !LockManager.isUninstallMode(applicationContext)) {
+                if (!Settings.canDrawOverlays(applicationContext)) {
                     val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                     i.data = Uri.parse("package:$packageName")
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -170,14 +171,13 @@ class GuardService : AccessibilityService() {
                 }
                 // 2. ENFORCE AUTO TIME (Required for Nuke Timer)
                 else if ((Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) != 1 ||
-                          Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) != 1) &&
-                          !LockManager.isUninstallMode(applicationContext)) {
+                          Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) != 1)) {
                     val i = Intent(Settings.ACTION_DATE_SETTINGS)
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(i)
                 }
                 // 3. ENFORCE ENGLISH LANGUAGE (Required for Text Scanners)
-                else if (java.util.Locale.getDefault().language != "en" && !LockManager.isUninstallMode(applicationContext)) {
+                else if (java.util.Locale.getDefault().language != "en") {
                     val i = Intent(Settings.ACTION_LOCALE_SETTINGS)
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(i)
