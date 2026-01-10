@@ -77,17 +77,4 @@ object LockManager {
             return false
         }
     }
-
-    // --- TESTING / UNINSTALL MODE ---
-    private const val KEY_UNINSTALL_MODE = "uninstall_mode_enabled"
-
-    fun setUninstallMode(ctx: Context, enabled: Boolean) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_UNINSTALL_MODE, enabled).apply()
-    }
-
-    fun isUninstallMode(ctx: Context): Boolean {
-        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_UNINSTALL_MODE, false)
-    }
 }
