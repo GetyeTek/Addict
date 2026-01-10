@@ -13,6 +13,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
@@ -63,6 +65,18 @@ class MainActivity : ComponentActivity() {
                    i.data = android.net.Uri.parse("package:$packageName")
                    startActivity(i)
                 }) { Text("4. Unrestricted Battery") }
+
+                val permissionsLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions(),
+                    onResult = { /* Do nothing on result, just request */ }
+                )
+
+                Button(onClick = {
+                    permissionsLauncher.launch(arrayOf(
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ))
+                }) { Text("5. Grant Storage (Debug)") }
 
                 Spacer(modifier = Modifier.height(30.dp))
 
