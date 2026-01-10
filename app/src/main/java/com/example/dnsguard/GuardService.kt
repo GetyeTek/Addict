@@ -72,10 +72,27 @@ class GuardService : AccessibilityService() {
             val screenText = content.toString()
 
             // A. Admin & Accessibility Trap
-            if ((screenText.contains("DNS Guard Admin", ignoreCase = true) && screenText.contains("Deactivate", ignoreCase = true)) ||
-                (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && screenText.contains("On", ignoreCase = true))) {
+            if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && 
+                screenText.contains("On", ignoreCase = true)) {
                 performGlobalAction(GLOBAL_ACTION_BACK)
             }
+
+            // 3. SETTINGS GUARD: Prevent Language & Time Tampering
+            // Blocking these screens prevents the "Polyglot Attack" (changing language to bypass string checks)
+            // and prevents manipulating the system clock to bypass the Nuke/Lock timers.
+            if (screenText.contains("Language", ignoreCase = true) ||
+                screenText.contains("Input", ignoreCase = true) ||
+                screenText.contains("Date", ignoreCase = true) ||
+                screenText.contains("Time", ignoreCase = true) ||
+                screenText.contains("Region", ignoreCase = true) ||
+                screenText.contains("Locale", ignoreCase = true)) {
+                
+                // Safety: Ensure we aren't detecting our own app name in the list
+                if (!screenText.contains("DNS Guard", ignoreCase = true)) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+            }
+        }
 
             // B. Language & Time Trap
             if (screenText.contains("Language", ignoreCase = true) ||
