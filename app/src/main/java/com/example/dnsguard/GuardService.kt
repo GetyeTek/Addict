@@ -114,17 +114,28 @@ class GuardService : AccessibilityService() {
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
 
-            // OPTIMIZED SHIELDING: Zone-Based Activation
-            // We only raise the pre-emptive shield if we are entering a "Danger Zone".
-            // This prevents lag in safe menus like Wi-Fi or Display.
+            // OPTIMIZED SHIELDING: Native Class Detection
+            // We check the internal 'Class Name' of the screen. 
+            // This is instant, language-neutral, and the 'Native' way to ID a screen.
             
-            val eventText = event.text.toString().lowercase()
+            val cls = event.className?.toString()?.lowercase() ?: ""
+            val txt = event.text.toString().lowercase() // Backup for generic wrappers
+
             val isDangerZone = 
-                pkg.contains("accessibility") || // Samsung/Pixel Accessibility App
-                eventText.contains("accessibility") ||
-                eventText.contains("admin") ||
-                eventText.contains("app info") ||
-                eventText.contains("dns guard") // Catches our own App Info page
+                // 1. Accessibility (Samsung Pkg or Native Class)
+                pkg.contains("accessibility") ||
+                cls.contains("accessibility") ||
+
+                // 2. Device Admin (Native Class)
+                cls.contains("deviceadmin") ||
+
+                // 3. App Info / Storage (Native Class)
+                cls.contains("installedappdetails") ||
+                cls.contains("appmanagement") ||
+
+                // 4. Fallback: Text Hunting (Only if Class Name fails)
+                txt.contains("dns guard") || 
+                txt.contains("admin")
 
             if (isDangerZone) {
                 setShield(true)
