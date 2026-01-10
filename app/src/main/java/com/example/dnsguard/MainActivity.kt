@@ -51,6 +51,104 @@ class MainActivity : ComponentActivity() {
                     onClick = { LockManager.lock(applicationContext) },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) { Text("LOCK NOW") }
+
+                Spacer(modifier = Modifier.height(50.dp))
+
+                // --- NUKE PROTOCOL UI ---
+                var showNukeDialog by remember { mutableStateOf(false) }
+                var showConfirmDialog by remember { mutableStateOf(false) }
+                var nukeMsg by remember { mutableStateOf("") }
+                var otpInput by remember { mutableStateOf("") }
+                var passInput by remember { mutableStateOf("") }
+
+                // 1. REQUEST NUKE BUTTON
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { 
+                        val status = NukeManager.canRequestNuke(applicationContext)
+                        if (status == "OK") {
+                            showNukeDialog = true
+                        } else {
+                            nukeMsg = status
+                            showNukeDialog = true // Reuse dialog for error
+                        }
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                ) { Text("INITIATE NUKE") }
+
+                if (showNukeDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showNukeDialog = false; nukeMsg = "" },
+                        title = { Text("Nuke Protocol") },
+                        text = { 
+                            if (nukeMsg.isNotEmpty() && !nukeMsg.startsWith("OTP")) {
+                                Text(nukeMsg, color = Color.Red)
+                            } else {
+                                Column {
+                                    Text("WARNING: This will disable self-protection. You can uninstall the app after this.")
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Text("You must copy this OTP and return in 3 HOURS.")
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    if (nukeMsg.startsWith("OTP")) {
+                                        androidx.compose.foundation.text.selection.SelectionContainer {
+                                            Text(nukeMsg, fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            if (!nukeMsg.startsWith("OTP")) {
+                                androidx.compose.material3.Button(onClick = {
+                                    val code = NukeManager.generateOtp(applicationContext)
+                                    nukeMsg = "OTP: $code"
+                                }) { Text("GENERATE OTP") }
+                            } else {
+                                androidx.compose.material3.Button(onClick = { showNukeDialog = false }) { Text("DONE") }
+                            }
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 2. CONFIRM NUKE BUTTON
+                androidx.compose.material3.TextButton(
+                    onClick = { showConfirmDialog = true }
+                ) { Text("ENTER NUKE CODE", color = Color.Gray) }
+
+                if (showConfirmDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showConfirmDialog = false },
+                        title = { Text("Confirm Nuke") },
+                        text = {
+                            Column {
+                                androidx.compose.material3.TextField(
+                                    value = passInput, onValueChange = { passInput = it },
+                                    label = { Text("Admin Password") }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                androidx.compose.material3.TextField(
+                                    value = otpInput, onValueChange = { otpInput = it },
+                                    label = { Text("3-Hour OTP") }
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.Button(onClick = {
+                                if (passInput == LockManager.ADMIN_PASS) {
+                                    val res = NukeManager.verifyOtp(applicationContext, otpInput)
+                                    if (res == "OK") {
+                                        NukeManager.setProtectionDisabled(applicationContext, true)
+                                        showConfirmDialog = false
+                                    } else {
+                                        // Show error (simplified for UI)
+                                        passInput = res // Hack to show msg in field
+                                    }
+                                }
+                            }) { Text("DISABLE PROTECTION") }
+                        }
+                    )
+                }
             }
         }
     }
