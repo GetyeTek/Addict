@@ -71,6 +71,22 @@ class MainActivity : ComponentActivity() {
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) { Text("LOCK NOW") }
 
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // --- TESTING: UNINSTALL MODE ---
+                var uninstallMode by remember { mutableStateOf(LockManager.isUninstallMode(applicationContext)) }
+                androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("TESTING: UNINSTALL MODE", color = Color.Yellow, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    androidx.compose.material3.Switch(
+                        checked = uninstallMode,
+                        onCheckedChange = { 
+                            uninstallMode = it
+                            LockManager.setUninstallMode(applicationContext, it)
+                        }
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(50.dp))
 
                 // --- NUKE PROTOCOL UI ---
