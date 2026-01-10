@@ -13,6 +13,9 @@ class GuardService : AccessibilityService() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
 
+    // TIMESTAMP: Tracks when you were last touching settings
+    private var lastSettingsInteraction: Long = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         // ELEVATE PRIORITY: Persistent Notification
@@ -48,6 +51,11 @@ class GuardService : AccessibilityService() {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
 
+        // 1. INTERACTION DETECTED: Pause the background loop if we are in Settings
+        if (pkg == "com.android.settings" || pkg == "com.samsung.accessibility") {
+            lastSettingsInteraction = System.currentTimeMillis()
+        }
+
         // 1. BROWSER & VPN GUARD (Active ONLY when Unlocked)
         // When unlocked, we kill blacklisted browsers and check for VPNs.
         // We do NOT return here, because the Settings Guard must remain active.
@@ -65,13 +73,10 @@ class GuardService : AccessibilityService() {
 
         // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // This prevents uninstalling or changing Language/Time unless Nuked.
-        // 3. SETTINGS GUARD (Always Active - Locked OR Unlocked)
-        // This prevents uninstalling or changing Language/Time unless Nuked.
         // BYPASS: If Uninstall Mode is ON (via UI Checkbox), skip this entire block.
-        if (pkg == "com.android.settings" && !LockManager.isUninstallMode(applicationContext)) {
+        if ((pkg == "com.android.settings" || pkg.contains("packageinstaller")) && !LockManager.isUninstallMode(applicationContext)) {
             
-            // MULTI-WINDOW DEFENSE: Iterate ALL visible windows (Split-screen, Pop-up, Dialogs)
-            // This prevents hiding the "Deactivate" button in a floating window while focus is elsewhere.
+            // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
             if (allWindows.isEmpty()) return
 
@@ -81,22 +86,27 @@ class GuardService : AccessibilityService() {
                 recursiveScan(root, content)
                 val screenText = content.toString()
 
-                // A. Admin & Accessibility Trap
-                if ((screenText.contains("DNS Guard Admin", ignoreCase = true) && screenText.contains("Deactivate", ignoreCase = true)) ||
-                    (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true) && screenText.contains("On", ignoreCase = true))) {
+                // A. ACCESSIBILITY TRAP (Fixed for Samsung)
+                // If we see the unique description, we are on the control screen.
+                if (screenText.contains("Monitors system settings to enforce Private DNS rules", ignoreCase = true)) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
-                    break // Found threat, action taken, stop scanning
+                    break
                 }
 
-                // B. Language & Time Trap
+                // B. ADMIN TRAP
+                if (screenText.contains("DNS Guard Admin", ignoreCase = true) && 
+                   (screenText.contains("Deactivate", ignoreCase = true) || 
+                    screenText.contains("Remove", ignoreCase = true) ||
+                    screenText.contains("Uninstall", ignoreCase = true))) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    break
+                }
+
+                // C. Language & Time Trap
                 if (screenText.contains("Language", ignoreCase = true) ||
-                    screenText.contains("Input", ignoreCase = true) ||
                     screenText.contains("Date", ignoreCase = true) ||
-                    screenText.contains("Time", ignoreCase = true) ||
-                    screenText.contains("Region", ignoreCase = true) ||
-                    screenText.contains("Locale", ignoreCase = true)) {
+                    screenText.contains("Time", ignoreCase = true)) {
                     
-                    // Safety: Ensure we aren't detecting our own app name in the list
                     if (!screenText.contains("DNS Guard", ignoreCase = true)) {
                         performGlobalAction(GLOBAL_ACTION_BACK)
                         break
@@ -123,6 +133,13 @@ class GuardService : AccessibilityService() {
                 // SKIP CHECKS IF UNLOCKED
                 if (LockManager.isUnlocked(applicationContext)) {
                     delay(2000)
+                    continue
+                }
+
+                // FIX: GRACE PERIOD
+                // If user touched Settings in the last 3 seconds, DO NOT interrupt them.
+                if (System.currentTimeMillis() - lastSettingsInteraction < 3000) {
+                    delay(1000)
                     continue
                 }
 
