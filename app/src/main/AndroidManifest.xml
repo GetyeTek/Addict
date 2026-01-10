@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.dnsguard">
+
+    <!-- Critical Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:label="DNS Guard"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        
+        <activity 
+            android:name=".MainActivity" 
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- THE BLOCKER: High priority, full screen -->
+        <activity
+            android:name=".LockdownActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:taskAffinity="" />
+
+        <!-- PERSISTENCE: Device Admin -->
+        <receiver
+            android:name=".AdminReceiver"
+            android:description="@string/admin_desc"
+            android:label="DNS Guard Admin"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_policies" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ENGINE: Accessibility Service (Used for monitoring) -->
+        <service android:name=".GuardService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+        </service>
+
+    </application>
+</manifest>
