@@ -24,6 +24,8 @@ class LockdownActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val blockType = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
         
         // INTRUSION: Remove system bars
         window.setFlags(
@@ -40,30 +42,50 @@ class LockdownActivity : ComponentActivity() {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // DYNAMIC HEADER
                     Text(
-                        "CONNECTION UNSECURE",
+                        text = if (blockType == "BROWSER") "UNSAFE BROWSER" else "CONNECTION UNSECURE",
                         color = Color(0xFFEF4565), // Neon Red
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // DYNAMIC BODY
                     Text(
-                        "Private DNS must be set to 'Strict'.",
+                        text = if (blockType == "BROWSER") 
+                               "Only official Chrome is allowed during maintenance." 
+                               else "Private DNS must be set to 'Strict'.",
                         color = Color.LightGray,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                     
-                    Button(
-                        onClick = { 
-                            val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
-                            i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            startActivity(i)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4565))
-                    ) {
-                        Text("FIX NOW", color = Color.White, fontWeight = FontWeight.Bold)
+                    // DYNAMIC BUTTON
+                    if (blockType == "BROWSER") {
+                        Button(
+                            onClick = { 
+                                val i = Intent(Intent.ACTION_MAIN)
+                                i.addCategory(Intent.CATEGORY_HOME)
+                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                startActivity(i)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4565))
+                        ) {
+                            Text("CLOSE APP", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = { 
+                                val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                startActivity(i)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4565))
+                        ) {
+                            Text("FIX NOW", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
@@ -105,9 +127,13 @@ class LockdownActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 scope.launch {
                     while(true) {
-                        // Exit if DNS is fixed OR if we just unlocked it
-                        if (DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)) {
-                            finishAffinity() // Release lock
+                        // 1. If this is a BROWSER BLOCK, we DO NOT exit just because we are unlocked.
+                        // User must press 'CLOSE APP' or leave the bad app manually.
+                        if (blockType != "BROWSER") {
+                             // Normal Mode: Exit if DNS fixed OR Unlocked
+                             if (DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)) {
+                                 finishAffinity() // Release lock
+                             }
                         }
                         delay(1000)
                     }
