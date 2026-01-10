@@ -114,6 +114,12 @@ class GuardService : AccessibilityService() {
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
             
+            // STRATEGY CHANGE: PRE-EMPTIVE SHIELDING
+            // We raise the shield IMMEDIATELY upon entering any settings page.
+            // We only lower it if the scan proves the page is SAFE.
+            // This eliminates the race condition entirely.
+            setShield(true)
+            
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
             if (allWindows.isEmpty()) return
@@ -135,9 +141,8 @@ class GuardService : AccessibilityService() {
                 val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
                 
                 if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
-                    // SHIELD UP: Block touches immediately
-                    setShield(true)
-
+                    // DANGER DETECTED: Keep Shield UP
+                    
                     // AGGRESSIVE DEFENSE: 
                     // 1. Go Home (Harder to fight than Back)
                     performGlobalAction(GLOBAL_ACTION_HOME)
@@ -152,8 +157,7 @@ class GuardService : AccessibilityService() {
                         root.findAccessibilityNodeInfosByText("Storage").isNotEmpty() ||
                         root.findAccessibilityNodeInfosByText("Force stop").isNotEmpty()) {
                         
-                        // SHIELD UP
-                        setShield(true)
+                        // DANGER DETECTED: Keep Shield UP
                         performGlobalAction(GLOBAL_ACTION_HOME)
                         
                         // Punishment: Lock immediately if he tries to kill the guard
@@ -174,16 +178,16 @@ class GuardService : AccessibilityService() {
                      if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
                          root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
                          root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
-                             setShield(true)
+                             // DANGER DETECTED: Keep Shield UP
                              performGlobalAction(GLOBAL_ACTION_HOME)
                              break
                      }
                 }
             }
             
-            // If we reached here, no trap was triggered in any window.
-            // We can lower the shield (if it was up).
-            // Note: This might cause a tiny flicker if scanning is slow, but it's safe.
+            // VERDICT: SAFE
+            // We scanned everything and found no traps.
+            // It is now safe to lower the shield and let the user click.
             setShield(false)
     }
 
