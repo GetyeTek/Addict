@@ -8,12 +8,12 @@ object LockManager {
 
     private const val PREFS = "admin_prefs"
     private const val KEY_UNLOCK_TIME = "unlock_ts"
-    private const val TIMEOUT_MS = 15 * 60 * 1000 // 15 Minutes
+    private const val TIMEOUT_MS = 5 * 60 * 1000 // 5 Minutes
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
 
-    // BROWSER BLACKLIST (Whitelisted: Chrome)
+    // BROWSER BLACKLIST (Whitelisted: Chrome Stable)
     private val BROWSERS = setOf(
         "org.mozilla.firefox",
         "com.microsoft.emmx", // Edge
@@ -26,7 +26,11 @@ object LockManager {
         "com.vivaldi.browser",
         "org.torproject.torbrowser",
         "com.cloudmosa.puffinFree",
-        "com.yandex.browser"
+        "com.yandex.browser",
+        // Chrome Variants (Unsafe for maintenance)
+        "com.chrome.beta",
+        "com.chrome.dev",
+        "com.chrome.canary"
     )
 
     fun isUnlocked(ctx: Context): Boolean {
