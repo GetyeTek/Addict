@@ -193,8 +193,8 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     } catch (e: Exception) { e.printStackTrace() }
                 }
-                // Check freq
-                delay(2000)
+                // Check freq (Aggressive: 0.5s)
+                delay(500)
             }
         }
     }
