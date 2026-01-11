@@ -109,6 +109,10 @@ class GuardService : AccessibilityService() {
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
 
+            // --- STEP 1: PRE-EMPTIVE STRIKE ---
+            // Block touches IMMEDIATELY. Guilty until proven innocent.
+            setShield(true)
+
             // OPTIMIZED SHIELDING: Native Class Detection
             // We check the internal 'Class Name' of the screen. 
             // This is instant, language-neutral, and the 'Native' way to ID a screen.
@@ -132,70 +136,74 @@ class GuardService : AccessibilityService() {
                 txt.contains("dns guard") || 
                 txt.contains("admin")
 
+            var confirmedDanger = false
             if (isDangerZone) {
-                setShield(true)
+                confirmedDanger = true
             }
             
             // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
             val allWindows = this.windows
-            if (allWindows.isEmpty()) return
-
-            for (window in allWindows) {
-                val root = window.root ?: continue
-                
-                // A. ACCESSIBILITY TRAP
-                val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
-                val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
-                
-                if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
-                    // DANGER DETECTED: Keep Shield UP
+            if (!allWindows.isEmpty()) {
+                for (window in allWindows) {
+                    val root = window.root ?: continue
                     
-                    // AGGRESSIVE DEFENSE: 
-                    // 1. Go Home (Harder to fight than Back)
-                    performGlobalAction(GLOBAL_ACTION_HOME)
-                }
-
-                // B. SELF-DEFENSE (App Info & Storage Guard)
-                // We combine the Native Class check (cls) with the Text check.
-                // Rule: If we are in 'App Details' AND we see 'DNS Guard', it's an attack.
-                val isAppInfoPage = cls.contains("installedappdetails") || 
-                                    cls.contains("appmanagement") ||
-                                    root.findAccessibilityNodeInfosByText("App info").isNotEmpty()
-
-                if (isAppInfoPage) {
-                    val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
-                    if (selfName.isNotEmpty()) {
-                        // DANGER: User is looking at our App Info.
-                        // Keep Shield UP and Exit.
+                    // A. ACCESSIBILITY TRAP
+                    val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
+                    val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
+                    
+                    if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
+                        confirmedDanger = true
                         performGlobalAction(GLOBAL_ACTION_HOME)
-                        
-                        // Punishment: Lock immediately
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
-                        startActivity(i)
-                        break
                     }
-                }
 
-                // C. ADMIN TRAP
-                // We search for 'DNS Guard Admin' AND 'Deactivate'/'Remove' in the same window
-                val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
-                if (adminTitle.isNotEmpty()) {
-                     if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
-                         root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
-                         root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
-                             // DANGER DETECTED: Keep Shield UP
-                             performGlobalAction(GLOBAL_ACTION_HOME)
-                             break
-                     }
+                    // B. SELF-DEFENSE (App Info & Storage Guard)
+                    // We combine the Native Class check (cls) with the Text check.
+                    // Rule: If we are in 'App Details' AND we see 'DNS Guard', it's an attack.
+                    val isAppInfoPage = cls.contains("installedappdetails") || 
+                                        cls.contains("appmanagement") ||
+                                        root.findAccessibilityNodeInfosByText("App info").isNotEmpty()
+
+                    if (isAppInfoPage) {
+                        val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
+                        if (selfName.isNotEmpty()) {
+                            confirmedDanger = true
+                            // DANGER: User is looking at our App Info.
+                            // Keep Shield UP and Exit.
+                            performGlobalAction(GLOBAL_ACTION_HOME)
+                            
+                            // Punishment: Lock immediately
+                            val i = Intent(applicationContext, LockdownActivity::class.java)
+                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                            i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
+                            startActivity(i)
+                            break
+                        }
+                    }
+
+                    // C. ADMIN TRAP
+                    // We search for 'DNS Guard Admin' AND 'Deactivate'/'Remove' in the same window
+                    val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
+                    if (adminTitle.isNotEmpty()) {
+                         if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
+                             root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
+                             root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
+                                 confirmedDanger = true
+                                 // DANGER DETECTED: Keep Shield UP
+                                 performGlobalAction(GLOBAL_ACTION_HOME)
+                                 break
+                         }
+                    }
                 }
             }
             
             // VERDICT: SAFE
-            // We scanned everything and found no traps.
-            // It is now safe to lower the shield and let the user click.
+            // Only lower shield if we are absolutely sure it's safe.
+            if (!confirmedDanger) {
+                setShield(false)
+            }
+        } else {
+            // Not in settings? Shield down.
             setShield(false)
         }
     }
