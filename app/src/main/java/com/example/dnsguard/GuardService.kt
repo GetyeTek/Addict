@@ -114,34 +114,22 @@ class GuardService : AccessibilityService() {
             setShield(true)
 
             // OPTIMIZED SHIELDING: Native Class Detection
-            // We check the internal 'Class Name' of the screen. 
-            // This is instant, language-neutral, and the 'Native' way to ID a screen.
-            
             val cls = event.className?.toString()?.lowercase() ?: ""
-            val txt = event.text.toString().lowercase() // Backup for generic wrappers
+            val txt = event.text.toString().lowercase()
 
             val isDangerZone = 
-                // 1. Accessibility (Samsung Pkg or Native Class)
                 pkg.contains("accessibility") ||
                 cls.contains("accessibility") ||
-
-                // 2. Device Admin (Native Class)
                 cls.contains("deviceadmin") ||
-
-                // 3. App Info / Storage (Native Class)
                 cls.contains("installedappdetails") ||
                 cls.contains("appmanagement") ||
-
-                // 4. Fallback: Text Hunting (Only if Class Name fails)
                 txt.contains("dns guard") || 
                 txt.contains("admin")
 
             var confirmedDanger = false
-            if (isDangerZone) {
-                confirmedDanger = true
-            }
+            if (isDangerZone) confirmedDanger = true
             
-            // MULTI-WINDOW DEFENSE: Iterate ALL visible windows
+            // MULTI-WINDOW DEFENSE
             val allWindows = this.windows
             if (!allWindows.isEmpty()) {
                 for (window in allWindows) {
@@ -157,8 +145,6 @@ class GuardService : AccessibilityService() {
                     }
 
                     // B. SELF-DEFENSE (App Info & Storage Guard)
-                    // We combine the Native Class check (cls) with the Text check.
-                    // Rule: If we are in 'App Details' AND we see 'DNS Guard', it's an attack.
                     val isAppInfoPage = cls.contains("installedappdetails") || 
                                         cls.contains("appmanagement") ||
                                         root.findAccessibilityNodeInfosByText("App info").isNotEmpty()
@@ -167,11 +153,8 @@ class GuardService : AccessibilityService() {
                         val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
                         if (selfName.isNotEmpty()) {
                             confirmedDanger = true
-                            // DANGER: User is looking at our App Info.
-                            // Keep Shield UP and Exit.
                             performGlobalAction(GLOBAL_ACTION_HOME)
                             
-                            // Punishment: Lock immediately
                             val i = Intent(applicationContext, LockdownActivity::class.java)
                             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -182,14 +165,12 @@ class GuardService : AccessibilityService() {
                     }
 
                     // C. ADMIN TRAP
-                    // We search for 'DNS Guard Admin' AND 'Deactivate'/'Remove' in the same window
                     val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
                     if (adminTitle.isNotEmpty()) {
                          if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
                              root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
                              root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
                                  confirmedDanger = true
-                                 // DANGER DETECTED: Keep Shield UP
                                  performGlobalAction(GLOBAL_ACTION_HOME)
                                  break
                          }
@@ -197,10 +178,24 @@ class GuardService : AccessibilityService() {
                 }
             }
             
-            // VERDICT: SAFE
-            // Only lower shield if we are absolutely sure it's safe.
-            if (!confirmedDanger) {
-                setShield(false)
+            // VERDICT: SPONGE DELAY
+            if (confirmedDanger) {
+                // Keep Shield UP
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            } else {
+                // Even if safe, we HOLD the shield for 1 second.
+                // This neutralizes "Speed Tapping" by forcing the user to wait.
+                // If they interact blindly, the shield eats the tap.
+                scope.launch {
+                    withContext(Dispatchers.Main) {
+                        // Wait for UI to settle
+                        delay(1000)
+                        // If we haven't detected danger in the meantime, lower it.
+                        if (isShieldActive) {
+                             setShield(false)
+                        }
+                    }
+                }
             }
         } else {
             // Not in settings? Shield down.
@@ -208,40 +203,48 @@ class GuardService : AccessibilityService() {
         }
     }
 
-    // SHIELD LOGIC
+    // SHIELD LOGIC (High Performance Mode)
     private fun setShield(active: Boolean) {
         if (active == isShieldActive) return
         
         try {
-            if (active) {
-                if (shieldView == null) {
-                    shieldView = android.view.View(this).apply {
-                        setBackgroundColor(0x00000000) // Transparent
-                        isClickable = true
-                        isFocusable = true
-                    }
-                }
-                val params = android.view.WindowManager.LayoutParams(
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                    android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, // Priority Overlay
-                    android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                    android.graphics.PixelFormat.TRANSLUCENT
-                )
-                windowManager?.addView(shieldView, params)
-                isShieldActive = true
-            } else {
-                if (shieldView != null) {
-                    windowManager?.removeView(shieldView)
-                    isShieldActive = false
+            if (shieldView == null) {
+                shieldView = android.view.View(this).apply {
+                    setBackgroundColor(0x00000000) // Transparent
+                    isClickable = true
+                    isFocusable = true
                 }
             }
+
+            val params = android.view.WindowManager.LayoutParams(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                // REMOVED FLAG_NOT_FOCUSABLE to consume all input events aggressively if needed
+                // Added WATCH_OUTSIDE_TOUCH to catch edge cases
+                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                android.view.WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                android.graphics.PixelFormat.TRANSLUCENT
+            )
+
+            if (active) {
+                if (shieldView?.parent == null) {
+                    windowManager?.addView(shieldView, params)
+                } else {
+                    shieldView?.visibility = android.view.View.VISIBLE
+                    windowManager?.updateViewLayout(shieldView, params)
+                }
+                isShieldActive = true
+            } else {
+                // Optimization: Don't remove view, just HIDE it. 
+                // This eliminates the 'addView' lag for the next trigger.
+                if (shieldView?.parent != null) {
+                    shieldView?.visibility = android.view.View.GONE
+                }
+                isShieldActive = false
+            }
         } catch (e: Exception) {
-            // Use standard overlay if accessibility overlay fails
-            try {
-                 // Fallback logic if needed, but Accessibility Overlay usually works for Services
-            } catch (e2: Exception) {}
+            e.printStackTrace()
         }
     }
     
