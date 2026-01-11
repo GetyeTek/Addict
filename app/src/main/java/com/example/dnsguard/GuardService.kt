@@ -115,43 +115,46 @@ class GuardService : AccessibilityService() {
 
             // OPTIMIZED SHIELDING: Native Class Detection
             val cls = event.className?.toString()?.lowercase() ?: ""
-            val txt = event.text.toString().lowercase()
-
-            val isDangerZone = 
-                pkg.contains("accessibility") ||
-                cls.contains("accessibility") ||
-                cls.contains("deviceadmin") ||
-                cls.contains("installedappdetails") ||
-                cls.contains("appmanagement") ||
-                txt.contains("dns guard") || 
-                txt.contains("admin")
+            
+            // Context Flags (Potential Danger)
+            val isAppInfoPage = cls.contains("installedappdetails") || cls.contains("appmanagement")
+            // We don't rely solely on class names for Admin pages anymore, as they vary by vendor.
 
             var confirmedDanger = false
-            if (isDangerZone) confirmedDanger = true
             
-            // MULTI-WINDOW DEFENSE
+            // MULTI-WINDOW DEFENSE: Content Scanning
             val allWindows = this.windows
             if (!allWindows.isEmpty()) {
                 for (window in allWindows) {
                     val root = window.root ?: continue
                     
-                    // A. ACCESSIBILITY TRAP
+                    // GLOBAL SCAN: Locate identifying strings first
+                    val hasDnsGuard = root.findAccessibilityNodeInfosByText("DNS Guard")
+                    
+                    // A. ACCESSIBILITY TRAP (Targeted)
                     val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
                     val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
                     
                     if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
                         confirmedDanger = true
                         performGlobalAction(GLOBAL_ACTION_HOME)
+                        break
                     }
 
-                    // B. SELF-DEFENSE (App Info & Storage Guard)
-                    val isAppInfoPage = cls.contains("installedappdetails") || 
-                                        cls.contains("appmanagement") ||
-                                        root.findAccessibilityNodeInfosByText("App info").isNotEmpty()
+                    // B. DEVICE ADMIN TRAP (The "Inner" Screen)
+                    // Logic: If we see "Deactivate" AND "DNS Guard", it is the confirmation screen.
+                    // This is specific to the screen in your screenshot.
+                    val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
+                    
+                    if (hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) {
+                         confirmedDanger = true
+                         performGlobalAction(GLOBAL_ACTION_HOME)
+                         break
+                    }
 
+                    // C. SELF-DEFENSE (App Info & Storage Guard)
                     if (isAppInfoPage) {
-                        val selfName = root.findAccessibilityNodeInfosByText("DNS Guard")
-                        if (selfName.isNotEmpty()) {
+                        if (hasDnsGuard.isNotEmpty()) {
                             confirmedDanger = true
                             performGlobalAction(GLOBAL_ACTION_HOME)
                             
@@ -163,18 +166,6 @@ class GuardService : AccessibilityService() {
                             break
                         }
                     }
-
-                    // C. ADMIN TRAP
-                    val adminTitle = root.findAccessibilityNodeInfosByText("DNS Guard Admin")
-                    if (adminTitle.isNotEmpty()) {
-                         if (root.findAccessibilityNodeInfosByText("Deactivate").isNotEmpty() ||
-                             root.findAccessibilityNodeInfosByText("Remove").isNotEmpty() ||
-                             root.findAccessibilityNodeInfosByText("Uninstall").isNotEmpty()) {
-                                 confirmedDanger = true
-                                 performGlobalAction(GLOBAL_ACTION_HOME)
-                                 break
-                         }
-                    }
                 }
             }
             
@@ -183,14 +174,11 @@ class GuardService : AccessibilityService() {
                 // Keep Shield UP
                 performGlobalAction(GLOBAL_ACTION_HOME)
             } else {
-                // Even if safe, we HOLD the shield for 1 second.
-                // This neutralizes "Speed Tapping" by forcing the user to wait.
-                // If they interact blindly, the shield eats the tap.
+                // SAFE CONTEXT?
+                // We still hold the shield for 1.0s to prevent "Speed Tapping".
                 scope.launch {
                     withContext(Dispatchers.Main) {
-                        // Wait for UI to settle
                         delay(1000)
-                        // If we haven't detected danger in the meantime, lower it.
                         if (isShieldActive) {
                              setShield(false)
                         }
