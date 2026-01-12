@@ -15,26 +15,9 @@ object LockManager {
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
 
-    // BROWSER BLACKLIST (Whitelisted: Chrome Stable)
-    private val BROWSERS = setOf(
-        "com.reddit.frontpage", // Reddit App
-        "org.mozilla.firefox",
-        "com.microsoft.emmx", // Edge
-        "com.opera.browser",
-        "com.sec.android.app.sbrowser", // Samsung Internet
-        "com.brave.browser",
-        "com.duckduckgo.mobile.android",
-        "com.UCMobile.intl", // UC
-        "mobi.mbrowser", // Mint
-        "com.vivaldi.browser",
-        "org.torproject.torbrowser",
-        "com.cloudmosa.puffinFree",
-        "com.yandex.browser",
-        // Chrome Variants (Unsafe for maintenance)
-        "com.chrome.beta",
-        "com.chrome.dev",
-        "com.chrome.canary"
-    )
+    // DYNAMIC BROWSER DETECTION
+    private val MANUAL_BLACKLIST = setOf("com.reddit.frontpage")
+    private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
 
     fun isUnlocked(ctx: Context): Boolean {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -77,9 +60,23 @@ object LockManager {
         return (now - start) < BAN_MS
     }
 
-    fun isBlacklistedBrowser(pkg: String): Boolean {
-        // Allow Chrome (com.android.chrome), block others
-        return BROWSERS.contains(pkg)
+    fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
+        // 1. Whitelist Chrome Stable
+        if (pkg == "com.android.chrome") return false
+
+        // 2. Check Manual List
+        if (MANUAL_BLACKLIST.contains(pkg)) return true
+
+        // 3. Check Cache
+        if (BROWSER_CACHE.containsKey(pkg)) return BROWSER_CACHE[pkg]!!
+
+        // 4. Dynamic Check: Does it handle generic web URLs?
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
+        val list = ctx.packageManager.queryIntentActivities(intent, 0)
+        
+        val isBrowser = list.any { it.activityInfo.packageName == pkg }
+        BROWSER_CACHE[pkg] = isBrowser
+        return isBrowser
     }
 
     private fun isVpnActive(ctx: Context): Boolean {
