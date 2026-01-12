@@ -32,68 +32,92 @@ class LockdownActivity : ComponentActivity() {
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
+        
+        // INTRUSION: Remove system bars
+        window.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
 
         setContent {
-            // CyberUI Reused Theme
+            // DISTINCT UI THEMES
+            val (bgColor, mainColor, icon, title, desc, btnText) = when (blockType) {
+                "BROWSER" -> Preset(
+                    Color(0xFF2B0000), Color(0xFFFF0033), 
+                    android.R.drawable.ic_delete, "RESTRICTED", 
+                    "This browser is locked. Use Chrome.", "CLOSE BROWSER"
+                )
+                "TELEGRAM_SUSPENDED" -> Preset(
+                    Color(0xFF1A1A00), Color(0xFFFFD700), 
+                    android.R.drawable.ic_lock_idle_lock, "SUSPENDED", 
+                    "Security strikes exceeded.\nLocked for 10 minutes.", "ACKNOWLEDGE"
+                )
+                "SECURITY_TRIPWIRE" -> Preset(
+                    Color(0xFF000000), Color(0xFF00FF00), 
+                    android.R.drawable.ic_secure, "SECURITY ALERT", 
+                    "Do not tamper with settings.", "GO BACK"
+                )
+                else -> Preset(
+                    Color(0xFF050505), Color(0xFFEF4565), 
+                    android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
+                    "Private DNS must be Strict (hostname).", "FIX DNS"
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF050505)), // Void Black
+                    .background(bgColor),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // DYNAMIC HEADER
-                    val headerText = when (blockType) {
-                        "BROWSER" -> "UNSAFE BROWSER"
-                        "TELEGRAM_SUSPENDED" -> "APP SUSPENDED"
-                        else -> "CONNECTION UNSECURE"
-                    }
+                    // ICON
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = icon),
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(mainColor)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // HEADER
                     Text(
-                        text = headerText,
-                        color = Color(0xFFEF4565), // Neon Red
+                        text = title,
+                        color = mainColor,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // DYNAMIC BODY
-                    val bodyText = when (blockType) {
-                        "BROWSER" -> "Only official Chrome is allowed during maintenance."
-                        "TELEGRAM_SUSPENDED" -> "Security violation detected.\nTelegram is locked for 10 minutes."
-                        else -> "Private DNS must be set to 'Strict'."
-                    }
+                    // BODY
                     Text(
-                        text = bodyText,
+                        text = desc,
                         color = Color.LightGray,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                     
-                    // DYNAMIC BUTTON
-                    if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED") {
-                        Button(
-                            onClick = { 
-                                val i = Intent(Intent.ACTION_MAIN)
-                                i.addCategory(Intent.CATEGORY_HOME)
-                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                startActivity(i)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4565))
-                        ) {
-                            Text("CLOSE APP", color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        Button(
-                            onClick = { 
-                                val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
-                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                startActivity(i)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4565))
-                        ) {
-                            Text("FIX NOW", color = Color.White, fontWeight = FontWeight.Bold)
-                        }
+                    // ACTION BUTTON
+                    Button(
+                        onClick = { 
+                             if (blockType == "DNS") {
+                                 val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                 i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                 startActivity(i)
+                             } else {
+                                 // Default: Go Home
+                                 val i = Intent(Intent.ACTION_MAIN)
+                                 i.addCategory(Intent.CATEGORY_HOME)
+                                 i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                 startActivity(i)
+                             }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = mainColor)
+                    ) {
+                        Text(btnText, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(40.dp))
@@ -153,6 +177,12 @@ class LockdownActivity : ComponentActivity() {
             }
         }
     }
+
+    // DATA CLASS FOR UI PRESETS
+    data class Preset(
+        val bg: Color, val main: Color, val icon: Int, 
+        val title: String, val desc: String, val btn: String
+    )
 
     // Trap user
     @Deprecated("Deprecated in Java")
