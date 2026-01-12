@@ -8,7 +8,9 @@ object LockManager {
 
     private const val PREFS = "admin_prefs"
     private const val KEY_UNLOCK_TIME = "unlock_ts"
+    private const val KEY_TG_BAN = "tg_ban_ts"
     private const val TIMEOUT_MS = 5 * 60 * 1000 // 5 Minutes
+    private const val BAN_MS = 10 * 60 * 1000 // 10 Minutes
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
@@ -60,6 +62,18 @@ object LockManager {
     fun lock(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().remove(KEY_UNLOCK_TIME).apply()
+    }
+
+    fun banTelegram(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_TG_BAN, System.currentTimeMillis()).apply()
+    }
+
+    fun isTelegramBanned(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val start = prefs.getLong(KEY_TG_BAN, 0L)
+        val now = System.currentTimeMillis()
+        return (now - start) < BAN_MS
     }
 
     fun isBlacklistedBrowser(pkg: String): Boolean {
