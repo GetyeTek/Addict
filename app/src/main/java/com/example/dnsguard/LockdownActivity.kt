@@ -63,7 +63,7 @@ class LockdownActivity : ComponentActivity() {
                 "BROWSER_VIOLATION" -> Preset(
                     Color(0xFF2B0000), Color(0xFFFF0033), 
                     android.R.drawable.ic_delete, "BROWSER LOCKED", 
-                    "Security Violation Detected.\nBrowser locked.", "CLOSE BROWSER"
+                    "Security Violation Detected.\nLocked for 5 minutes.", "CLOSE BROWSER"
                 )
                 "TELEGRAM_SUSPENDED" -> Preset(
                     Color(0xFF1A1A00), Color(0xFFFFD700), 
@@ -208,6 +208,9 @@ class LockdownActivity : ComponentActivity() {
                         if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE") {
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
                              if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
+                                 finishAffinity()
+                             }
+                             if (blockType == "BROWSER_VIOLATION" && !LockManager.isBrowserBanned(applicationContext)) {
                                  finishAffinity()
                              }
                         } else {
