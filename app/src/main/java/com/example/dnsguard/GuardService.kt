@@ -190,41 +190,9 @@ class GuardService : AccessibilityService() {
             }
         }
 
-        // 5. OMNI-BROWSER GUARD (Social Web Blacklist)
-        // Enforces "App-Only" usage for social media.
-        val browserPackages = setOf(
-            "com.android.chrome",
-            "org.mozilla.firefox",
-            "com.microsoft.emmx", 
-            "com.sec.android.app.sbrowser",
-            "com.opera.browser",
-            "com.brave.browser",
-            "com.duckduckgo.mobile.android",
-            "com.yandex.browser"
-        )
-
-        if (browserPackages.contains(pkg)) {
-            val root = event.source
-            if (root != null) {
-                // The "Dirty Dozen" - Sites that bypass SafeSearch
-                val blacklist = listOf(
-                    "bsky.app",         // Bluesky
-                    "twitter.com",      // X
-                    "x.com",
-                    "reddit.com",
-                    "web.telegram.org",
-                    "instagram.com",
-                    "tiktok.com"
-                )
-
-                for (badSite in blacklist) {
-                    if (root.findAccessibilityNodeInfosByText(badSite).isNotEmpty()) {
-                        handleBrowserStrike()
-                        return
-                    }
-                }
-            }
-        }
+        // 5. OMNI-BROWSER GUARD: REMOVED
+        // We now rely solely on scanForViolations() (Polling & TextChange)
+        // because it implements the Strict Boundary Check to prevent false positives.
 
         // 6. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
@@ -454,26 +422,18 @@ class GuardService : AccessibilityService() {
 
         // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
-            // Added "x.com" back, but now we use strict boundary checks
             val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
             
             for (site in blacklist) {
-                // 1. Fast native search to find candidates
                 val candidates = root.findAccessibilityNodeInfosByText(site)
-                
                 for (node in candidates) {
-                    // 2. Strict Boundary Check (No Normalization)
-                    // We combine text and desc to catch URL bars that use either.
                     val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                     val lowerText = rawText.lowercase()
                     val index = lowerText.indexOf(site)
 
                     if (index != -1) {
-                        // Check the character BEFORE the match.
-                        // If it's a letter or digit, it's a false positive (e.g., "linuX.COM")
-                        // Valid separators: space, /, ., :, or start of string.
+                        // STRICT CHECK: char before must NOT be letter/digit
                         val charBefore = if (index > 0) lowerText[index - 1] else ' '
-                        
                         if (!charBefore.isLetterOrDigit()) {
                             handleBrowserStrike()
                             return
