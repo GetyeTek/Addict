@@ -459,22 +459,46 @@ class GuardService : AccessibilityService() {
             }
         }
 
-        // 2. TELEGRAM LOGIC
+        // 2. TELEGRAM LOGIC (Fingerprint Scan)
         if (isTelegram) {
-            // CONTEXT CHECK: Only trigger if we see search or channel indicators
-            val hasSearch = root.findAccessibilityNodeInfosByText("Global Search").isNotEmpty()
-            val hasChannel = root.findAccessibilityNodeInfosByText("Channel").isNotEmpty() || 
-                             root.findAccessibilityNodeInfosByText("Channels").isNotEmpty()
+            // FINGERPRINT: The specific UI structure of the Search Screen
+            val visibleTabs = setOf("chats", "channels", "apps", "posts")
+            val hiddenTabs = setOf("media", "downloads", "links", "files", "music", "voice")
+            val allTabs = visibleTabs + hiddenTabs + "global search"
 
-            if (hasSearch || hasChannel) {
-                val sb = StringBuilder()
-                recursiveScan(root, sb)
-                val content = sb.toString()
+            // A. EXTRACT ALL TEXT
+            val screenContent = mutableListOf<String>()
+            fun extract(node: AccessibilityNodeInfo?) {
+                if (node == null) return
+                if (!node.text.isNullOrBlank()) screenContent.add(node.text.toString())
+                if (!node.contentDescription.isNullOrBlank()) screenContent.add(node.contentDescription.toString())
+                for (i in 0 until node.childCount) extract(node.getChild(i))
+            }
+            extract(root)
 
-                if (!WordBank.isSafe(applicationContext, content)) {
-                   // 1. Upload immediately to Supabase (Fire and Forget)
-                   scope.launch { CloudLogger.logViolation(applicationContext, content) }
-                   // 2. Strike
+            // B. CALCULATE CONFIDENCE & FILTER
+            var matchCount = 0
+            val contentToCheck = StringBuilder()
+
+            for (text in screenContent) {
+                val lower = text.trim().lowercase()
+                if (allTabs.contains(lower)) {
+                    // It matches our fingerprint -> Increase Confidence
+                    matchCount++
+                } else {
+                    // It is NOT a UI tab -> This is content we must check (e.g. what you typed)
+                    contentToCheck.append(text).append(" ")
+                }
+            }
+
+            // C. MATHEMATICAL PROOF (Threshold)
+            // We require at least 3 UI elements to match before we assume this is the Search Screen.
+            // This prevents false positives (e.g., chatting about "Channels" in a group).
+            if (matchCount >= 3) {
+                val finalContent = contentToCheck.toString()
+
+                if (!WordBank.isSafe(applicationContext, finalContent)) {
+                   scope.launch { CloudLogger.logViolation(applicationContext, finalContent) }
                    handleTelegramStrike()
                 }
             }
