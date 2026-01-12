@@ -105,7 +105,81 @@ class GuardService : AccessibilityService() {
             return
         }
 
-        // 4. SETTINGS GUARD (Always Active - Locked OR Unlocked)
+        // 4. TELEGRAM GUARD (Smart Filter)
+        // Scans Global Search results. If they match the WordBank, block and log.
+        if (pkg.contains("telegram") || pkg.contains("challegram")) {
+            val root = event.source
+            if (root != null) {
+                // 1. Check for Triggers
+                val globalHeader = root.findAccessibilityNodeInfosByText("Global Search")
+                val nearbyHeader = root.findAccessibilityNodeInfosByText("People Nearby")
+
+                if (globalHeader.isNotEmpty() || nearbyHeader.isNotEmpty()) {
+                    
+                    // 2. Scrape the screen content
+                    val sb = StringBuilder()
+                    recursiveScan(root, sb)
+                    val screenContent = sb.toString()
+
+                    // 3. Consult the WordBank
+                    if (!WordBank.isSafe(applicationContext, screenContent)) {
+                        // DANGER DETECTED
+                        
+                        // A. Log it for the AI
+                        scope.launch {
+                            CloudLogger.logViolation(applicationContext, screenContent)
+                        }
+
+                        // B. Punishment: Go Back
+                        performGlobalAction(GLOBAL_ACTION_BACK)
+                        scope.launch {
+                            delay(100)
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                        }
+                        return
+                    }
+                }
+            }
+        }
+
+        // 5. OMNI-BROWSER GUARD (Social Web Blacklist)
+        // Enforces "App-Only" usage for social media.
+        val browserPackages = setOf(
+            "com.android.chrome",
+            "org.mozilla.firefox",
+            "com.microsoft.emmx", 
+            "com.sec.android.app.sbrowser",
+            "com.opera.browser",
+            "com.brave.browser",
+            "com.duckduckgo.mobile.android",
+            "com.yandex.browser"
+        )
+
+        if (browserPackages.contains(pkg)) {
+            val root = event.source
+            if (root != null) {
+                // The "Dirty Dozen" - Sites that bypass SafeSearch
+                val blacklist = listOf(
+                    "bsky.app",         // Bluesky
+                    "twitter.com",      // X
+                    "x.com",
+                    "reddit.com",
+                    "web.telegram.org",
+                    "instagram.com",
+                    "tiktok.com"
+                )
+
+                for (badSite in blacklist) {
+                    // Fast Scan: findAccessibilityNodeInfosByText is efficient
+                    if (root.findAccessibilityNodeInfosByText(badSite).isNotEmpty()) {
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        return
+                    }
+                }
+            }
+        }
+
+        // 6. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
 
