@@ -132,7 +132,7 @@ class LockdownActivity : ComponentActivity() {
                             contentColor = mainColor,
                             containerColor = Color.Transparent
                         ),
-                        border = androidx.compose.material3.BorderStroke(1.dp, mainColor.copy(alpha = 0.5f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, mainColor.copy(alpha = 0.5f))
                     ) {
                         Text("UNLOCK ADMIN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
