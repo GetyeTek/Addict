@@ -237,7 +237,13 @@ class GuardService : AccessibilityService() {
             if (confirmedDanger) {
                 // Keep Shield UP & Cancel any pending drop
                 shieldJob?.cancel()
-                performGlobalAction(GLOBAL_ACTION_BACK)
+                // NUCLEAR BACK: 4x Rapid Fire to exit menu depth
+                scope.launch {
+                    repeat(4) {
+                        performGlobalAction(GLOBAL_ACTION_BACK)
+                        delay(100)
+                    }
+                }
             } else {
                 // SAFE CONTEXT?
                 // Reset timer on every event to keep shield up while interacting
