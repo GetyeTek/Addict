@@ -230,7 +230,11 @@ class GuardService : AccessibilityService() {
 
                     // C. SELF-DEFENSE (App Info & Storage Guard)
                     if (isAppInfoPage) {
-                        if (hasDnsGuard.isNotEmpty()) {
+                        // FIX: Ignore System UI (Status Bar) which contains the persistent "DNS Guard" notification
+                        val nodePkg = root.packageName?.toString() ?: ""
+                        val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
+
+                        if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
                             confirmedDanger = true
                             performGlobalAction(GLOBAL_ACTION_BACK)
                             
