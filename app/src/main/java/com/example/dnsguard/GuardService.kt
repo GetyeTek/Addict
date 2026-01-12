@@ -406,7 +406,22 @@ class GuardService : AccessibilityService() {
 
         // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
-            val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
+            val blacklist = listOf(
+                // Social & Microblogging
+                "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
+                // Fediverse
+                "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
+                // Community & Messaging
+                "web.telegram.org", "t.me", "telegram.org", "discord.com", "kik.com", "snapchat.com", "slack.com",
+                // Art & Creative
+                "pixiv.net", "deviantart.com", "newgrounds.com", "artstation.com", "furaffinity.net", "hentai-foundry.com", "gelbooru.com", "danbooru.donmai.us",
+                // Creator & Membership
+                "onlyfans.com", "fansly.com", "patreon.com", "subscribestar.com", "fanbox.cc", "unifans.io", "buymeacoffee.com", "ko-fi.com",
+                // Video & Streaming
+                "kick.com", "bitchute.com", "rumble.com", "vimeo.com", "dailymotion.com", "dlive.tv", "picarto.tv",
+                // Specialized & Existing
+                "fetlife.com", "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", "pornhub", "xnxx"
+            )
             
             for (site in blacklist) {
                 val candidates = root.findAccessibilityNodeInfosByText(site)
