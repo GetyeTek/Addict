@@ -158,43 +158,45 @@ class LockdownActivity : ComponentActivity() {
                         Text(btnText, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
 
-                    Spacer(modifier = Modifier.height(40.dp))
-                    
-                    // UNLOCK BUTTON
-                    var showDialog by remember { mutableStateOf(false) }
-                    var password by remember { mutableStateOf("") }
+                    // UNLOCK BUTTON (Only for DNS/System Lock)
+                    if (blockType == "DNS") {
+                        Spacer(modifier = Modifier.height(40.dp))
+                        
+                        var showDialog by remember { mutableStateOf(false) }
+                        var password by remember { mutableStateOf("") }
 
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = { showDialog = true },
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            contentColor = mainColor,
-                            containerColor = Color.Transparent
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, mainColor.copy(alpha = 0.5f))
-                    ) {
-                        Text("UNLOCK ADMIN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { showDialog = true },
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = mainColor,
+                                containerColor = Color.Transparent
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, mainColor.copy(alpha = 0.5f))
+                        ) {
+                            Text("UNLOCK ADMIN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
 
-                    if (showDialog) {
-                        androidx.compose.material3.AlertDialog(
-                            onDismissRequest = { showDialog = false },
-                            title = { Text("Enter Password") },
-                            text = { 
-                                androidx.compose.material3.TextField(
-                                    value = password, 
-                                    onValueChange = { password = it },
-                                    singleLine = true
-                                )
-                            },
-                            confirmButton = {
-                                androidx.compose.material3.Button(onClick = {
-                                    if (password == LockManager.ADMIN_PASS) {
-                                        LockManager.unlock(applicationContext)
-                                        finishAffinity()
-                                    }
-                                }) { Text("UNLOCK") }
-                            }
-                        )
+                        if (showDialog) {
+                            androidx.compose.material3.AlertDialog(
+                                onDismissRequest = { showDialog = false },
+                                title = { Text("Enter Password") },
+                                text = { 
+                                    androidx.compose.material3.TextField(
+                                        value = password, 
+                                        onValueChange = { password = it },
+                                        singleLine = true
+                                    )
+                                },
+                                confirmButton = {
+                                    androidx.compose.material3.Button(onClick = {
+                                        if (password == LockManager.ADMIN_PASS) {
+                                            LockManager.unlock(applicationContext)
+                                            finishAffinity()
+                                        }
+                                    }) { Text("UNLOCK") }
+                                }
+                            )
+                        }
                     }
                 }
             }
