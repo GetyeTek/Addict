@@ -192,6 +192,11 @@ class GuardService : AccessibilityService() {
                     if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
                         confirmedDanger = true
                         performGlobalAction(GLOBAL_ACTION_BACK)
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
+                        startActivity(i)
                         break
                     }
 
@@ -203,6 +208,11 @@ class GuardService : AccessibilityService() {
                     if (hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) {
                          confirmedDanger = true
                          performGlobalAction(GLOBAL_ACTION_BACK)
+                         val i = Intent(applicationContext, LockdownActivity::class.java)
+                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                         i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                         i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
+                         startActivity(i)
                          break
                     }
 
@@ -444,7 +454,7 @@ class GuardService : AccessibilityService() {
         if (browserStrikes.size >= 4) {
              // TRIGGER BLOCK
              val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "BROWSER")
+             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
              startActivity(i)
         } else {
