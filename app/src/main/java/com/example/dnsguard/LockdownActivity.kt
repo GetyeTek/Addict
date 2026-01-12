@@ -22,10 +22,21 @@ import kotlinx.coroutines.launch
 
 class LockdownActivity : ComponentActivity() {
 
+    // STATE: Observable state to update UI without recreating Activity
+    private var blockTypeState = mutableStateOf("DNS")
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Refresh state when a new command arrives
+        blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val blockType = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
+        // Init state from first intent
+        blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
         
         // INTRUSION: Remove system bars
         window.setFlags(
@@ -40,6 +51,8 @@ class LockdownActivity : ComponentActivity() {
         )
 
         setContent {
+            val blockType by blockTypeState
+
             // DISTINCT UI THEMES
             val (bgColor, mainColor, icon, title, desc, btnText) = when (blockType) {
                 "BROWSER" -> Preset(
@@ -108,16 +121,36 @@ class LockdownActivity : ComponentActivity() {
                     // ACTION BUTTON
                     Button(
                         onClick = { 
-                             if (blockType == "DNS") {
-                                 val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
-                                 i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                 startActivity(i)
-                             } else {
-                                 // Default: Go Home
-                                 val i = Intent(Intent.ACTION_MAIN)
-                                 i.addCategory(Intent.CATEGORY_HOME)
-                                 i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                 startActivity(i)
+                             when (blockType) {
+                                 "DNS" -> {
+                                     val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                     startActivity(i)
+                                 }
+                                 "BROWSER" -> {
+                                     // Redirect to Chrome
+                                     try {
+                                         val i = packageManager.getLaunchIntentForPackage("com.android.chrome")
+                                         if (i != null) {
+                                             i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                             startActivity(i)
+                                             finishAffinity()
+                                         }
+                                     } catch (e: Exception) {
+                                         // If chrome missing, go home
+                                         val i = Intent(Intent.ACTION_MAIN)
+                                         i.addCategory(Intent.CATEGORY_HOME)
+                                         i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                         startActivity(i)
+                                     }
+                                 }
+                                 else -> {
+                                     // Default: Go Home
+                                     val i = Intent(Intent.ACTION_MAIN)
+                                     i.addCategory(Intent.CATEGORY_HOME)
+                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                     startActivity(i)
+                                 }
                              }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = mainColor)
@@ -178,9 +211,10 @@ class LockdownActivity : ComponentActivity() {
                                  finishAffinity()
                              }
                         } else {
-                             // Normal Mode: Exit if DNS fixed OR Unlocked
-                             if (DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)) {
-                                 finishAffinity() // Release lock
+                             // DNS Mode: Exit only if fixed. 
+                             // NOTE: We do NOT exit if Unlocked, because this screen might be showing "BROWSER" (Maintenance Mode)
+                             if (blockType == "DNS" && DnsManager.isSecure(applicationContext)) {
+                                 finishAffinity()
                              }
                         }
                         delay(1000)
