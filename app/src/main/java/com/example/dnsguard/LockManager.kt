@@ -17,6 +17,7 @@ object LockManager {
 
     // BROWSER BLACKLIST (Whitelisted: Chrome Stable)
     private val BROWSERS = setOf(
+        "com.reddit.frontpage", // Reddit App
         "org.mozilla.firefox",
         "com.microsoft.emmx", // Edge
         "com.opera.browser",
