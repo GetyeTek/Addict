@@ -108,37 +108,52 @@ class GuardService : AccessibilityService() {
             return
         }
 
-        // 4. TELEGRAM GUARD (Smart Filter)
-        // Scans Global Search results. If they match the WordBank, block and log.
+        // 4. TELEGRAM GUARD (Smart Filter + Penalty Box)
         if (pkg.contains("telegram") || pkg.contains("challegram")) {
+            
+            // A. ENFORCE BAN (If previously violated)
+            if (LockManager.isTelegramBanned(applicationContext)) {
+                val i = Intent(applicationContext, LockdownActivity::class.java)
+                i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                i.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                startActivity(i)
+                
+                // Kick them out of the app visually
+                performGlobalAction(GLOBAL_ACTION_HOME)
+                return
+            }
+
+            // B. SCAN CONTENT
             val root = event.source
             if (root != null) {
-                // 1. Check for Triggers
                 val globalHeader = root.findAccessibilityNodeInfosByText("Global Search")
                 val nearbyHeader = root.findAccessibilityNodeInfosByText("People Nearby")
 
                 if (globalHeader.isNotEmpty() || nearbyHeader.isNotEmpty()) {
-                    
-                    // 2. Scrape the screen content
                     val sb = StringBuilder()
                     recursiveScan(root, sb)
                     val screenContent = sb.toString()
 
-                    // 3. Consult the WordBank
                     if (!WordBank.isSafe(applicationContext, screenContent)) {
-                        // DANGER DETECTED
+                        // VIOLATION DETECTED
                         
-                        // A. Log it for the AI
-                        scope.launch {
-                            CloudLogger.logViolation(applicationContext, screenContent)
-                        }
+                        // 1. Log it
+                        scope.launch { CloudLogger.logViolation(applicationContext, screenContent) }
 
-                        // B. Punishment: Go Back
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                        scope.launch {
-                            delay(100)
-                            performGlobalAction(GLOBAL_ACTION_BACK)
-                        }
+                        // 2. BAN USER (10 Minute Cooldown)
+                        LockManager.banTelegram(applicationContext)
+
+                        // 3. KICK OUT
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        
+                        // 4. Show Lockdown immediately
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(i)
                         return
                     }
                 }
