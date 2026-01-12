@@ -126,8 +126,15 @@ class LockdownActivity : ComponentActivity() {
                     var showDialog by remember { mutableStateOf(false) }
                     var password by remember { mutableStateOf("") }
 
-                    androidx.compose.material3.TextButton(onClick = { showDialog = true }) {
-                        Text("UNLOCK ADMIN", color = Color.DarkGray, fontSize = 12.sp)
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { showDialog = true },
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = mainColor,
+                            containerColor = Color.Transparent
+                        ),
+                        border = androidx.compose.material3.BorderStroke(1.dp, mainColor.copy(alpha = 0.5f))
+                    ) {
+                        Text("UNLOCK ADMIN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     if (showDialog) {
