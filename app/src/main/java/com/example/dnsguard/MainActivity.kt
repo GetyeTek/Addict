@@ -206,6 +206,33 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // DEBUG: BROWSER CHECKER
+                var showBrowserList by remember { mutableStateOf(false) }
+                var browserListText by remember { mutableStateOf("") }
+
+                TextButton(onClick = {
+                    val list = LockManager.getDetectedBrowsers(applicationContext)
+                    browserListText = list.joinToString("\n")
+                    showBrowserList = true
+                }) { Text("DEBUG: SHOW DETECTED BROWSERS", color = Color.DarkGray, fontSize = 10.sp) }
+
+                if (showBrowserList) {
+                    AlertDialog(
+                        onDismissRequest = { showBrowserList = false },
+                        title = { Text("Detected Browsers") },
+                        text = {
+                            SelectionContainer {
+                                Text(browserListText, fontSize = 12.sp)
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { showBrowserList = false }) { Text("CLOSE") }
+                        }
+                    )
+                }
             }
         }
     }
