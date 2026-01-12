@@ -17,6 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -120,7 +128,7 @@ class LockdownActivity : ComponentActivity() {
                     // DNS SELECTOR (Tap to Copy)
                     if (blockType == "DNS") {
                         Spacer(modifier = Modifier.height(24.dp))
-                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        val ctx = LocalContext.current
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                             Text("TAP TO COPY:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -130,11 +138,11 @@ class LockdownActivity : ComponentActivity() {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(bottom = 8.dp)
-                                        .androidx.compose.foundation.border(1.dp, mainColor, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                                        .androidx.compose.foundation.clickable {
-                                            val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            cm.setPrimaryClip(android.content.ClipData.newPlainText("DNS", dns))
-                                            android.widget.Toast.makeText(ctx, "Copied: $dns", android.widget.Toast.LENGTH_SHORT).show()
+                                        .border(1.dp, mainColor, RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            cm.setPrimaryClip(ClipData.newPlainText("DNS", dns))
+                                            Toast.makeText(ctx, "Copied: $dns", Toast.LENGTH_SHORT).show()
                                         }
                                         .padding(16.dp)
                                 ) {
