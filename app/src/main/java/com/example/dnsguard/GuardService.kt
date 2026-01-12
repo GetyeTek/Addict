@@ -13,6 +13,11 @@ class GuardService : AccessibilityService() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
 
+    // POLLING & STRIKE SYSTEM
+    private var pollingJob: Job? = null
+    private var activePackage = ""
+    private val browserStrikes = mutableListOf<Long>()
+
     // SHIELD: Invisible Touch Blocker
     private var windowManager: android.view.WindowManager? = null
     private var shieldView: android.view.View? = null
@@ -61,6 +66,12 @@ class GuardService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
+        
+        // Update active package and manage heartbeat polling
+        if (pkg != activePackage) {
+            activePackage = pkg
+            managePolling(pkg)
+        }
 
         // 0. DIALOG TRAP (The Backup Plan)
         // If a system dialog pops up asking to "Stop" or "Deactivate", kill it.
@@ -147,7 +158,7 @@ class GuardService : AccessibilityService() {
                         LockManager.banTelegram(applicationContext)
 
                         // 3. KICK OUT
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        performGlobalAction(GLOBAL_ACTION_BACK)
                         
                         // 4. Show Lockdown immediately
                         val i = Intent(applicationContext, LockdownActivity::class.java)
@@ -188,9 +199,8 @@ class GuardService : AccessibilityService() {
                 )
 
                 for (badSite in blacklist) {
-                    // Fast Scan: findAccessibilityNodeInfosByText is efficient
                     if (root.findAccessibilityNodeInfosByText(badSite).isNotEmpty()) {
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        handleBrowserStrike()
                         return
                     }
                 }
@@ -264,7 +274,7 @@ class GuardService : AccessibilityService() {
             // VERDICT: SPONGE DELAY
             if (confirmedDanger) {
                 // Keep Shield UP
-                performGlobalAction(GLOBAL_ACTION_HOME)
+                performGlobalAction(GLOBAL_ACTION_BACK)
             } else {
                 // SAFE CONTEXT?
                 // We still hold the shield for 1.0s to prevent "Speed Tapping".
@@ -403,8 +413,69 @@ class GuardService : AccessibilityService() {
         }
     }
 
+    private fun managePolling(pkg: String) {
+        // Stop existing poll to avoid duplicates
+        pollingJob?.cancel()
+
+        val isBrowser = LockManager.isBlacklistedBrowser(pkg)
+        val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
+
+        if (isBrowser || isTelegram) {
+            pollingJob = scope.launch {
+                while (isActive) {
+                    delay(1500) // 1.5 Second Heartbeat
+                    scanForViolations(isBrowser, isTelegram)
+                }
+            }
+        }
+    }
+
+    private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
+        val root = rootInActiveWindow ?: return
+
+        // 1. BROWSER POLLING
+        if (isBrowser) {
+            val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
+            for (site in blacklist) {
+                if (root.findAccessibilityNodeInfosByText(site).isNotEmpty()) {
+                    handleBrowserStrike()
+                    return
+                }
+            }
+        }
+
+        // 2. TELEGRAM POLLING
+        if (isTelegram) {
+            // Re-use recursive scan logic for Telegram search results
+            val sb = StringBuilder()
+            recursiveScan(root, sb)
+            if (!WordBank.isSafe(applicationContext, sb.toString())) {
+               performGlobalAction(GLOBAL_ACTION_BACK)
+            }
+        }
+    }
+
+    private fun handleBrowserStrike() {
+        val now = System.currentTimeMillis()
+        browserStrikes.add(now)
+        // Remove strikes older than 10 seconds
+        browserStrikes.removeAll { it < now - 10000 }
+
+        if (browserStrikes.size >= 4) {
+             // TOTAL BLOCK
+             val i = Intent(applicationContext, LockdownActivity::class.java)
+             i.putExtra("BLOCK_TYPE", "BROWSER")
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+             startActivity(i)
+        } else {
+             // WARNING KICK
+             performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         job.cancel()
+        pollingJob?.cancel()
     }
 }
