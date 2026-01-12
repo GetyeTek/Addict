@@ -43,13 +43,18 @@ class LockdownActivity : ComponentActivity() {
             // DISTINCT UI THEMES
             val (bgColor, mainColor, icon, title, desc, btnText) = when (blockType) {
                 "BROWSER" -> Preset(
+                    Color(0xFF202124), Color(0xFF4285F4),
+                    android.R.drawable.ic_dialog_alert, "UNSAFE BROWSER", 
+                    "Maintenance Mode Active.\nUse Chrome for official logging.", "OPEN CHROME"
+                )
+                "BROWSER_VIOLATION" -> Preset(
                     Color(0xFF2B0000), Color(0xFFFF0033), 
-                    android.R.drawable.ic_delete, "RESTRICTED", 
-                    "This browser is locked. Use Chrome.", "CLOSE BROWSER"
+                    android.R.drawable.ic_delete, "BROWSER LOCKED", 
+                    "Security Violation Detected.\nBrowser locked.", "CLOSE BROWSER"
                 )
                 "TELEGRAM_SUSPENDED" -> Preset(
                     Color(0xFF1A1A00), Color(0xFFFFD700), 
-                    android.R.drawable.ic_lock_idle_lock, "SUSPENDED", 
+                    android.R.drawable.ic_lock_idle_lock, "TELEGRAM LOCKED", 
                     "Security strikes exceeded.\nLocked for 10 minutes.", "ACKNOWLEDGE"
                 )
                 "SECURITY_TRIPWIRE" -> Preset(
@@ -167,7 +172,7 @@ class LockdownActivity : ComponentActivity() {
                 scope.launch {
                     while(true) {
                         // 1. CONDITIONAL EXIT
-                        if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE") {
+                        if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE") {
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
                              if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
                                  finishAffinity()
