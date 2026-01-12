@@ -73,6 +73,12 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
+        // OPTIMIZATION: We enabled ContentChanged in XML to refresh the data for the Polling Job,
+        // but we return HERE to prevent high battery drain. We let the Heartbeat handle the checks.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            return
+        }
+
         // 0. DIALOG TRAP (The Backup Plan)
         // If a system dialog pops up asking to "Stop" or "Deactivate", kill it.
         if (event.className?.toString()?.contains("Dialog") == true || 
