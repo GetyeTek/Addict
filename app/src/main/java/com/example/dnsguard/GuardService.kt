@@ -18,6 +18,10 @@ class GuardService : AccessibilityService() {
     private var activePackage = ""
     private val browserStrikes = mutableListOf<Long>()
     private val telegramStrikes = mutableListOf<Long>()
+    
+    // COOLDOWN: Prevents 100 strikes in 1 second
+    private var lastBrowserAction = 0L
+    private var lastTelegramAction = 0L
 
     // SHIELD: Invisible Touch Blocker
     private var windowManager: android.view.WindowManager? = null
@@ -450,9 +454,14 @@ class GuardService : AccessibilityService() {
 
         // 1. BROWSER LOGIC
         if (isBrowser) {
-            val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
+            // Removed "x.com" to prevent false positives (e.g. "linux.com")
+            val blacklist = listOf("bsky.app", "twitter.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
+            
             for (site in blacklist) {
-                if (root.findAccessibilityNodeInfosByText(site).isNotEmpty()) {
+                val nodes = root.findAccessibilityNodeInfosByText(site)
+                if (nodes.isNotEmpty()) {
+                    // DOUBLE CHECK: Verify it's not a substring match (like "example.com" for "x.com")
+                    // For the remaining long domains, simple existence is enough proof.
                     handleBrowserStrike()
                     return
                 }
@@ -483,31 +492,37 @@ class GuardService : AccessibilityService() {
 
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
+        if (now - lastBrowserAction < 1000) return // Debounce (1s cooldown)
+        lastBrowserAction = now
+
         browserStrikes.add(now)
         browserStrikes.removeAll { it < now - 10000 }
 
         if (browserStrikes.size >= 4) {
+             // TRIGGER BLOCK
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "BROWSER")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
              startActivity(i)
         } else {
+             // WARNING STRIKE
              performGlobalAction(GLOBAL_ACTION_BACK)
         }
     }
 
     private fun handleTelegramStrike() {
         val now = System.currentTimeMillis()
+        if (now - lastTelegramAction < 1000) return // Debounce (1s cooldown)
+        lastTelegramAction = now
+
         telegramStrikes.add(now)
         telegramStrikes.removeAll { it < now - 10000 }
 
         if (telegramStrikes.size >= 3) {
-             // BAN REQUIRED: Set the persistence ban so LockdownActivity doesn't auto-close
              LockManager.banTelegram(applicationContext)
-             
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
              startActivity(i)
         } else {
              performGlobalAction(GLOBAL_ACTION_BACK)
