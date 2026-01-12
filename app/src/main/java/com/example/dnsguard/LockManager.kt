@@ -74,7 +74,8 @@ object LockManager {
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
         intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
         
-        val list = ctx.packageManager.queryIntentActivities(intent, 0)
+        // MATCH_ALL (131072) ensures we see everything provided we have the permission
+        val list = ctx.packageManager.queryIntentActivities(intent, 131072)
         val isBrowser = list.any { it.activityInfo.packageName == pkg }
         
         BROWSER_CACHE[pkg] = isBrowser
@@ -85,7 +86,7 @@ object LockManager {
     fun getDetectedBrowsers(ctx: Context): List<String> {
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
         intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
-        val list = ctx.packageManager.queryIntentActivities(intent, 0)
+        val list = ctx.packageManager.queryIntentActivities(intent, 131072)
         return list.map { it.activityInfo.packageName }.distinct().sorted()
     }
 
