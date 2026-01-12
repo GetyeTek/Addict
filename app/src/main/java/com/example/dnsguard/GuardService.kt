@@ -17,6 +17,7 @@ class GuardService : AccessibilityService() {
     private var pollingJob: Job? = null
     private var activePackage = ""
     private val browserStrikes = mutableListOf<Long>()
+    private val telegramStrikes = mutableListOf<Long>()
 
     // SHIELD: Invisible Touch Blocker
     private var windowManager: android.view.WindowManager? = null
@@ -73,10 +74,18 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
-        // OPTIMIZATION: We enabled ContentChanged in XML to refresh the data for the Polling Job,
-        // but we return HERE to prevent high battery drain. We let the Heartbeat handle the checks.
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-            return
+        // REAL-TIME TRIGGER: Run check immediately on text/content changes
+        // This acts as the "Keylogger" to catch typing instantly.
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
+            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            
+            val isBrowser = LockManager.isBlacklistedBrowser(pkg)
+            val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
+            
+            if (isBrowser || isTelegram) {
+                // Launch immediate check (Bypassing the 1.5s Polling delay)
+                scope.launch { scanForViolations(isBrowser, isTelegram) }
+            }
         }
 
         // 0. DIALOG TRAP (The Backup Plan)
@@ -439,7 +448,7 @@ class GuardService : AccessibilityService() {
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
         val root = rootInActiveWindow ?: return
 
-        // 1. BROWSER POLLING
+        // 1. BROWSER LOGIC
         if (isBrowser) {
             val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
             for (site in blacklist) {
@@ -450,13 +459,24 @@ class GuardService : AccessibilityService() {
             }
         }
 
-        // 2. TELEGRAM POLLING
+        // 2. TELEGRAM LOGIC
         if (isTelegram) {
-            // Re-use recursive scan logic for Telegram search results
-            val sb = StringBuilder()
-            recursiveScan(root, sb)
-            if (!WordBank.isSafe(applicationContext, sb.toString())) {
-               performGlobalAction(GLOBAL_ACTION_BACK)
+            // CONTEXT CHECK: Only trigger if we see search or channel indicators
+            val hasSearch = root.findAccessibilityNodeInfosByText("Global Search").isNotEmpty()
+            val hasChannel = root.findAccessibilityNodeInfosByText("Channel").isNotEmpty() || 
+                             root.findAccessibilityNodeInfosByText("Channels").isNotEmpty()
+
+            if (hasSearch || hasChannel) {
+                val sb = StringBuilder()
+                recursiveScan(root, sb)
+                val content = sb.toString()
+
+                if (!WordBank.isSafe(applicationContext, content)) {
+                   // 1. Upload immediately to Supabase (Fire and Forget)
+                   scope.launch { CloudLogger.logViolation(applicationContext, content) }
+                   // 2. Strike
+                   handleTelegramStrike()
+                }
             }
         }
     }
@@ -464,17 +484,32 @@ class GuardService : AccessibilityService() {
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
         browserStrikes.add(now)
-        // Remove strikes older than 10 seconds
         browserStrikes.removeAll { it < now - 10000 }
 
         if (browserStrikes.size >= 4) {
-             // TOTAL BLOCK
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "BROWSER")
              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
              startActivity(i)
         } else {
-             // WARNING KICK
+             performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+    }
+
+    private fun handleTelegramStrike() {
+        val now = System.currentTimeMillis()
+        telegramStrikes.add(now)
+        telegramStrikes.removeAll { it < now - 10000 }
+
+        if (telegramStrikes.size >= 3) {
+             // BAN REQUIRED: Set the persistence ban so LockdownActivity doesn't auto-close
+             LockManager.banTelegram(applicationContext)
+             
+             val i = Intent(applicationContext, LockdownActivity::class.java)
+             i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+             startActivity(i)
+        } else {
              performGlobalAction(GLOBAL_ACTION_BACK)
         }
     }
