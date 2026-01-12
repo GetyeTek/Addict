@@ -280,8 +280,9 @@ class GuardService : AccessibilityService() {
                 android.view.WindowManager.LayoutParams.MATCH_PARENT,
                 android.view.WindowManager.LayoutParams.MATCH_PARENT,
                 android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                // REMOVED FLAG_NOT_FOCUSABLE to consume all input events aggressively if needed
-                // Added WATCH_OUTSIDE_TOUCH to catch edge cases
+                // RESTORED FLAG_NOT_FOCUSABLE to prevent Keyboard flickering in Search
+                // The shield still blocks touches because it is fullscreen.
+                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 android.view.WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                 android.graphics.PixelFormat.TRANSLUCENT
