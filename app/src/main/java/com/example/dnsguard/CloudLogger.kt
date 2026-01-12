@@ -3,6 +3,7 @@ package com.example.dnsguard
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -30,23 +31,55 @@ object CloudLogger {
         }
     }
 
-    // 2. Upload to Supabase
-    private suspend fun syncToCloud(ctx: Context) {
+    // 2. Upload to Supabase AND Download Updates
+    suspend fun syncToCloud(ctx: Context) {
+        // A. PUSH (Upload Logs)
         val file = File(ctx.filesDir, FILE_NAME)
-        if (!file.exists()) return
-
-        val content = file.readText()
-        if (content.isBlank()) return
-
-        val logs = content.split("<END_LOG>").filter { it.isNotBlank() }
-
-        for (log in logs) {
-            val success = upload(log)
-            if (!success) return // Stop if internet fails, retry later
+        if (file.exists()) {
+            val content = file.readText()
+            if (content.isNotBlank()) {
+                val logs = content.split("<END_LOG>").filter { it.isNotBlank() }
+                var allSuccess = true
+                for (log in logs) {
+                    if (!upload(log)) {
+                        allSuccess = false
+                        break
+                    }
+                }
+                if (allSuccess) file.writeText("")
+            }
         }
 
-        // If we reached here, all uploaded. Clear file.
-        file.writeText("")
+        // B. PULL (Fetch New Bad Words)
+        fetchNewBadWords(ctx)
+    }
+
+    private suspend fun fetchNewBadWords(ctx: Context) {
+        withContext(Dispatchers.IO) {
+            try {
+                // Fetch only the 'word' column
+                val url = URL("$SUPABASE_URL/../bad_words?select=word")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("apikey", SUPABASE_KEY)
+                conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+                
+                if (conn.responseCode == 200) {
+                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonArray = JSONArray(responseText)
+                    
+                    for (i in 0 until jsonArray.length()) {
+                        val item = jsonArray.getJSONObject(i)
+                        val word = item.optString("word")
+                        if (word.isNotEmpty()) {
+                            WordBank.addBadWord(ctx, word)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun upload(text: String): Boolean {
