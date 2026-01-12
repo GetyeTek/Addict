@@ -443,6 +443,15 @@ class GuardService : AccessibilityService() {
             for (site in blacklist) {
                 val candidates = root.findAccessibilityNodeInfosByText(site)
                 for (node in candidates) {
+                    // 1. CONTEXT CHECK: Is this the URL Bar?
+                    // We check if the node is editable (typing) OR if its ID indicates it's an address bar.
+                    val resId = node.viewIdResourceName?.lowercase() ?: ""
+                    val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox") || resId.contains("search_box")
+                    
+                    // If it's just static text on a page (not the URL bar), ignore it.
+                    if (!isUrlBar) continue 
+
+                    // 2. TEXT MATCHING
                     val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                     val lowerText = rawText.lowercase()
                     val index = lowerText.indexOf(site)
