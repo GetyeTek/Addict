@@ -160,7 +160,7 @@ class LockdownActivity : ComponentActivity() {
                 scope.launch {
                     while(true) {
                         // 1. CONDITIONAL EXIT
-                        if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED") {
+                        if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE") {
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
                              if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
                                  finishAffinity()
