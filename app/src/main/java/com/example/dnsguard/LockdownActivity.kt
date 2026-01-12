@@ -43,8 +43,13 @@ class LockdownActivity : ComponentActivity() {
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // DYNAMIC HEADER
+                    val headerText = when (blockType) {
+                        "BROWSER" -> "UNSAFE BROWSER"
+                        "TELEGRAM_SUSPENDED" -> "APP SUSPENDED"
+                        else -> "CONNECTION UNSECURE"
+                    }
                     Text(
-                        text = if (blockType == "BROWSER") "UNSAFE BROWSER" else "CONNECTION UNSECURE",
+                        text = headerText,
                         color = Color(0xFFEF4565), // Neon Red
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
@@ -53,17 +58,20 @@ class LockdownActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // DYNAMIC BODY
+                    val bodyText = when (blockType) {
+                        "BROWSER" -> "Only official Chrome is allowed during maintenance."
+                        "TELEGRAM_SUSPENDED" -> "Security violation detected.\nTelegram is locked for 10 minutes."
+                        else -> "Private DNS must be set to 'Strict'."
+                    }
                     Text(
-                        text = if (blockType == "BROWSER") 
-                               "Only official Chrome is allowed during maintenance." 
-                               else "Private DNS must be set to 'Strict'.",
+                        text = bodyText,
                         color = Color.LightGray,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(32.dp))
                     
                     // DYNAMIC BUTTON
-                    if (blockType == "BROWSER") {
+                    if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED") {
                         Button(
                             onClick = { 
                                 val i = Intent(Intent.ACTION_MAIN)
@@ -127,9 +135,13 @@ class LockdownActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 scope.launch {
                     while(true) {
-                        // 1. If this is a BROWSER BLOCK, we DO NOT exit just because we are unlocked.
-                        // User must press 'CLOSE APP' or leave the bad app manually.
-                        if (blockType != "BROWSER") {
+                        // 1. CONDITIONAL EXIT
+                        if (blockType == "BROWSER" || blockType == "TELEGRAM_SUSPENDED") {
+                             // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
+                             if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
+                                 finishAffinity()
+                             }
+                        } else {
                              // Normal Mode: Exit if DNS fixed OR Unlocked
                              if (DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)) {
                                  finishAffinity() // Release lock
