@@ -78,7 +78,7 @@ class LockdownActivity : ComponentActivity() {
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
-                    "Private DNS must be Strict (hostname).", "FIX DNS"
+                    "Private DNS must be set to one of the following providers:", "FIX DNS"
                 )
             }
 
@@ -116,6 +116,34 @@ class LockdownActivity : ComponentActivity() {
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)
                     )
+
+                    // DNS SELECTOR (Tap to Copy)
+                    if (blockType == "DNS") {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                            Text("TAP TO COPY:", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            DnsManager.ALLOWED_HOSTNAMES.forEach { dns ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp)
+                                        .androidx.compose.foundation.border(1.dp, mainColor, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                        .androidx.compose.foundation.clickable {
+                                            val cm = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            cm.setPrimaryClip(android.content.ClipData.newPlainText("DNS", dns))
+                                            android.widget.Toast.makeText(ctx, "Copied: $dns", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                        .padding(16.dp)
+                                ) {
+                                    Text(dns, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    
                     Spacer(modifier = Modifier.height(32.dp))
                     
                     // ACTION BUTTON
