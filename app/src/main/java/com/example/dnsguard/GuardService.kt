@@ -138,55 +138,18 @@ class GuardService : AccessibilityService() {
             return
         }
 
-        // 4. TELEGRAM GUARD (Smart Filter + Penalty Box)
+        // 4. TELEGRAM GUARD (Ban Enforcement Only)
+        // We removed the instant-ban scanner from here. The Strike System in scanForViolations() handles the rest.
         if (pkg.contains("telegram") || pkg.contains("challegram")) {
-            
-            // A. ENFORCE BAN (If previously violated)
             if (LockManager.isTelegramBanned(applicationContext)) {
                 val i = Intent(applicationContext, LockdownActivity::class.java)
                 i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                i.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 startActivity(i)
                 
-                // Kick them out of the app visually
-                performGlobalAction(GLOBAL_ACTION_HOME)
+                // Block interaction but don't force Home, let the Overlay sit there.
+                performGlobalAction(GLOBAL_ACTION_BACK)
                 return
-            }
-
-            // B. SCAN CONTENT
-            val root = event.source
-            if (root != null) {
-                val globalHeader = root.findAccessibilityNodeInfosByText("Global Search")
-                val nearbyHeader = root.findAccessibilityNodeInfosByText("People Nearby")
-
-                if (globalHeader.isNotEmpty() || nearbyHeader.isNotEmpty()) {
-                    val sb = StringBuilder()
-                    recursiveScan(root, sb)
-                    val screenContent = sb.toString()
-
-                    if (!WordBank.isSafe(applicationContext, screenContent)) {
-                        // VIOLATION DETECTED
-                        
-                        // 1. Log it
-                        scope.launch { CloudLogger.logViolation(applicationContext, screenContent) }
-
-                        // 2. BAN USER (10 Minute Cooldown)
-                        LockManager.banTelegram(applicationContext)
-
-                        // 3. KICK OUT
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                        
-                        // 4. Show Lockdown immediately
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(i)
-                        return
-                    }
-                }
             }
         }
 
@@ -494,13 +457,19 @@ class GuardService : AccessibilityService() {
         telegramStrikes.removeAll { it < now - 10000 }
 
         if (telegramStrikes.size >= 3) {
+             // 3rd Strike: Activate Ban & Overlay
              LockManager.banTelegram(applicationContext)
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
              startActivity(i)
         } else {
-             performGlobalAction(GLOBAL_ACTION_BACK)
+             // 1st & 2nd Strike: Double Back Tap (Clear Search -> Close Keyboard)
+             scope.launch {
+                 performGlobalAction(GLOBAL_ACTION_BACK)
+                 delay(250) // Short delay to allow UI to react
+                 performGlobalAction(GLOBAL_ACTION_BACK)
+             }
         }
     }
 
