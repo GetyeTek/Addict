@@ -85,7 +85,7 @@ class GuardService : AccessibilityService() {
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
             // FIX: Explicitly include Chrome for monitoring, even if it is whitelisted in LockManager
-            val isBrowser = LockManager.isBlacklistedBrowser(pkg) || pkg == "com.android.chrome"
+            val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
             val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
@@ -123,7 +123,7 @@ class GuardService : AccessibilityService() {
 
         // 2. BROWSER & VPN GUARD (Active ONLY when Unlocked)
         if (LockManager.isUnlocked(applicationContext)) {
-            if (LockManager.isBlacklistedBrowser(pkg)) {
+            if (LockManager.isBlacklistedBrowser(applicationContext, pkg)) {
                 // Launch Lockdown UI with Browser Block message
                 val i = Intent(applicationContext, LockdownActivity::class.java)
                 i.putExtra("BLOCK_TYPE", "BROWSER")
@@ -388,7 +388,7 @@ class GuardService : AccessibilityService() {
         pollingJob?.cancel()
 
         // FIX: Explicitly include Chrome for monitoring
-        val isBrowser = LockManager.isBlacklistedBrowser(pkg) || pkg == "com.android.chrome"
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
