@@ -189,7 +189,7 @@ class GuardService : AccessibilityService() {
                     
                     if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
                         confirmedDanger = true
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        performGlobalAction(GLOBAL_ACTION_BACK)
                         break
                     }
 
@@ -200,7 +200,7 @@ class GuardService : AccessibilityService() {
                     
                     if (hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) {
                          confirmedDanger = true
-                         performGlobalAction(GLOBAL_ACTION_HOME)
+                         performGlobalAction(GLOBAL_ACTION_BACK)
                          break
                     }
 
@@ -208,7 +208,7 @@ class GuardService : AccessibilityService() {
                     if (isAppInfoPage) {
                         if (hasDnsGuard.isNotEmpty()) {
                             confirmedDanger = true
-                            performGlobalAction(GLOBAL_ACTION_HOME)
+                            performGlobalAction(GLOBAL_ACTION_BACK)
                             
                             val i = Intent(applicationContext, LockdownActivity::class.java)
                             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
