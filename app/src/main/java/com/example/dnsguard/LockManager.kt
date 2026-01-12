@@ -9,8 +9,10 @@ object LockManager {
     private const val PREFS = "admin_prefs"
     private const val KEY_UNLOCK_TIME = "unlock_ts"
     private const val KEY_TG_BAN = "tg_ban_ts"
+    private const val KEY_BROWSER_BAN = "browser_ban_ts"
     private const val TIMEOUT_MS = 5 * 60 * 1000 // 5 Minutes
     private const val BAN_MS = 10 * 60 * 1000 // 10 Minutes
+    private const val BROWSER_BAN_MS = 5 * 60 * 1000 // 5 Minutes
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
@@ -58,6 +60,18 @@ object LockManager {
         val start = prefs.getLong(KEY_TG_BAN, 0L)
         val now = System.currentTimeMillis()
         return (now - start) < BAN_MS
+    }
+
+    fun banBrowser(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_BROWSER_BAN, System.currentTimeMillis()).apply()
+    }
+
+    fun isBrowserBanned(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val start = prefs.getLong(KEY_BROWSER_BAN, 0L)
+        val now = System.currentTimeMillis()
+        return (now - start) < BROWSER_BAN_MS
     }
 
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
