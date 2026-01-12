@@ -57,7 +57,7 @@ class LockdownActivity : ComponentActivity() {
             val (bgColor, mainColor, icon, title, desc, btnText) = when (blockType) {
                 "BROWSER" -> Preset(
                     Color(0xFF202124), Color(0xFF4285F4),
-                    android.R.drawable.ic_dialog_alert, "UNSAFE BROWSER", 
+                    android.R.drawable.ic_dialog_alert, "RESTRICTED APP", 
                     "Maintenance Mode Active.\nUse Chrome for official logging.", "OPEN CHROME"
                 )
                 "BROWSER_VIOLATION" -> Preset(
