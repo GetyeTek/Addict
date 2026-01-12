@@ -20,6 +20,9 @@ class GuardService : AccessibilityService() {
 
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
+    
+    // SYNC: Tracks last time we pulled updates from Supabase
+    private var lastCloudSync: Long = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -368,6 +371,17 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     } catch (e: Exception) { e.printStackTrace() }
                 }
+
+                // 5. CLOUD SYNC (Hourly)
+                // Keeps the bad words database updated
+                val now = System.currentTimeMillis()
+                if (now - lastCloudSync > 60 * 60 * 1000) { // 1 Hour
+                    lastCloudSync = now
+                    scope.launch {
+                        CloudLogger.syncToCloud(applicationContext)
+                    }
+                }
+
                 // Check freq (Aggressive: 0.5s)
                 delay(500)
             }
