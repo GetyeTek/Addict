@@ -452,18 +452,33 @@ class GuardService : AccessibilityService() {
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
         val root = rootInActiveWindow ?: return
 
-        // 1. BROWSER LOGIC
+        // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
-            // Removed "x.com" to prevent false positives (e.g. "linux.com")
-            val blacklist = listOf("bsky.app", "twitter.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
+            // Added "x.com" back, but now we use strict boundary checks
+            val blacklist = listOf("bsky.app", "twitter.com", "x.com", "reddit.com", "web.telegram.org", "instagram.com", "tiktok.com", "pornhub", "xnxx")
             
             for (site in blacklist) {
-                val nodes = root.findAccessibilityNodeInfosByText(site)
-                if (nodes.isNotEmpty()) {
-                    // DOUBLE CHECK: Verify it's not a substring match (like "example.com" for "x.com")
-                    // For the remaining long domains, simple existence is enough proof.
-                    handleBrowserStrike()
-                    return
+                // 1. Fast native search to find candidates
+                val candidates = root.findAccessibilityNodeInfosByText(site)
+                
+                for (node in candidates) {
+                    // 2. Strict Boundary Check (No Normalization)
+                    // We combine text and desc to catch URL bars that use either.
+                    val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
+                    val lowerText = rawText.lowercase()
+                    val index = lowerText.indexOf(site)
+
+                    if (index != -1) {
+                        // Check the character BEFORE the match.
+                        // If it's a letter or digit, it's a false positive (e.g., "linuX.COM")
+                        // Valid separators: space, /, ., :, or start of string.
+                        val charBefore = if (index > 0) lowerText[index - 1] else ' '
+                        
+                        if (!charBefore.isLetterOrDigit()) {
+                            handleBrowserStrike()
+                            return
+                        }
+                    }
                 }
             }
         }
