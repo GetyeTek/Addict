@@ -79,6 +79,18 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
+        // 0. BROWSER BAN ENFORCEMENT
+        // If penalty box is active, block access immediately.
+        val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
+        if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
+             val i = Intent(applicationContext, LockdownActivity::class.java)
+             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+             startActivity(i)
+             performGlobalAction(GLOBAL_ACTION_BACK)
+             return
+        }
+
         // REAL-TIME TRIGGER: Run check immediately on text/content changes
         // This acts as the "Keylogger" to catch typing instantly.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
@@ -474,7 +486,8 @@ class GuardService : AccessibilityService() {
         browserStrikes.removeAll { it < now - 10000 }
 
         if (browserStrikes.size >= 4) {
-             // TRIGGER BLOCK
+             // TRIGGER BLOCK & BAN
+             LockManager.banBrowser(applicationContext)
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
