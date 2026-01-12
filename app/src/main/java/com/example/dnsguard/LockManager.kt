@@ -72,9 +72,11 @@ object LockManager {
 
         // 4. Dynamic Check: Does it handle generic web URLs?
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
-        val list = ctx.packageManager.queryIntentActivities(intent, 0)
+        intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
         
+        val list = ctx.packageManager.queryIntentActivities(intent, 0)
         val isBrowser = list.any { it.activityInfo.packageName == pkg }
+        
         BROWSER_CACHE[pkg] = isBrowser
         return isBrowser
     }
