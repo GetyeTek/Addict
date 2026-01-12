@@ -11,10 +11,23 @@ object WordBank {
     // TIER 1: THE HARD LIST (Instant Block)
     // These words are rarely used in innocent contexts.
     private val HARD_WORDS = mutableSetOf(
+        // English / Universal
         "porn", "xxx", "nude", "hentai", "sex",
         "onlyfans", "brazzers", "xhamster", "milf",
         "incest", "nsfw", "dick", "cock", "pussy",
-        "whore", "slut", "18+", "adult"
+        "whore", "slut", "18+", "adult", "erotic",
+        "erotica", "fuck", "bitch", "blowjob",
+        "sugardaddy", "sugarmummy",
+
+        // Amharic (Latin / Transliteration)
+        "wesib", "seks", "tidar", "agenagn", "sharmuta", 
+        "shele", "ems", "qula", "bid", "beda", "tunda", 
+        "boda", "habeshasex", "yebe", "jilba", "chik",
+        
+        // Amharic (Ge'ez Script)
+        "ወሲብ", "ሴክስ", "ትዳር", "አገናኝ", "ሸርሙጣ", 
+        "ሽሌ", "ብድ", "በዳ", "ቁላ", "እምስ", 
+        "የበዳ", "ቱንዳ", "ቦዳ", "ኒውድ", "ቂም"
     )
 
     fun isSafe(ctx: Context, text: String): Boolean {
