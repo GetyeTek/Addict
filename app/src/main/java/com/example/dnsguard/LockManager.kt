@@ -81,6 +81,14 @@ object LockManager {
         return isBrowser
     }
 
+    // DEBUG TOOL: Returns list of all apps acting as browsers
+    fun getDetectedBrowsers(ctx: Context): List<String> {
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
+        intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
+        val list = ctx.packageManager.queryIntentActivities(intent, 0)
+        return list.map { it.activityInfo.packageName }.distinct().sorted()
+    }
+
     private fun isVpnActive(ctx: Context): Boolean {
         try {
             val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
