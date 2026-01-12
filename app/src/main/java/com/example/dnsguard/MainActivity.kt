@@ -161,9 +161,10 @@ class MainActivity : ComponentActivity() {
                 var passInput by remember { mutableStateOf("") }
                 var nukeError by remember { mutableStateOf("") }
 
-                TextButton(
-                    onClick = { showNukeConfirmDialog = true; nukeError = "" }
-                ) { Text("ENTER NUKE CODE", color = Color.Gray) }
+                OutlinedButton(
+                    onClick = { showNukeConfirmDialog = true; nukeError = "" },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.LightGray)
+                ) { Text("ENTER NUKE CODE") }
 
                 if (showNukeConfirmDialog) {
                     AlertDialog(
