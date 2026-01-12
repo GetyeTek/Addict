@@ -83,7 +83,8 @@ class GuardService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-            val isBrowser = LockManager.isBlacklistedBrowser(pkg)
+            // FIX: Explicitly include Chrome for monitoring, even if it is whitelisted in LockManager
+            val isBrowser = LockManager.isBlacklistedBrowser(pkg) || pkg == "com.android.chrome"
             val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
@@ -367,7 +368,8 @@ class GuardService : AccessibilityService() {
         // Stop existing poll to avoid duplicates
         pollingJob?.cancel()
 
-        val isBrowser = LockManager.isBlacklistedBrowser(pkg)
+        // FIX: Explicitly include Chrome for monitoring
+        val isBrowser = LockManager.isBlacklistedBrowser(pkg) || pkg == "com.android.chrome"
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
