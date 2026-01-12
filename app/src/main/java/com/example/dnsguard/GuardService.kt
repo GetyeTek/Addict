@@ -27,6 +27,7 @@ class GuardService : AccessibilityService() {
     private var windowManager: android.view.WindowManager? = null
     private var shieldView: android.view.View? = null
     private var isShieldActive = false
+    private var shieldJob: Job? = null
 
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
@@ -224,14 +225,16 @@ class GuardService : AccessibilityService() {
             
             // VERDICT: SPONGE DELAY
             if (confirmedDanger) {
-                // Keep Shield UP
+                // Keep Shield UP & Cancel any pending drop
+                shieldJob?.cancel()
                 performGlobalAction(GLOBAL_ACTION_BACK)
             } else {
                 // SAFE CONTEXT?
-                // We still hold the shield for 1.0s to prevent "Speed Tapping".
-                scope.launch {
+                // Reset timer on every event to keep shield up while interacting
+                shieldJob?.cancel()
+                shieldJob = scope.launch {
+                    delay(1000)
                     withContext(Dispatchers.Main) {
-                        delay(1000)
                         if (isShieldActive) {
                              setShield(false)
                         }
