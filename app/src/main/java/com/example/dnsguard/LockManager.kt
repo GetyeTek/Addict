@@ -13,9 +13,23 @@ object LockManager {
     private const val TIMEOUT_MS = 5 * 60 * 1000 // 5 Minutes
     private const val BAN_MS = 10 * 60 * 1000 // 10 Minutes
     private const val BROWSER_BAN_MS = 5 * 60 * 1000 // 5 Minutes
+    private const val NON_STD_BAN_MS = 30 * 60 * 1000 // 30 Minutes
+    private const val KEY_NON_STD_BAN = "non_std_ban_ts"
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
+
+    // WHITELIST: Standard Browsers (Subject to standard 5 min ban)
+    val STANDARD_BROWSERS = setOf(
+        "com.android.chrome", "com.chrome.canary", "com.chrome.dev",
+        "com.kiwibrowser.browser", "com.microsoft.bing", "com.opera.browser",
+        "com.sec.android.app.sbrowser", "org.mozilla.firefox"
+    )
+
+    // BLACKLIST: Rogue Apps (Subject to immediate 30 min ban)
+    val ROGUE_APPS = setOf(
+        "com.snaptube.premium", "com.video.fun.app", "hesoft.T2S"
+    )
 
     // DYNAMIC BROWSER DETECTION
     // Added Google App because it functions as a browser proxy
@@ -96,7 +110,40 @@ object LockManager {
         return (now - start) < BROWSER_BAN_MS
     }
 
+    fun banNonStandardApp(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_NON_STD_BAN, System.currentTimeMillis()).apply()
+    }
+
+    fun isNonStandardAppBanned(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val start = prefs.getLong(KEY_NON_STD_BAN, 0L)
+        val now = System.currentTimeMillis()
+        return (now - start) < NON_STD_BAN_MS
+    }
+
+    fun isNonStandardApp(ctx: Context, pkg: String): Boolean {
+        // 1. If it's a known Standard Browser, it's SAFE (uses standard rules)
+        if (STANDARD_BROWSERS.contains(pkg)) return false
+        
+        // 2. If it's a known Rogue App, it's NON-STANDARD
+        if (ROGUE_APPS.contains(pkg)) return true
+        
+        // 3. If it's any other detected browser, it's NON-STANDARD
+        return isBlacklistedBrowser(ctx, pkg)
+    }
+
+    // Old method required for compatibility (do not delete)
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val start = prefs.getLong(KEY_BROWSER_BAN, 0L)
+        val now = System.currentTimeMillis()
+        return (now - start) < BROWSER_BAN_MS
+    }
+
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
+        // 0. Explicitly monitor Rogue Apps
+        if (ROGUE_APPS.contains(pkg)) return true
+
         // 1. Whitelist Chrome Stable
         if (pkg == "com.android.chrome") return false
 
