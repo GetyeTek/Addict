@@ -567,6 +567,7 @@ class GuardService : AccessibilityService() {
                 }
             }
         }
+    }
 
         // 2. TELEGRAM LOGIC (Fingerprint Scan)
         if (isTelegram) {
