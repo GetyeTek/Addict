@@ -1,4 +1,4 @@
-package com.example.dnsguard
+package com.guardian.net
 
 import android.os.Process
 import android.os.SystemClock
