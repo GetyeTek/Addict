@@ -23,7 +23,8 @@ object LockManager {
     val STANDARD_BROWSERS = setOf(
         "com.android.chrome", "com.chrome.canary", "com.chrome.dev",
         "com.kiwibrowser.browser", "com.microsoft.bing", "com.opera.browser",
-        "com.sec.android.app.sbrowser", "org.mozilla.firefox"
+        "com.sec.android.app.sbrowser", "org.mozilla.firefox",
+        "com.google.android.googlequicksearchbox" // Moved from Blacklist to Whitelist
     )
 
     // BLACKLIST: Rogue Apps (Subject to immediate 30 min ban)
@@ -37,7 +38,7 @@ object LockManager {
     // MAINTENANCE BLOCK LIST: These are blocked ONLY when Unlocked.
     private val MANUAL_BLACKLIST = setOf(
         // Social & Messaging (Browsers in disguise)
-        "com.reddit.frontpage", "com.google.android.googlequicksearchbox", 
+        "com.reddit.frontpage", 
         "com.discord", "com.tumblr", "sh.whisper", "tw.com.yellotalk",
         "com.kik.chat", "com.snapchat.android",
         
