@@ -39,7 +39,7 @@ class GuardService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        StatsManager.init()
+        StatsManager.init(this)
         // INIT SHIELD
         windowManager = getSystemService(android.view.WindowManager::class.java)
         
@@ -449,7 +449,7 @@ class GuardService : AccessibilityService() {
                 }
 
                 // METRICS: Update Performance Stats
-                StatsManager.update()
+                StatsManager.update(this)
 
                 // OPTIMIZATION: Smart Sleep to save battery
                 val pm = getSystemService(android.os.PowerManager::class.java)
