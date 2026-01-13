@@ -1,4 +1,4 @@
-package com.example.dnsguard
+package com.guardian.net
 
 import java.text.SimpleDateFormat
 import java.util.Date
