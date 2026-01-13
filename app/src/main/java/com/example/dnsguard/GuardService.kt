@@ -62,7 +62,7 @@ class GuardService : AccessibilityService() {
 
         val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
             .setContentTitle("Protection Active")
-            .setContentText("DNS Guard is monitoring network security.")
+            .setContentText("Guardian is monitoring network security.")
             .setSmallIcon(android.R.drawable.ic_secure)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
@@ -156,7 +156,7 @@ class GuardService : AccessibilityService() {
                 recursiveScan(source, dialogText)
                 val text = dialogText.toString()
                 
-                if (text.contains("DNS Guard", ignoreCase = true) && 
+                if (text.contains("Guardian", ignoreCase = true) && 
                    (text.contains("Stop", ignoreCase = true) || text.contains("Deactivate", ignoreCase = true))) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
                     // Also try to find the "Cancel" button and click it
@@ -246,7 +246,8 @@ class GuardService : AccessibilityService() {
                     val root = window.root ?: continue
                     
                     // GLOBAL SCAN: Locate identifying strings first
-                    val hasDnsGuard = root.findAccessibilityNodeInfosByText("DNS Guard")
+                    // We look for the App Name "Guardian" to detect our own App Info page
+                    val hasDnsGuard = root.findAccessibilityNodeInfosByText("Guardian")
                     
                     // A. ACCESSIBILITY TRAP (Targeted)
                     val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
