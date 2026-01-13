@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DNS Guard</string>
+    <string name="app_name">Guardian</string>
     <string name="admin_desc">Prevents removal while DNS is insecure.</string>
     <string name="accessibility_desc">Monitors system settings to enforce Private DNS rules.</string>
 </resources>
