@@ -253,15 +253,17 @@ class GuardService : AccessibilityService() {
                 // CASE 2: APP INFO PAGE (Ambiguous)
                 shieldJob?.cancel()
                 
-                // VERIFICATION: Look for "Installed" anchor below the app name.
-                val hasInstalledAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("installed")?.isNotEmpty() == true
+                // VERIFICATION: Look for "Notifications" anchor.
+                // It is usually the first item below the header. If we see it, we are at the top.
+                val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
 
-                if (hasInstalledAnchor) {
-                    // PROVEN INNOCENT (e.g. Calculator) -> RELEASE
+                if (hasAnchor) {
+                    // PROVEN INNOCENT: We are at the top (Anchor visible) and didn't see "DNS Guard".
                     setShield(false)
                 } else {
                     // CASE 3: HIDDEN/SCROLLED AWAY -> KICK OUT
-                    // Since Samsung blocks overlays, we cannot Freeze. We must Eject.
+                    // If we don't see the anchor, we assume the user might have scrolled to hide the App Name.
+                    // Guilty until proven innocent -> Eject.
                     scope.launch {
                         repeat(4) {
                             performGlobalAction(GLOBAL_ACTION_BACK)
