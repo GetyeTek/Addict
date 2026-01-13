@@ -219,6 +219,83 @@ class MainActivity : ComponentActivity() {
                     showBrowserList = true
                 }) { Text("DEBUG: SHOW DETECTED BROWSERS", color = Color.DarkGray, fontSize = 10.sp) }
 
+                // --- PERFORMANCE STATS BUTTON ---
+                var showStatsDialog by remember { mutableStateOf(false) }
+
+                OutlinedButton(
+                    onClick = { showStatsDialog = true },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFFA000))
+                ) { Text("VIEW APP PERFORMANCE") }
+
+                if (showStatsDialog) {
+                    // REFRESHER for Live UI
+                    var refreshTrigger by remember { mutableStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while(true) {
+                            delay(1000)
+                            refreshTrigger++
+                        }
+                    }
+
+                    AlertDialog(
+                        onDismissRequest = { showStatsDialog = false },
+                        title = { Text("Real-Time Usage") },
+                        text = {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                // 1. NUMBERS
+                                Text("Uptime: ${StatsManager.getFormattedUptime()}", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text("RAM Usage: ${StatsManager.currentMem} MB")
+                                LinearProgressIndicator(
+                                    progress = StatsManager.currentMem / 256f, // Assumed 256MB max for service
+                                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                                    color = Color.Blue,
+                                    trackColor = Color.DarkGray
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text("CPU Load: ${String.format("%.2f", StatsManager.currentCpu)}%")
+                                LinearProgressIndicator(
+                                    progress = (StatsManager.currentCpu / 10f).coerceIn(0f, 1f), // Scale 0-10%
+                                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                                    color = if (StatsManager.currentCpu > 5f) Color.Red else Color.Green,
+                                    trackColor = Color.DarkGray
+                                )
+                                
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text("CPU History (Last 50 Samples)", fontSize = 12.sp)
+                                
+                                // 2. MINI GRAPH
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(100.dp)
+                                        .background(Color(0xFF222222))
+                                        .padding(4.dp),
+                                    verticalAlignment = Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    val history = StatsManager.history.toList() // Snapshot
+                                    history.forEach { point ->
+                                        // Height relative to 10% CPU
+                                        val barHeight = (point.cpuPercent / 10f).coerceIn(0.05f, 1f)
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight(barHeight)
+                                                .padding(horizontal = 1.dp)
+                                                .background(if (point.cpuPercent > 5f) Color.Red else Color.Green)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { showStatsDialog = false }) { Text("CLOSE") }
+                        }
+                    )
+                }
+
                 // --- DEBUG LOGS BUTTON ---
                 var showLogDialog by remember { mutableStateOf(false) }
                 var logContent by remember { mutableStateOf("") }
