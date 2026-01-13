@@ -1,4 +1,4 @@
-package com.example.dnsguard
+package com.guardian.net
 
 import android.content.Context
 import android.net.ConnectivityManager
