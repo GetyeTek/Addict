@@ -542,6 +542,15 @@ class GuardService : AccessibilityService() {
                     // If it's just static text on a page (e.g. a Google Search Result description), ignore it.
                     // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
                     val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
+
+                    // AGGRESSIVE FALLBACK:
+                    // For Standard Apps, we ONLY check confirmed URL bars to prevent false positives on page content.
+                    // For Non-Standard Apps (like Vidmate), we check EVERYTHING on the screen.
+                    val isStandardApp = !LockManager.isNonStandardApp(applicationContext, activePackage)
+                    if (isStandardApp && !isUrlBar) {
+                        continue // It's a standard app, but this isn't a URL bar. Skip.
+                    }
+
                     
                     // 2. TEXT MATCHING
                     val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
