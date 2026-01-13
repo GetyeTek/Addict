@@ -92,16 +92,14 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
-        // 0. PERMANENT BAN: Twitter / X
-        if (pkg.contains("twitter") || pkg == "com.x.android") {
-             DebugLogger.log("BLOCK", "Permanent Ban Triggered: $pkg")
-             val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-             startActivity(i)
-             performGlobalAction(GLOBAL_ACTION_BACK)
-             return
-        }
+        // 0. PERMANENT BAN: The Dirty Dozen
+        // These apps either bypass DNS (Tor) or are dedicated to filth.
+        // They are blocked 24/7, regardless of Lock status.
+        val nukeList = listOf(
+            "twitter", "com.x.android", 
+            "torproject", // The only true DNS bypasser left
+            "org.plus18", "stashx", "adultfriendfinder", "ashleymadison", "com.grindr", "getpure" // Porn/Hookup
+        )
 
         // 0. BROWSER BAN ENFORCEMENT
         // If penalty box is active, block access immediately.
