@@ -184,8 +184,7 @@ class GuardService : AccessibilityService() {
             
             // Context Flags (Potential Danger)
             val isAppInfoPage = cls.contains("installedappdetails") || cls.contains("appmanagement")
-            // We don't rely solely on class names for Admin pages anymore, as they vary by vendor.
-
+            
             var confirmedDanger = false
             
             // MULTI-WINDOW DEFENSE: Content Scanning
@@ -204,56 +203,39 @@ class GuardService : AccessibilityService() {
                     if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
                         confirmedDanger = true
                         performGlobalAction(GLOBAL_ACTION_BACK)
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
-                        startActivity(i)
+                        startTripwire()
                         break
                     }
 
-                    // B. DEVICE ADMIN TRAP (The "Inner" Screen)
-                    // Logic: If we see "Deactivate" AND "DNS Guard", it is the confirmation screen.
-                    // This is specific to the screen in your screenshot.
+                    // B. DEVICE ADMIN TRAP
                     val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
-                    
                     if (hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) {
                          confirmedDanger = true
                          performGlobalAction(GLOBAL_ACTION_BACK)
-                         val i = Intent(applicationContext, LockdownActivity::class.java)
-                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                         i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                         i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
-                         startActivity(i)
+                         startTripwire()
                          break
                     }
 
                     // C. SELF-DEFENSE (App Info & Storage Guard)
                     if (isAppInfoPage) {
-                        // FIX: Ignore System UI (Status Bar) which contains the persistent "DNS Guard" notification
                         val nodePkg = root.packageName?.toString() ?: ""
                         val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
 
                         if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
                             confirmedDanger = true
                             performGlobalAction(GLOBAL_ACTION_BACK)
-                            
-                            val i = Intent(applicationContext, LockdownActivity::class.java)
-                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                            i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
-                            startActivity(i)
+                            startTripwire()
                             break
                         }
                     }
                 }
             }
             
-            // VERDICT: SPONGE DELAY
+            // VERDICT: SPONGE DELAY OR FREEZE
             if (confirmedDanger) {
                 // Keep Shield UP & Cancel any pending drop
                 shieldJob?.cancel()
-                // NUCLEAR BACK: 4x Rapid Fire to exit menu depth
+                // NUCLEAR BACK: Rapid Fire to exit menu depth
                 scope.launch {
                     repeat(4) {
                         performGlobalAction(GLOBAL_ACTION_BACK)
@@ -261,11 +243,14 @@ class GuardService : AccessibilityService() {
                     }
                 }
             } else {
-                // SAFE CONTEXT?
-                // Reset timer on every event to keep shield up while interacting
+                // SAFE CONTEXT? -> APPLY FREEZE PROTOCOL
+                // If we are in 'App Info', we FORCE a 3-second wait. 
+                // This stops the user from speed-running to 'Clear Storage' before the text loads.
+                val delayTime = if (isAppInfoPage) 3000L else 1000L
+                
                 shieldJob?.cancel()
                 shieldJob = scope.launch {
-                    delay(1000)
+                    delay(delayTime)
                     withContext(Dispatchers.Main) {
                         if (isShieldActive) {
                              setShield(false)
@@ -325,6 +310,14 @@ class GuardService : AccessibilityService() {
         }
     }
     
+    private fun startTripwire() {
+        val i = Intent(applicationContext, LockdownActivity::class.java)
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
+        startActivity(i)
+    }
+
     // HELPER: Recursive scan for the Dialog Trap
     private fun recursiveScan(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         if (node == null) return
