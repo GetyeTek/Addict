@@ -34,6 +34,8 @@ class GuardService : AccessibilityService() {
     
     // SYNC: Tracks last time we pulled updates from Supabase
     private var lastCloudSync: Long = 0L
+    // SESSION: Remembers if the current App Info page has been proven innocent
+    private var verifiedSafeAppInfoSession = false
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -71,6 +73,9 @@ class GuardService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        // RESET SESSION: If we switch windows/screens, we must re-verify safety.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) verifiedSafeAppInfoSession = false
+        
         val pkg = event.packageName?.toString() ?: ""
         
         // Update active package and manage heartbeat polling
