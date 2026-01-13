@@ -118,7 +118,9 @@ class GuardService : AccessibilityService() {
 
 // 0. BROWSER BAN ENFORCEMENT
         // If penalty box is active, block access immediately.
-        val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
+        // 0. BROWSER BAN ENFORCEMENT
+        // If penalty box is active, block access immediately.
+        val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
         if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
              val i = Intent(applicationContext, LockdownActivity::class.java)
              i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
@@ -133,8 +135,8 @@ class GuardService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-            // FIX: Explicitly include Chrome for monitoring, even if it is whitelisted in LockManager
-            val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
+            // FIX: Explicitly include Chrome & Google App for monitoring, even if it is whitelisted in LockManager
+            val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
             val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
@@ -484,8 +486,8 @@ class GuardService : AccessibilityService() {
         // Stop existing poll to avoid duplicates
         pollingJob?.cancel()
 
-        // FIX: Explicitly include Chrome for monitoring
-        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
+        // FIX: Explicitly include Chrome & Google App for monitoring
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
