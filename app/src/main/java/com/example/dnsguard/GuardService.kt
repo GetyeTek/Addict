@@ -73,10 +73,12 @@ class GuardService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        // RESET SESSION: If we switch windows/screens, we must re-verify safety.
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) verifiedSafeAppInfoSession = false
-        
         val pkg = event.packageName?.toString() ?: ""
+        
+        // RESET SESSION: Only reset if we leave the Settings app entirely.
+        if (!pkg.contains("settings") && !pkg.contains("packageinstaller") && !pkg.contains("accessibility")) {
+            verifiedSafeAppInfoSession = false
+        }
         
         // Update active package and manage heartbeat polling
         if (pkg != activePackage) {
@@ -277,8 +279,16 @@ class GuardService : AccessibilityService() {
                     }
                 }
             } else {
-                // CASE 4: GENERAL SETTINGS
+                // CASE 4: GENERAL SETTINGS / MENU
                 shieldJob?.cancel()
+                
+                // SMART RESET: If we see the main "Settings" header, we have left the App Info page.
+                // We must reset the verification flag so the next App Info page is scanned fresh.
+                val hasSettingsHeader = rootInActiveWindow?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true
+                if (hasSettingsHeader) {
+                    verifiedSafeAppInfoSession = false
+                }
+
                 shieldJob = scope.launch {
                     delay(1000)
                     withContext(Dispatchers.Main) {
