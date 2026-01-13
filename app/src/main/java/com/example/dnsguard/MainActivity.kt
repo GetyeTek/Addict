@@ -219,6 +219,42 @@ class MainActivity : ComponentActivity() {
                     showBrowserList = true
                 }) { Text("DEBUG: SHOW DETECTED BROWSERS", color = Color.DarkGray, fontSize = 10.sp) }
 
+                // --- DEBUG LOGS BUTTON ---
+                var showLogDialog by remember { mutableStateOf(false) }
+                var logContent by remember { mutableStateOf("") }
+
+                TextButton(onClick = {
+                    logContent = DebugLogger.getLogs()
+                    showLogDialog = true
+                }) { Text("DEBUG: SHOW LOGS", color = Color.Cyan, fontSize = 10.sp) }
+
+                if (showLogDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLogDialog = false },
+                        title = { Text("System Logs") },
+                        text = {
+                            SelectionContainer {
+                                Text(logContent, fontSize = 10.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            }
+                        },
+                        confirmButton = {
+                            Row {
+                                TextButton(onClick = { 
+                                    val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Logs", logContent))
+                                }) { Text("COPY") }
+                                
+                                TextButton(onClick = { 
+                                    DebugLogger.clear()
+                                    logContent = ""
+                                }) { Text("CLEAR") }
+
+                                Button(onClick = { showLogDialog = false }) { Text("CLOSE") }
+                            }
+                        }
+                    )
+                }
+
                 if (showBrowserList) {
                     AlertDialog(
                         onDismissRequest = { showBrowserList = false },
