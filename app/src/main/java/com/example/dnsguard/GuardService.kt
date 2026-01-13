@@ -506,10 +506,24 @@ class GuardService : AccessibilityService() {
                     // 1. CONTEXT CHECK: Is this the URL Bar?
                     // We check if the node is editable (typing) OR if its ID indicates it's an address bar.
                     val resId = node.viewIdResourceName?.lowercase() ?: ""
-                    val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox") || resId.contains("search_box")
                     
-                    // If it's just static text on a page (not the URL bar), ignore it.
-                    if (!isUrlBar) continue 
+                    // FIX: Broadened IDs to catch Firefox/Opera/Samsung 'Read-Only' URL bars
+                    val isUrlBar = node.isEditable || 
+                                   resId.contains("url") || 
+                                   resId.contains("address") || 
+                                   resId.contains("omnibox") || 
+                                   resId.contains("search_box") ||
+                                   resId.contains("location") ||
+                                   resId.contains("toolbar") ||
+                                   resId.contains("title") ||
+                                   resId.contains("input") ||
+                                   resId.contains("bar")
+
+                    // If it's just static text on a page (e.g. a Google Search Result description), ignore it.
+                    // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
+                    val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
+                    
+                    if (!isUrlBar && isWebContent) continue 
 
                     // 2. TEXT MATCHING
                     val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
