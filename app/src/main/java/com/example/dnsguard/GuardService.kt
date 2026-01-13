@@ -75,11 +75,6 @@ class GuardService : AccessibilityService() {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
         
-        // RESET SESSION: Only reset if we leave the Settings app entirely.
-        if (!pkg.contains("settings") && !pkg.contains("packageinstaller") && !pkg.contains("accessibility")) {
-            verifiedSafeAppInfoSession = false
-        }
-        
         // Update active package and manage heartbeat polling
         if (pkg != activePackage) {
             activePackage = pkg
