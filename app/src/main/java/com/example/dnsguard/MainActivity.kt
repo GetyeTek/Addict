@@ -263,9 +263,29 @@ class MainActivity : ComponentActivity() {
                                 )
                                 
                                 Spacer(modifier = Modifier.height(20.dp))
+                                
+                                // 2. BATTERY SECTION
+                                Text("Battery Impact", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(5.dp))
+                                
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Device Level:", color = Color.Gray)
+                                    Text("${StatsManager.currentBatteryPct}% " + if (StatsManager.isCharging) "(Charging)" else "")
+                                }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Session Drop:", color = Color.Gray)
+                                    val drop = StatsManager.startBatteryPct - StatsManager.currentBatteryPct
+                                    Text(if (drop >= 0) "$drop%" else "+${-drop}%") // Handle charging gain
+                                }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Est. App Drain:", color = Color.Gray)
+                                    Text(StatsManager.getBatteryImpact(), color = if (StatsManager.currentCpu > 5f) Color.Red else Color(0xFF00C853))
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
                                 Text("CPU History (Last 50 Samples)", fontSize = 12.sp)
                                 
-                                // 2. MINI GRAPH
+                                // 3. MINI GRAPH
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
