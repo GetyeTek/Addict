@@ -314,11 +314,17 @@ class GuardService : AccessibilityService() {
                 // CASE 4: GENERAL SETTINGS / MENU
                 shieldJob?.cancel()
                 
-                // AGGRESSIVE RESET: We are not on an App Info page anymore.
-                // We must invalidate the session immediately so the next App Info page is vetted from scratch.
-                if (verifiedSafeAppInfoSession) {
-                     DebugLogger.log("Reset", "Exited App Info Page. Session Invalidated.")
-                     verifiedSafeAppInfoSession = false
+                // SAFE RESET: Only reset if we POSITIVELY see the main Settings header.
+                // If we simply don't match 'App Info', we might just be scrolling and missed the detection.
+                val root = rootInActiveWindow
+                val hasSettingsHeader = root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true
+                val hasSearchHeader = root?.findAccessibilityNodeInfosByText("Search settings")?.isNotEmpty() == true
+
+                if (hasSettingsHeader || hasSearchHeader) {
+                    if (verifiedSafeAppInfoSession) {
+                         DebugLogger.log("Reset", "Back in Main Settings. Session Invalidated.")
+                         verifiedSafeAppInfoSession = false
+                    }
                 }
 
                 shieldJob = scope.launch {
@@ -534,8 +540,15 @@ class GuardService : AccessibilityService() {
                     // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
                     val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
                     
-                        // Extra check: If it's a "Title" view (Firefox), it might say "X.com - Twitter". 
-                        // We accept that as a violation.
+                    // 2. TEXT MATCHING
+                    val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
+                    val lowerText = rawText.lowercase()
+                    val index = lowerText.indexOf(site)
+
+                    if (index != -1) {
+                        // STRICT CHECK: char before must NOT be letter/digit
+                        val charBefore = if (index > 0) lowerText[index - 1] else ' '
+
                         if (!charBefore.isLetterOrDigit()) {
                             // CHECK: Is this a Non-Standard App?
                             if (LockManager.isNonStandardApp(applicationContext, activePackage)) {
