@@ -37,6 +37,9 @@ class GuardService : AccessibilityService() {
     // SESSION: Remembers if the current App Info page has been proven innocent
     private var verifiedSafeAppInfoSession = false
 
+    // DYNAMIC LEARNING: Remembers any app that has shown a WebView during this session
+    private val dynamicBrowsers = mutableSetOf<String>()
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         StatsManager.init(this)
@@ -96,6 +99,15 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
+        // LEARN: If this app displays a WebView, mark it as a browser for the session
+        if (event.className == "android.webkit.WebView") {
+            if (dynamicBrowsers.add(pkg)) {
+                DebugLogger.log("LEARN", "Detected hidden WebView in $pkg. Marked as browser.")
+                // Restart polling immediately for this new threat
+                managePolling(pkg)
+            }
+        }
+
         // 0. PERMANENT BAN: The Dirty Dozen
         // These apps either bypass DNS (Tor) or are dedicated to filth.
         // They are blocked 24/7, regardless of Lock status.
@@ -135,14 +147,11 @@ class GuardService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-        // FIX: Explicitly include Chrome & Google App for monitoring.
-        // CRITICAL: Also check if the event class is 'android.webkit.WebView'. 
-        // This catches 'Internal WebViews' in non-browser apps (e.g. a Notepad app opening a link).
-        val isWebViewEvent = event.className == "android.webkit.WebView"
+        // FIX: Check Whitelist, Blacklist, AND Dynamic List
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
                        pkg == "com.android.chrome" || 
                        pkg == "com.google.android.googlequicksearchbox" ||
-                       isWebViewEvent
+                       dynamicBrowsers.contains(pkg)
             
             if (isBrowser || isTelegram) {
                 // Launch immediate check (Bypassing the 1.5s Polling delay)
@@ -493,9 +502,13 @@ class GuardService : AccessibilityService() {
         pollingJob?.cancel()
 
         // FIX: Explicitly include Chrome & Google App for monitoring
+        // FIX: Explicitly include Chrome & Google App for monitoring
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
                        pkg == "com.android.chrome" || 
-                       pkg == "com.google.android.googlequicksearchbox"
+                       pkg == "com.google.android.googlequicksearchbox" ||
+                       dynamicBrowsers.contains(pkg)
+
+        val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
