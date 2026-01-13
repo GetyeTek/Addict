@@ -243,40 +243,34 @@ class GuardService : AccessibilityService() {
                 }
             }
             
-            // VERDICT: DRY STONE PROTOCOL
+            // VERDICT: BACK BUTTON MACHINE GUN
             if (confirmedDanger) {
-                // CASE 1: THREAT CONFIRMED -> LOCKDOWN
+                // CASE 1: THREAT CONFIRMED -> LOCKDOWN ACTIVITY
                 shieldJob?.cancel()
-                // Nuclear Back to exit menu depth
-                scope.launch {
-                    repeat(4) {
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                        delay(100)
-                    }
-                }
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                startTripwire()
             } else if (isAppInfoPage) {
-                // CASE 2: APP INFO PAGE (Guilty until proven innocent)
-                // We leave the shield UP by default (Freeze).
+                // CASE 2: APP INFO PAGE (Ambiguous)
                 shieldJob?.cancel()
                 
-                // VERIFICATION: We look for the "Installed" anchor text.
-                // User Logic: "The app name... have 'installed' text just below it."
+                // VERIFICATION: Look for "Installed" anchor below the app name.
                 val hasInstalledAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("installed")?.isNotEmpty() == true
 
                 if (hasInstalledAnchor) {
-                    // If we see "Installed" anchor BUT we did not see "DNS Guard" (checked in confirmedDanger above),
-                    // then we must be looking at a safe app (e.g. "Calculator").
-                    // PROVEN INNOCENT -> RELEASE
+                    // PROVEN INNOCENT (e.g. Calculator) -> RELEASE
                     setShield(false)
                 } else {
-                    // If we see NOTHING (No "DNS Guard" AND No "Installed" anchor),
-                    // it means the header is scrolled away or hidden.
-                    // UNVERIFIED -> FREEZE FOREVER (Shield stays UP, forcing user to Back out)
-                    if (!isShieldActive) setShield(true)
+                    // CASE 3: HIDDEN/SCROLLED AWAY -> KICK OUT
+                    // Since Samsung blocks overlays, we cannot Freeze. We must Eject.
+                    scope.launch {
+                        repeat(4) {
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                            delay(100)
+                        }
+                    }
                 }
             } else {
-                // CASE 3: GENERAL SETTINGS (Standard Behavior)
-                // Wait a moment then drop shield if nothing triggered
+                // CASE 4: GENERAL SETTINGS
                 shieldJob?.cancel()
                 shieldJob = scope.launch {
                     delay(1000)
