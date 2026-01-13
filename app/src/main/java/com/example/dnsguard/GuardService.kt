@@ -75,6 +75,10 @@ class GuardService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
+        // FIX: Session Leaking. Reset verification when window state changes (e.g. Recents/Alt-Tab).
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            verifiedSafeAppInfoSession = false
+        }
         // DebugLogger.log("Event", "Pkg: $pkg Type: ${event.eventType} Class: ${event.className}")
 
         // GLOBAL RESET: If we switch to a different app (ignore SystemUI overlays like volume/keyboard)
@@ -277,12 +281,11 @@ class GuardService : AccessibilityService() {
                 }
             }
             
-            // VERDICT: BACK BUTTON MACHINE GUN
+            // VERDICT: THREAT CONFIRMED
             if (confirmedDanger) {
-                // CASE 1: THREAT CONFIRMED -> LOCKDOWN ACTIVITY
-                DebugLogger.log("BLOCK", "Threat Confirmed! Kicking back.")
+                // CASE 1: THREAT CONFIRMED -> LOCKDOWN ACTIVITY ONLY (No Back Press)
+                DebugLogger.log("BLOCK", "Threat Confirmed! Launching Tripwire.")
                 shieldJob?.cancel()
-                performGlobalAction(GLOBAL_ACTION_BACK)
                 startTripwire()
             } else if (isAppInfoPage) {
                 DebugLogger.log("Check", "AppInfoPage Detected. VerifiedSession: $verifiedSafeAppInfoSession")
