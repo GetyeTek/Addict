@@ -182,12 +182,20 @@ class GuardService : AccessibilityService() {
             // OPTIMIZED SHIELDING: Native Class Detection
             val cls = event.className?.toString()?.lowercase() ?: ""
             
-            // DETECT APP INFO: Check Class Name AND Screen Title
-            // This ensures we trigger the 3-second freeze even if the class name is generic.
-            val headerText = rootInActiveWindow?.findAccessibilityNodeInfosByText("App info")
+            // DETECT APP INFO: Multiple Triggers (Header, Class, or Bottom Buttons)
+            val rootNode = rootInActiveWindow
+            val headerText = rootNode?.findAccessibilityNodeInfosByText("App info")
             val hasAppInfoHeader = headerText != null && headerText.isNotEmpty()
-            
-            val isAppInfoPage = cls.contains("installedappdetails") || cls.contains("appmanagement") || hasAppInfoHeader
+
+            // FIX: If header is scrolled away, check for persistent bottom buttons.
+            // "Uninstall" and "Force stop" are strong indicators of the App Info page.
+            val hasUninstall = rootNode?.findAccessibilityNodeInfosByText("Uninstall")?.isNotEmpty() == true
+            val hasForceStop = rootNode?.findAccessibilityNodeInfosByText("Force stop")?.isNotEmpty() == true
+
+            val isAppInfoPage = cls.contains("installedappdetails") || 
+                                cls.contains("appmanagement") || 
+                                hasAppInfoHeader || 
+                                (hasUninstall && hasForceStop)
             
             var confirmedDanger = false
             
