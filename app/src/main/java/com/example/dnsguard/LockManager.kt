@@ -19,7 +19,28 @@ object LockManager {
 
     // DYNAMIC BROWSER DETECTION
     // Added Google App because it functions as a browser proxy
-    private val MANUAL_BLACKLIST = setOf("com.reddit.frontpage", "com.google.android.googlequicksearchbox")
+    // DYNAMIC BROWSER DETECTION
+    // MAINTENANCE BLOCK LIST: These are blocked ONLY when Unlocked.
+    private val MANUAL_BLACKLIST = setOf(
+        // Social & Messaging (Browsers in disguise)
+        "com.reddit.frontpage", "com.google.android.googlequicksearchbox", 
+        "com.discord", "com.tumblr", "sh.whisper", "tw.com.yellotalk",
+        "com.kik.chat", "com.snapchat.android",
+        
+        // Alternative Browsers (Risky without DNS)
+        "com.UCMobile.intl", "com.opera.mini.native", 
+        "com.duckduckgo.mobile.android", "com.brave.browser",
+
+        // Art / Creator (High Porn Risk)
+        "com.patreon.android", "jp.pxv.android", "com.deviantart.android.main",
+        
+        // Dating (Standard)
+        "com.tinder", "com.bumble.app", "co.hinge.app", "com.okcupid.okcupid", 
+        "com.badoo.mobile", "co.feeld", "com.modest.hud",
+        
+        // Alt Video
+        "com.kick.app", "com.rumble.v7", "com.bitchute.app"
+    )
     private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
 
     fun isUnlocked(ctx: Context): Boolean {
