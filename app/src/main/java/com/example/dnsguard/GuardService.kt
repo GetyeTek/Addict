@@ -74,6 +74,7 @@ class GuardService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
+        // DebugLogger.log("Event", "Pkg: $pkg Type: ${event.eventType} Class: ${event.className}")
         
         // Update active package and manage heartbeat polling
         if (pkg != activePackage) {
@@ -176,6 +177,7 @@ class GuardService : AccessibilityService() {
         // 6. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
+            // DebugLogger.log("Guard", "Settings interaction detected in $pkg")
 
             // --- STEP 1: PRE-EMPTIVE STRIKE ---
             // Block touches IMMEDIATELY. Guilty until proven innocent.
@@ -248,28 +250,29 @@ class GuardService : AccessibilityService() {
             // VERDICT: BACK BUTTON MACHINE GUN
             if (confirmedDanger) {
                 // CASE 1: THREAT CONFIRMED -> LOCKDOWN ACTIVITY
+                DebugLogger.log("BLOCK", "Threat Confirmed! Kicking back.")
                 shieldJob?.cancel()
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 startTripwire()
             } else if (isAppInfoPage) {
+                DebugLogger.log("Check", "AppInfoPage Detected. VerifiedSession: $verifiedSafeAppInfoSession")
                 // CASE 2: APP INFO PAGE (Ambiguous)
                 shieldJob?.cancel()
                 
                 // VERIFICATION: Look for "Notifications" anchor.
-                // It is usually the first item below the header. If we see it, we are at the top.
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
+                DebugLogger.log("Check", "Anchor 'Notifications' found: $hasAnchor")
 
                 if (verifiedSafeAppInfoSession) {
-                    // ALREADY VERIFIED: Allow scrolling.
+                    DebugLogger.log("Allow", "Session previously verified. Scrolling allowed.")
                     setShield(false)
                 } else if (hasAnchor) {
-                    // PROVEN INNOCENT: We are at the top (Anchor visible) and didn't see "DNS Guard".
+                    DebugLogger.log("Allow", "Anchor found. Marking session verified.")
                     verifiedSafeAppInfoSession = true
                     setShield(false)
                 } else {
+                    DebugLogger.log("BLOCK", "KICK OUT! Anchor missing and session not verified.")
                     // CASE 3: HIDDEN/SCROLLED AWAY -> KICK OUT
-                    // If we don't see the anchor, we assume the user might have scrolled to hide the App Name.
-                    // Guilty until proven innocent -> Eject.
                     scope.launch {
                         repeat(4) {
                             performGlobalAction(GLOBAL_ACTION_BACK)
