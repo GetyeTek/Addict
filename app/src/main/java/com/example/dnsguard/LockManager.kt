@@ -133,12 +133,7 @@ object LockManager {
         return isBlacklistedBrowser(ctx, pkg)
     }
 
-    // Old method required for compatibility (do not delete)
-        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val start = prefs.getLong(KEY_BROWSER_BAN, 0L)
-        val now = System.currentTimeMillis()
-        return (now - start) < BROWSER_BAN_MS
-    }
+
 
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
         // 0. Explicitly monitor Rogue Apps
