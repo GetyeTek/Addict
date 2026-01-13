@@ -528,30 +528,37 @@ class GuardService : AccessibilityService() {
                     // 1. CONTEXT CHECK: Is this the URL Bar?
                     // We check if the node is editable (typing) OR if its ID indicates it's an address bar.
                     val resId = node.viewIdResourceName?.lowercase() ?: ""
+                    // DEBUG: Spy on the resource IDs to catch hidden ones
+                    if (node.text != null && node.text.contains("google", ignoreCase = true)) {
+                        DebugLogger.log("SPY", "Pkg: $activePackage | ID: $resId | Text: ${node.text}")
+                    }
                     
                     // FIX: Broadened IDs to catch Firefox/Opera/Samsung 'Read-Only' URL bars
                     val isUrlBar = node.isEditable || 
                                    resId.contains("url") || 
                                    resId.contains("address") || 
                                    resId.contains("omnibox") || 
-                                   resId.contains("search_box") ||
+                                   resId.contains("search_box") || 
                                    resId.contains("location") ||
                                    resId.contains("toolbar") ||
                                    resId.contains("title") ||
                                    resId.contains("input") ||
-                                   resId.contains("bar")
-
+                                   resId.contains("bar") ||
+                                   // COMPREHENSIVE LIST (Firefox, Bing, Samsung, etc)
+                                   resId.contains("mozac") ||
+                                   resId.contains("search_text") ||
+                                   resId.contains("edit_text") ||
+                                   resId.contains("query")
                     // If it's just static text on a page (e.g. a Google Search Result description), ignore it.
                     // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
                     val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
 
-                    // AGGRESSIVE FALLBACK:
-                    // For Standard Apps, we ONLY check confirmed URL bars to prevent false positives on page content.
-                    // For Non-Standard Apps (like Vidmate), we check EVERYTHING on the screen.
-                    val isStandardApp = !LockManager.isNonStandardApp(applicationContext, activePackage)
-                    if (isStandardApp && !isUrlBar) {
-                        continue // It's a standard app, but this isn't a URL bar. Skip.
-                    }
+                    // HYBRID FALLBACK:
+                    // 1. If it's a URL bar (ID match), we scan it.
+                    // 2. If it's NOT a URL bar, we check if it's Web Content.
+                    //    - If it IS Web Content (and not a URL bar), we skip it (False Positive Protection).
+                    //    - If it is NOT Web Content (it's UI, like Firefox toolbar), we scan it.
+                    if (!isUrlBar && isWebContent) continue
 
                     
                     // 2. TEXT MATCHING
