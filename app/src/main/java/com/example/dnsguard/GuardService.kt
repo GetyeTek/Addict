@@ -135,9 +135,14 @@ class GuardService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
-            // FIX: Explicitly include Chrome & Google App for monitoring, even if it is whitelisted in LockManager
-            val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
-            val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
+        // FIX: Explicitly include Chrome & Google App for monitoring.
+        // CRITICAL: Also check if the event class is 'android.webkit.WebView'. 
+        // This catches 'Internal WebViews' in non-browser apps (e.g. a Notepad app opening a link).
+        val isWebViewEvent = event.className == "android.webkit.WebView"
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
+                       pkg == "com.android.chrome" || 
+                       pkg == "com.google.android.googlequicksearchbox" ||
+                       isWebViewEvent
             
             if (isBrowser || isTelegram) {
                 // Launch immediate check (Bypassing the 1.5s Polling delay)
@@ -488,7 +493,9 @@ class GuardService : AccessibilityService() {
         pollingJob?.cancel()
 
         // FIX: Explicitly include Chrome & Google App for monitoring
-        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
+                       pkg == "com.android.chrome" || 
+                       pkg == "com.google.android.googlequicksearchbox"
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
