@@ -447,8 +447,15 @@ class GuardService : AccessibilityService() {
                     }
                 }
 
-                // Check freq (Aggressive: 0.5s)
-                delay(500)
+                // OPTIMIZATION: Smart Sleep to save battery
+                // If screen is OFF, sleep 10s. If ON, check every 2s.
+                // 2s is fast enough to catch a user before they can navigate menus.
+                val pm = getSystemService(android.os.PowerManager::class.java)
+                if (pm.isInteractive) {
+                    delay(2000)
+                } else {
+                    delay(10000)
+                }
             }
         }
     }
