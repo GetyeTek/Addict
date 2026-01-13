@@ -447,7 +447,7 @@ class GuardService : AccessibilityService() {
                 }
 
                 // METRICS: Update Performance Stats
-                StatsManager.update(this)
+                StatsManager.update(applicationContext)
 
                 // OPTIMIZATION: Smart Sleep to save battery
                 val pm = getSystemService(android.os.PowerManager::class.java)
