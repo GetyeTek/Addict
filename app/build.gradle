@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.dnsguard'
+    namespace 'com.guardian.net'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.dnsguard"
+        applicationId "com.guardian.net"
         minSdk 24
         targetSdk 34
         versionCode 1
