@@ -91,6 +91,17 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
+        // 0. PERMANENT BAN: Twitter / X
+        if (pkg.contains("twitter") || pkg == "com.x.android") {
+             DebugLogger.log("BLOCK", "Permanent Ban Triggered: $pkg")
+             val i = Intent(applicationContext, LockdownActivity::class.java)
+             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+             startActivity(i)
+             performGlobalAction(GLOBAL_ACTION_BACK)
+             return
+        }
+
         // 0. BROWSER BAN ENFORCEMENT
         // If penalty box is active, block access immediately.
         val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
