@@ -83,6 +83,11 @@ class LockdownActivity : ComponentActivity() {
                     android.R.drawable.ic_secure, "SECURITY ALERT", 
                     "Do not tamper with settings.", "GO BACK"
                 )
+                "ROGUE_VIOLATION" -> Preset(
+                    Color(0xFF4A0000), Color(0xFFFF4444), 
+                    android.R.drawable.ic_delete, "APP BLOCKED", 
+                    "Non-standard app violation detected.\nLocked for 30 minutes.", "UNINSTALL"
+                )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
@@ -243,12 +248,15 @@ class LockdownActivity : ComponentActivity() {
                 scope.launch {
                     while(true) {
                         // 1. CONDITIONAL EXIT
-                        if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE") {
+                        if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE" || blockType == "ROGUE_VIOLATION") {
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
                              if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
                                  finishAffinity()
                              }
                              if (blockType == "BROWSER_VIOLATION" && !LockManager.isBrowserBanned(applicationContext)) {
+                                 finishAffinity()
+                             }
+                             if (blockType == "ROGUE_VIOLATION" && !LockManager.isNonStandardAppBanned(applicationContext)) {
                                  finishAffinity()
                              }
                         } else {
