@@ -18,7 +18,8 @@ object LockManager {
     const val ADMIN_PASS = "1234"
 
     // DYNAMIC BROWSER DETECTION
-    private val MANUAL_BLACKLIST = setOf("com.reddit.frontpage")
+    // Added Google App because it functions as a browser proxy
+    private val MANUAL_BLACKLIST = setOf("com.reddit.frontpage", "com.google.android.googlequicksearchbox")
     private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
 
     fun isUnlocked(ctx: Context): Boolean {
