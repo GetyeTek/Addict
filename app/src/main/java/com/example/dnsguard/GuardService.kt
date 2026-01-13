@@ -1,4 +1,4 @@
-package com.example.dnsguard
+package com.guardian.net
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
