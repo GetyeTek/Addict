@@ -182,8 +182,12 @@ class GuardService : AccessibilityService() {
             // OPTIMIZED SHIELDING: Native Class Detection
             val cls = event.className?.toString()?.lowercase() ?: ""
             
-            // Context Flags (Potential Danger)
-            val isAppInfoPage = cls.contains("installedappdetails") || cls.contains("appmanagement")
+            // DETECT APP INFO: Check Class Name AND Screen Title
+            // This ensures we trigger the 3-second freeze even if the class name is generic.
+            val headerText = rootInActiveWindow?.findAccessibilityNodeInfosByText("App info")
+            val hasAppInfoHeader = headerText != null && headerText.isNotEmpty()
+            
+            val isAppInfoPage = cls.contains("installedappdetails") || cls.contains("appmanagement") || hasAppInfoHeader
             
             var confirmedDanger = false
             
