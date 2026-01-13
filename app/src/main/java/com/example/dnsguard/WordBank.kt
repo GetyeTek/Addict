@@ -17,7 +17,8 @@ object WordBank {
         "incest", "nsfw", "dick", "cock", "pussy",
         "whore", "slut", "18+", "adult", "erotic",
         "erotica", "fuck", "bitch", "blowjob",
-        "sugardaddy", "sugarmummy",
+        "sugardaddy", "sugarmummy", "pornhub", "xxxvideo",
+        "habeshaxxx", "seksvideo", "erotika",
 
         // Amharic (Latin / Transliteration)
         "wesib", "seks", "tidar", "agenagn", "sharmuta", 
