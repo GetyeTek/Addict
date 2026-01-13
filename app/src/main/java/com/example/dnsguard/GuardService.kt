@@ -75,6 +75,15 @@ class GuardService : AccessibilityService() {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
         // DebugLogger.log("Event", "Pkg: $pkg Type: ${event.eventType} Class: ${event.className}")
+
+        // GLOBAL RESET: If we switch to a different app (ignore SystemUI overlays like volume/keyboard)
+        if (!pkg.contains("settings") && !pkg.contains("packageinstaller") && 
+            !pkg.contains("accessibility") && !pkg.contains("systemui")) {
+            if (verifiedSafeAppInfoSession) {
+                DebugLogger.log("Reset", "Left Settings (Pkg: $pkg). Session Invalidated.")
+                verifiedSafeAppInfoSession = false
+            }
+        }
         
         // Update active package and manage heartbeat polling
         if (pkg != activePackage) {
@@ -284,11 +293,11 @@ class GuardService : AccessibilityService() {
                 // CASE 4: GENERAL SETTINGS / MENU
                 shieldJob?.cancel()
                 
-                // SMART RESET: If we see the main "Settings" header, we have left the App Info page.
-                // We must reset the verification flag so the next App Info page is scanned fresh.
-                val hasSettingsHeader = rootInActiveWindow?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true
-                if (hasSettingsHeader) {
-                    verifiedSafeAppInfoSession = false
+                // AGGRESSIVE RESET: We are not on an App Info page anymore.
+                // We must invalidate the session immediately so the next App Info page is vetted from scratch.
+                if (verifiedSafeAppInfoSession) {
+                     DebugLogger.log("Reset", "Exited App Info Page. Session Invalidated.")
+                     verifiedSafeAppInfoSession = false
                 }
 
                 shieldJob = scope.launch {
