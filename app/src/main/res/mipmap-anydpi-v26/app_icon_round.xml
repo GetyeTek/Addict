@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background Color (Black matches your theme) -->
+    <background android:drawable="@android:color/black"/>
+    <!-- The Foreground is your existing icon. It will be masked/cropped to a circle. -->
+    <foreground android:drawable="@drawable/app_icon"/>
+</adaptive-icon>
