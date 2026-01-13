@@ -264,8 +264,12 @@ class GuardService : AccessibilityService() {
                 // It is usually the first item below the header. If we see it, we are at the top.
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
 
-                if (hasAnchor) {
+                if (verifiedSafeAppInfoSession) {
+                    // ALREADY VERIFIED: Allow scrolling.
+                    setShield(false)
+                } else if (hasAnchor) {
                     // PROVEN INNOCENT: We are at the top (Anchor visible) and didn't see "DNS Guard".
+                    verifiedSafeAppInfoSession = true
                     setShield(false)
                 } else {
                     // CASE 3: HIDDEN/SCROLLED AWAY -> KICK OUT
