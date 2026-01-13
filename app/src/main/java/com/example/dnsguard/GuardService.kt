@@ -235,30 +235,45 @@ class GuardService : AccessibilityService() {
                 }
             }
             
-            // VERDICT: SPONGE DELAY OR FREEZE
+            // VERDICT: DRY STONE PROTOCOL
             if (confirmedDanger) {
-                // Keep Shield UP & Cancel any pending drop
+                // CASE 1: THREAT CONFIRMED -> LOCKDOWN
                 shieldJob?.cancel()
-                // NUCLEAR BACK: Rapid Fire to exit menu depth
+                // Nuclear Back to exit menu depth
                 scope.launch {
                     repeat(4) {
                         performGlobalAction(GLOBAL_ACTION_BACK)
                         delay(100)
                     }
                 }
-            } else {
-                // SAFE CONTEXT? -> APPLY FREEZE PROTOCOL
-                // If we are in 'App Info', we FORCE a 3-second wait. 
-                // This stops the user from speed-running to 'Clear Storage' before the text loads.
-                val delayTime = if (isAppInfoPage) 3000L else 1000L
+            } else if (isAppInfoPage) {
+                // CASE 2: APP INFO PAGE (Guilty until proven innocent)
+                // We leave the shield UP by default (Freeze).
+                shieldJob?.cancel()
                 
+                // VERIFICATION: We look for the "Installed" anchor text.
+                // User Logic: "The app name... have 'installed' text just below it."
+                val hasInstalledAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("installed")?.isNotEmpty() == true
+
+                if (hasInstalledAnchor) {
+                    // If we see "Installed" anchor BUT we did not see "DNS Guard" (checked in confirmedDanger above),
+                    // then we must be looking at a safe app (e.g. "Calculator").
+                    // PROVEN INNOCENT -> RELEASE
+                    setShield(false)
+                } else {
+                    // If we see NOTHING (No "DNS Guard" AND No "Installed" anchor),
+                    // it means the header is scrolled away or hidden.
+                    // UNVERIFIED -> FREEZE FOREVER (Shield stays UP, forcing user to Back out)
+                    if (!isShieldActive) setShield(true)
+                }
+            } else {
+                // CASE 3: GENERAL SETTINGS (Standard Behavior)
+                // Wait a moment then drop shield if nothing triggered
                 shieldJob?.cancel()
                 shieldJob = scope.launch {
-                    delay(delayTime)
+                    delay(1000)
                     withContext(Dispatchers.Main) {
-                        if (isShieldActive) {
-                             setShield(false)
-                        }
+                        if (isShieldActive) setShield(false)
                     }
                 }
             }
