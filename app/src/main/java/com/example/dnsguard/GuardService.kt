@@ -101,7 +101,18 @@ class GuardService : AccessibilityService() {
             "org.plus18", "stashx", "adultfriendfinder", "ashleymadison", "com.grindr", "getpure" // Porn/Hookup
         )
 
-        // 0. BROWSER BAN ENFORCEMENT
+                // 0. ROGUE BAN ENFORCEMENT (30 Minutes)
+        if (LockManager.isNonStandardAppBanned(applicationContext) && 
+            LockManager.isNonStandardApp(applicationContext, pkg)) {
+             val i = Intent(applicationContext, LockdownActivity::class.java)
+             i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
+             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+             startActivity(i)
+             performGlobalAction(GLOBAL_ACTION_BACK)
+             return
+        }
+
+// 0. BROWSER BAN ENFORCEMENT
         // If penalty box is active, block access immediately.
         val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome"
         if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
@@ -523,21 +534,23 @@ class GuardService : AccessibilityService() {
                     // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
                     val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
                     
-                    if (!isUrlBar && isWebContent) continue 
-
-                    // 2. TEXT MATCHING
-                    val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
-                    val lowerText = rawText.lowercase()
-                    val index = lowerText.indexOf(site)
-
-                    if (index != -1) {
-                        // STRICT CHECK: char before must NOT be letter/digit
-                        val charBefore = if (index > 0) lowerText[index - 1] else ' '
+                        // Extra check: If it's a "Title" view (Firefox), it might say "X.com - Twitter". 
+                        // We accept that as a violation.
                         if (!charBefore.isLetterOrDigit()) {
-                            handleBrowserStrike()
+                            // CHECK: Is this a Non-Standard App?
+                            if (LockManager.isNonStandardApp(applicationContext, activePackage)) {
+                                // IMMEDIATE 30 MIN BLOCK
+                                LockManager.banNonStandardApp(applicationContext)
+                                val i = Intent(applicationContext, LockdownActivity::class.java)
+                                i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
+                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                startActivity(i)
+                            } else {
+                                // STANDARD STRIKE SYSTEM
+                                handleBrowserStrike()
+                            }
                             return
                         }
-                    }
                 }
             }
         }
