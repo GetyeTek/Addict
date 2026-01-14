@@ -526,6 +526,17 @@ class GuardService : AccessibilityService() {
 
         // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
+            // DEBUG SPY: Independent scan to capture URL bar IDs.
+            // Triggers if you type "google" or "http" to help you find the ID.
+            val spyKeywords = listOf("google", "http")
+            for (key in spyKeywords) {
+                val spies = root.findAccessibilityNodeInfosByText(key)
+                for (node in spies) {
+                    val resId = node.viewIdResourceName?.lowercase() ?: "null"
+                    DebugLogger.log("SPY", "Pkg: $activePackage | ID: $resId | Text: ${node.text}")
+                }
+            }
+
             val blacklist = listOf(
                 // Social & Microblogging
                 "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
@@ -549,10 +560,6 @@ class GuardService : AccessibilityService() {
                     // 1. CONTEXT CHECK: Is this the URL Bar?
                     // We check if the node is editable (typing) OR if its ID indicates it's an address bar.
                     val resId = node.viewIdResourceName?.lowercase() ?: ""
-                    // DEBUG: Spy on the resource IDs to catch hidden ones
-                    if (node.text != null && node.text.contains("google", ignoreCase = true)) {
-                        DebugLogger.log("SPY", "Pkg: $activePackage | ID: $resId | Text: ${node.text}")
-                    }
                     
                     // FIX: Broadened IDs to catch Firefox/Opera/Samsung 'Read-Only' URL bars
                     val isUrlBar = node.isEditable || 
