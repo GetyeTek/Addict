@@ -504,13 +504,11 @@ class GuardService : AccessibilityService() {
         pollingJob?.cancel()
 
         // FIX: Explicitly include Chrome & Google App for monitoring
-        // FIX: Explicitly include Chrome & Google App for monitoring
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
                        pkg == "com.android.chrome" || 
                        pkg == "com.google.android.googlequicksearchbox" ||
                        dynamicBrowsers.contains(pkg)
 
-        val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
