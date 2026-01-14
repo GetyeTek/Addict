@@ -54,7 +54,14 @@ object LockManager {
         "com.badoo.mobile", "co.feeld", "com.modest.hud",
         
         // Alt Video
-        "com.kick.app", "com.rumble.v7", "com.bitchute.app"
+        "com.kick.app", "com.rumble.v7", "com.bitchute.app",
+
+        // Mixed Content / Softcore Risk (DNS cannot filter these)
+        "com.instagram.android", "com.zhiliaoapp.musically", "com.pinterest",
+        "com.facebook.katana", "com.facebook.lite",
+        
+        // Proxies & Bypass Tools
+        "com.google.android.apps.translate"
     )
     private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
 
