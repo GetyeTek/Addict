@@ -152,6 +152,8 @@ class GuardService : AccessibilityService() {
                        pkg == "com.android.chrome" || 
                        pkg == "com.google.android.googlequicksearchbox" ||
                        dynamicBrowsers.contains(pkg)
+
+        val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
                 // Launch immediate check (Bypassing the 1.5s Polling delay)
