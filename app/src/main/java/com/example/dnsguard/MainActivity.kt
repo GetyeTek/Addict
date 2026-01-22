@@ -177,20 +177,37 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // NUKE ROW
+                var nukeRequestEnabled by remember { mutableStateOf(false) }
+                var nukeConfirmEnabled by remember { mutableStateOf(false) }
+
+                // REFRESH STATES EVERY 5 SECONDS
+                LaunchedEffect(Unit) {
+                    while(true) {
+                        nukeRequestEnabled = NukeManager.canRequestNuke(applicationContext) == "OK"
+                        nukeConfirmEnabled = NukeManager.isNukeReadyToConfirm(applicationContext)
+                        kotlinx.coroutines.delay(5000)
+                    }
+                }
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                    OutlinedButton(
-                       onClick = { 
-                            val status = NukeManager.canRequestNuke(applicationContext)
-                            if (status == "OK") showNukeRequestDialog = true else { nukeMsg = status; showNukeRequestDialog = true }
-                       },
-                       colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFF5252)),
+                       onClick = { showNukeRequestDialog = true },
+                       enabled = nukeRequestEnabled,
+                       colors = ButtonDefaults.outlinedButtonColors(
+                           contentColor = Color(0xFFFF5252),
+                           disabledContentColor = Color.DarkGray
+                       ),
                        modifier = Modifier.weight(1f).padding(end = 4.dp),
                        shape = RoundedCornerShape(8.dp)
                    ) { Text("INITIATE NUKE") }
                    
                    OutlinedButton(
                        onClick = { showNukeConfirmDialog = true; nukeError = "" },
-                       colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                       enabled = nukeConfirmEnabled,
+                       colors = ButtonDefaults.outlinedButtonColors(
+                           contentColor = Color.White,
+                           disabledContentColor = Color.DarkGray
+                       ),
                        modifier = Modifier.weight(1f).padding(start = 4.dp),
                        shape = RoundedCornerShape(8.dp)
                    ) { Text("ENTER CODE") }
