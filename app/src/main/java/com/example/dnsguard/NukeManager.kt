@@ -11,6 +11,8 @@ object NukeManager {
     private const val KEY_OTP = "nuke_otp"
     private const val KEY_OTP_TS = "nuke_ts"
     private const val KEY_DISABLED = "protection_disabled"
+    private const val KEY_OTP_NOTIFIED = "otp_notified"
+    private const val KEY_LOCK_NOTIFIED = "lock_notified"
     private const val KEY_DISABLED_TS = "protection_disabled_ts"
     private const val AUTO_RE_ENABLE_MS = 60 * 60 * 1000L // 1 Hour
 
@@ -30,7 +32,50 @@ object NukeManager {
             .edit()
             .putBoolean(KEY_DISABLED, disabled)
             .putLong(KEY_DISABLED_TS, now)
+            .putBoolean(KEY_LOCK_NOTIFIED, false)
             .apply()
+        
+        if (!disabled) {
+            showNotification(ctx, "Security Active", "Nuke protocol ended. Protection re-enabled.")
+        }
+    }
+
+    fun checkNotifications(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+
+        val otpTs = prefs.getLong(KEY_OTP_TS, 0L)
+        if (otpTs > 0 && !prefs.getBoolean(KEY_OTP_NOTIFIED, false)) {
+            if (now - otpTs >= WAIT_TIME) {
+                showNotification(ctx, "Protocol Ready", "The 3-hour wait is over. You can now confirm the Nuke.")
+                prefs.edit().putBoolean(KEY_OTP_NOTIFIED, true).apply()
+            }
+        }
+
+        val disabledAt = prefs.getLong(KEY_DISABLED_TS, 0L)
+        val isDisabled = prefs.getBoolean(KEY_DISABLED, false)
+        if (isDisabled && !prefs.getBoolean(KEY_LOCK_NOTIFIED, false)) {
+            if (now - disabledAt >= (50 * 60 * 1000L)) {
+                showNotification(ctx, "Security Warning", "Protection will auto-lock in 10 minutes.")
+                prefs.edit().putBoolean(KEY_LOCK_NOTIFIED, true).apply()
+            }
+        }
+    }
+
+    private fun showNotification(ctx: Context, title: String, msg: String) {
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val channelId = "security_alerts"
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val chan = android.app.NotificationChannel(channelId, "Security Alerts", android.app.NotificationManager.IMPORTANCE_HIGH)
+            nm.createNotificationChannel(chan)
+        }
+        val builder = androidx.core.app.NotificationCompat.Builder(ctx, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(title)
+            .setContentText(msg)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+        nm.notify(title.hashCode(), builder.build())
     }
 
     fun checkAutoReEnable(ctx: Context) {
@@ -67,6 +112,7 @@ object NukeManager {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_OTP, otp)
             .putLong(KEY_OTP_TS, now)
+            .putBoolean(KEY_OTP_NOTIFIED, false)
             .apply()
         
         return otp
