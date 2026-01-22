@@ -431,9 +431,18 @@ class GuardService : AccessibilityService() {
     private fun startMonitoring() {
         scope.launch {
             while (isActive) {
+                // 0. AUTO-LOCK WATCHDOG
+                NukeManager.checkAutoReEnable(applicationContext)
+
                 // SKIP CHECKS IF UNLOCKED
                 if (LockManager.isUnlocked(applicationContext)) {
                     delay(2000)
+                    continue
+                }
+
+                // 3. NUKE CHECK: If Nuke Protocol is active, we STOP here.
+                if (NukeManager.isProtectionDisabled(applicationContext)) {
+                    delay(5000) // Lower frequency check while Nuked
                     continue
                 }
 
