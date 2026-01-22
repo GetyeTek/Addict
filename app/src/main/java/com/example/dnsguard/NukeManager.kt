@@ -93,9 +93,10 @@ object NukeManager {
     }
 
     fun canRequestNuke(ctx: Context): String {
-        // 1. Check Auto Time Zone
-        val autoTime = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0)
-        if (autoTime != 1) return "ERROR: Automatic Time Zone must be enabled."
+        // 1. Check Auto Time
+        val autoTime = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME, 0)
+        val autoZone = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0)
+        if (autoTime != 1 || autoZone != 1) return "ERROR: Automatic Time & Zone must be enabled."
 
         // 2. Check Time Window (6 AM - 6 PM)
         val cal = Calendar.getInstance()
@@ -103,6 +104,16 @@ object NukeManager {
         if (hour < 6 || hour >= 18) return "ERROR: Protocol only available between 06:00 and 18:00."
 
         return "OK"
+    }
+
+    fun isNukeReadyToConfirm(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val ts = prefs.getLong(KEY_OTP_TS, 0L)
+        val now = System.currentTimeMillis()
+        if (ts == 0L) return false
+        
+        val diff = now - ts
+        return diff >= WAIT_TIME && diff <= EXPIRY_TIME
     }
 
     fun generateOtp(ctx: Context): String {
