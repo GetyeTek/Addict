@@ -11,6 +11,8 @@ object NukeManager {
     private const val KEY_OTP = "nuke_otp"
     private const val KEY_OTP_TS = "nuke_ts"
     private const val KEY_DISABLED = "protection_disabled"
+    private const val KEY_DISABLED_TS = "protection_disabled_ts"
+    private const val AUTO_RE_ENABLE_MS = 60 * 60 * 1000L // 1 Hour
 
     // 3 Hours in MS
     private const val WAIT_TIME = 3 * 60 * 60 * 1000L
@@ -23,8 +25,26 @@ object NukeManager {
     }
 
     fun setProtectionDisabled(ctx: Context, disabled: Boolean) {
+        val now = if (disabled) System.currentTimeMillis() else 0L
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_DISABLED, disabled).apply()
+            .edit()
+            .putBoolean(KEY_DISABLED, disabled)
+            .putLong(KEY_DISABLED_TS, now)
+            .apply()
+    }
+
+    fun checkAutoReEnable(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val isDisabled = prefs.getBoolean(KEY_DISABLED, false)
+        if (!isDisabled) return
+
+        val disabledAt = prefs.getLong(KEY_DISABLED_TS, 0L)
+        val elapsed = System.currentTimeMillis() - disabledAt
+
+        if (elapsed > AUTO_RE_ENABLE_MS) {
+            DebugLogger.log("NUKE", "Auto-Lock Triggered: 1 hour expired.")
+            setProtectionDisabled(ctx, false)
+        }
     }
 
     fun canRequestNuke(ctx: Context): String {
