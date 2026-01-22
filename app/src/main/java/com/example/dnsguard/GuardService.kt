@@ -23,12 +23,6 @@ class GuardService : AccessibilityService() {
     private var lastBrowserAction = 0L
     private var lastTelegramAction = 0L
 
-    // SHIELD: Invisible Touch Blocker
-    private var windowManager: android.view.WindowManager? = null
-    private var shieldView: android.view.View? = null
-    private var isShieldActive = false
-    private var shieldJob: Job? = null
-
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
     
@@ -43,8 +37,6 @@ class GuardService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         StatsManager.init(this)
-        // INIT SHIELD
-        windowManager = getSystemService(android.view.WindowManager::class.java)
         
         // ELEVATE PRIORITY: Persistent Notification
         startForegroundService()
@@ -229,13 +221,7 @@ class GuardService : AccessibilityService() {
         // 6. SETTINGS GUARD (Always Active - Locked OR Unlocked)
         // FIX: Broadened package check to include 'accessibility' (for Samsung/others) and 'settings'
         if (pkg.contains("settings") || pkg.contains("accessibility") || pkg.contains("packageinstaller")) {
-            // DebugLogger.log("Guard", "Settings interaction detected in $pkg")
-
-            // --- STEP 1: PRE-EMPTIVE STRIKE ---
-            // Block touches IMMEDIATELY. Guilty until proven innocent.
-            setShield(true)
-
-            // OPTIMIZED SHIELDING: Native Class Detection
+            // OPTIMIZED DETECTION: Native Class Detection
             val cls = event.className?.toString()?.lowercase() ?: ""
             
             // DETECT APP INFO: Multiple Triggers (Header, Class, or Bottom Buttons)
@@ -302,29 +288,16 @@ class GuardService : AccessibilityService() {
             
             // VERDICT: THREAT CONFIRMED
             if (confirmedDanger) {
-                // CASE 1: THREAT CONFIRMED -> LOCKDOWN ACTIVITY ONLY (No Back Press)
                 DebugLogger.log("BLOCK", "Threat Confirmed! Launching Tripwire.")
-                shieldJob?.cancel()
                 startTripwire()
             } else if (isAppInfoPage) {
-                DebugLogger.log("Check", "AppInfoPage Detected. VerifiedSession: $verifiedSafeAppInfoSession")
-                // CASE 2: APP INFO PAGE (Ambiguous)
-                shieldJob?.cancel()
-                
-                // VERIFICATION: Look for "Notifications" anchor.
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
-                DebugLogger.log("Check", "Anchor 'Notifications' found: $hasAnchor")
-
                 if (verifiedSafeAppInfoSession) {
-                    DebugLogger.log("Allow", "Session previously verified. Scrolling allowed.")
-                    setShield(false)
+                    // Allow scrolling in safe session
                 } else if (hasAnchor) {
-                    DebugLogger.log("Allow", "Anchor found. Marking session verified.")
                     verifiedSafeAppInfoSession = true
-                    setShield(false)
                 } else {
-                    DebugLogger.log("BLOCK", "KICK OUT! Anchor missing and session not verified.")
-                    // CASE 3: HIDDEN/SCROLLED AWAY -> KICK OUT
+                    DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
                     scope.launch {
                         repeat(4) {
                             performGlobalAction(GLOBAL_ACTION_BACK)
@@ -333,80 +306,14 @@ class GuardService : AccessibilityService() {
                     }
                 }
             } else {
-                // CASE 4: GENERAL SETTINGS / MENU
-                shieldJob?.cancel()
-                
-                // SAFE RESET: Only reset if we POSITIVELY see the main Settings header.
-                // If we simply don't match 'App Info', we might just be scrolling and missed the detection.
                 val root = rootInActiveWindow
                 val hasSettingsHeader = root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true
-                val hasSearchHeader = root?.findAccessibilityNodeInfosByText("Search settings")?.isNotEmpty() == true
-
-                if (hasSettingsHeader || hasSearchHeader) {
-                    if (verifiedSafeAppInfoSession) {
-                         DebugLogger.log("Reset", "Back in Main Settings. Session Invalidated.")
-                         verifiedSafeAppInfoSession = false
-                    }
-                }
-
-                shieldJob = scope.launch {
-                    delay(1000)
-                    withContext(Dispatchers.Main) {
-                        if (isShieldActive) setShield(false)
-                    }
-                }
+                if (hasSettingsHeader) verifiedSafeAppInfoSession = false
             }
-        } else {
-            // Not in settings? Shield down.
-            setShield(false)
         }
     }
 
-    // SHIELD LOGIC (High Performance Mode)
-    private fun setShield(active: Boolean) {
-        if (active == isShieldActive) return
-        
-        try {
-            if (shieldView == null) {
-                shieldView = android.view.View(this).apply {
-                    setBackgroundColor(0x00000000) // Transparent
-                    isClickable = true
-                    isFocusable = true
-                }
-            }
 
-            val params = android.view.WindowManager.LayoutParams(
-                android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                // RESTORED FLAG_NOT_FOCUSABLE to prevent Keyboard flickering in Search
-                // The shield still blocks touches because it is fullscreen.
-                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                android.view.WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
-                android.graphics.PixelFormat.TRANSLUCENT
-            )
-
-            if (active) {
-                if (shieldView?.parent == null) {
-                    windowManager?.addView(shieldView, params)
-                } else {
-                    shieldView?.visibility = android.view.View.VISIBLE
-                    windowManager?.updateViewLayout(shieldView, params)
-                }
-                isShieldActive = true
-            } else {
-                // Optimization: Don't remove view, just HIDE it. 
-                // This eliminates the 'addView' lag for the next trigger.
-                if (shieldView?.parent != null) {
-                    shieldView?.visibility = android.view.View.GONE
-                }
-                isShieldActive = false
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
     
     private fun startTripwire() {
         val i = Intent(applicationContext, LockdownActivity::class.java)
@@ -433,6 +340,7 @@ class GuardService : AccessibilityService() {
             while (isActive) {
                 // 0. AUTO-LOCK WATCHDOG
                 NukeManager.checkAutoReEnable(applicationContext)
+                NukeManager.checkNotifications(applicationContext)
 
                 // SKIP CHECKS IF UNLOCKED
                 if (LockManager.isUnlocked(applicationContext)) {
