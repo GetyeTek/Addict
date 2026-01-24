@@ -442,8 +442,8 @@ class GuardService : AccessibilityService() {
                 val delta = nowTick - lastUsageTick
                 lastUsageTick = nowTick
                 
-                val pm = getSystemService(android.os.PowerManager::class.java)
-                if (pm.isInteractive) {
+                val powerManager = getSystemService(android.os.PowerManager::class.java)
+                if (powerManager.isInteractive) {
                     val usage = LockManager.getAccumulatedUsage(applicationContext)
                     checkPreBreakWarnings(usage)
                     LockManager.updateUsageAndCheckBreak(applicationContext, delta)
@@ -552,8 +552,7 @@ class GuardService : AccessibilityService() {
                 StatsManager.update(applicationContext)
 
                 // OPTIMIZATION: Smart Sleep to save battery
-                val pm = getSystemService(android.os.PowerManager::class.java)
-                if (pm.isInteractive) {
+                if (powerManager.isInteractive) {
                     delay(2000)
                 } else {
                     delay(10000)
