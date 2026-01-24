@@ -314,25 +314,23 @@ object LockManager {
 
 
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
-        // 0. Explicitly monitor Rogue Apps
-        if (ROGUE_APPS.contains(pkg)) return true
-
-        // 1. Whitelist Chrome Stable
+        // 1. Fast path: Static checks
         if (pkg == "com.android.chrome") return false
-
-        // 2. Check Manual List
+        if (ROGUE_APPS.contains(pkg)) return true
         if (MANUAL_BLACKLIST.contains(pkg)) return true
 
-        // 3. Check Cache
-        if (BROWSER_CACHE.containsKey(pkg)) return BROWSER_CACHE[pkg]!!
+        // 2. Cache path: Avoid PM query
+        BROWSER_CACHE[pkg]?.let { return it }
 
-        // 4. Dynamic Check: Does it handle generic web URLs?
+        // 3. Slow path: Package Manager Query (Sync or first time detection)
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com"))
         intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE)
         
-        // MATCH_ALL (131072) ensures we see everything provided we have the permission
-        val list = ctx.packageManager.queryIntentActivities(intent, 131072)
-        val isBrowser = list.any { it.activityInfo.packageName == pkg }
+        // Query PM safely
+        val isBrowser = try {
+            val list = ctx.packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_ALL)
+            list.any { it.activityInfo.packageName == pkg }
+        } catch (e: Exception) { false }
         
         BROWSER_CACHE[pkg] = isBrowser
         return isBrowser
