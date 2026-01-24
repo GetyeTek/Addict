@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
+import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
 import kotlinx.coroutines.*
 
@@ -408,7 +409,7 @@ class GuardService : AccessibilityService() {
                     if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
                         // If we just finished a penalty but things aren't fixed, start 15m cycle
                         // If this is the first time we see a violation, start 1h initial
-                        val isCycle = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("penalty_end_ts", 0L) > 0
+                        val isCycle = applicationContext.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("penalty_end_ts", 0L) > 0
                         LockManager.triggerPenalty(applicationContext, isInitial = !isCycle)
                     }
                 }
@@ -511,7 +512,8 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     }
                 }
-                // 5. CHECK DNS
+                                // 5. CHECK DNS
+                if (!DnsManager.isSecure(applicationContext)) {
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -522,7 +524,7 @@ class GuardService : AccessibilityService() {
                     } catch (e: Exception) { e.printStackTrace() }
                 }
 
-                // 5. CLOUD SYNC (Hourly)
+                // 6. CLOUD SYNC (Hourly)
                 // Keeps the bad words database updated
                 val now = System.currentTimeMillis()
                 if (now - lastCloudSync > 60 * 60 * 1000) { // 1 Hour
