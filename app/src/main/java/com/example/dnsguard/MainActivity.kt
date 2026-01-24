@@ -63,6 +63,14 @@ class MainActivity : ComponentActivity() {
         if (!setupDone) {
             OnboardingGate(onSetupComplete = { setupDone = true })
         } else {
+            LaunchedEffect(Unit) {
+                val intent = Intent(ctx, WatcherService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    ctx.startForegroundService(intent)
+                } else {
+                    ctx.startService(intent)
+                }
+            }
             DashboardMain(padding)
         }
     }
