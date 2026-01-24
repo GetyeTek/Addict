@@ -17,8 +17,19 @@ class WatcherService : Service() {
         scope.launch {
             while (isActive) {
                 val hasAcc = isAccessibilityEnabled(applicationContext)
-                
-                if (!hasAcc && LockManager.isSetupComplete(applicationContext)) {
+                val hasOverlay = android.provider.Settings.canDrawOverlays(applicationContext)
+                val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                val hasBattery = powerManager.isIgnoringBatteryOptimizations(packageName)
+                val isSetupDone = LockManager.isSetupComplete(applicationContext)
+
+                if (isSetupDone) {
+                    // CRITICAL: No-Exception Penalty for core system permissions
+                    if (!hasOverlay || !hasBattery) {
+                        LockManager.triggerPenalty(applicationContext, isInitial = false)
+                    }
+                }
+
+                if (!hasAcc && isSetupDone) {
                     // 1. Mark defiance start
                     LockManager.startRebellion(applicationContext)
                     
