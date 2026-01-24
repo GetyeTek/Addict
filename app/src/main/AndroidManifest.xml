@@ -70,5 +70,17 @@
                 android:resource="@xml/accessibility_config" />
         </service>
 
+        <!-- DEBUG ONLY: KILL SWITCH TILE -->
+        <service
+            android:name=".KillTileService"
+            android:exported="true"
+            android:label="Emergency Stop"
+            android:icon="@android:drawable/ic_menu_close_clear_cancel"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>
