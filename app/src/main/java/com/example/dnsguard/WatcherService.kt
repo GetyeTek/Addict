@@ -43,7 +43,8 @@ class WatcherService : Service() {
                     val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                     val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
                     
-                    if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked) {
+                    val isEmergency = (Settings.Secure.getString(contentResolver, "default_input_method") ?: "").contains("dialer") // Simplified check
+                    if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked && !isEmergency) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
