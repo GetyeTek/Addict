@@ -89,6 +89,11 @@ class MainActivity : ComponentActivity() {
             
             // CARD 2.5: USAGE LADDER
             LadderCard()
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // CARD 2.6: NIGHT PASS
+            NightPassCard()
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -149,6 +154,60 @@ class MainActivity : ComponentActivity() {
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.DarkGray)
         }
         Divider(color = Color(0xFF2C2C2C))
+    }
+
+    @Composable
+    fun NightPassCard() {
+        val ctx = applicationContext
+        var remaining by remember { mutableStateOf(LockManager.getRemainingNightPasses(ctx)) }
+        var isWindow by remember { mutableStateOf(LockManager.isNightPassActivationWindow()) }
+        var isTonightUsed by remember { mutableStateOf(LockManager.isTonightPassed(ctx)) }
+        var showConfirm by remember { mutableStateOf(false) }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("NIGHT PROTOCOL", style = MaterialTheme.typography.labelLarge, color = Color(0xFF94A3B8))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Usage blocked 23:00 - 05:00 unless pass is used.", fontSize = 12.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { showConfirm = true },
+                        enabled = isWindow && remaining > 0 && !isTonightUsed,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
+                    ) {
+                        Text(if (isTonightUsed) "PASS ACTIVE" else "USE NIGHT PASS ($remaining Left)")
+                    }
+                }
+
+                if (!isWindow) {
+                    Text("Decision window opens at 10:00 AM", fontSize = 10.sp, color = Color(0xFFEF4444), modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        }
+
+        if (showConfirm) {
+            AlertDialog(
+                onDismissRequest = { showConfirm = false },
+                title = { Text("Are you sure?") },
+                text = { Text("This will use 1 of your 3 weekly passes. You only get this many to prevent sleep deprivation.") },
+                confirmButton = {
+                    Button(onClick = {
+                        if (LockManager.useNightPass(ctx)) {
+                            remaining = LockManager.getRemainingNightPasses(ctx)
+                            isTonightUsed = true
+                        }
+                        showConfirm = false
+                    }) { Text("I UNDERSTAND") }
+                },
+                dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("CANCEL") } }
+            )
+        }
     }
 
     @Composable
