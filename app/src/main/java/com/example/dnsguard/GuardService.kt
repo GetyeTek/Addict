@@ -410,8 +410,13 @@ class GuardService : AccessibilityService() {
                         LockManager.setPenaltyWarned(applicationContext)
                     }
 
-                    // B. ENFORCEMENT
-                    if (activePackage != packageName) {
+                    // B. ENFORCEMENT (Allow Dialer and Clock during Penalty)
+                    val dialerIntent = Intent(Intent.ACTION_DIAL)
+                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
+                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
+                    val clockPkg = "com.sec.android.app.clockpackage"
+
+                    if (activePackage != packageName && activePackage != dialerPkg && activePackage != clockPkg) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
