@@ -16,6 +16,13 @@ class WatcherService : Service() {
         
         scope.launch {
             while (isActive) {
+                // Respect Master Key / Nuke status
+                if (NukeManager.isProtectionDisabled(applicationContext)) {
+                    LockManager.clearRebellion(applicationContext)
+                    delay(5000)
+                    continue
+                }
+
                 val hasAcc = isAccessibilityEnabled(applicationContext)
                 val hasOverlay = android.provider.Settings.canDrawOverlays(applicationContext)
                 val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
