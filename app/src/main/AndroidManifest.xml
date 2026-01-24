@@ -2,6 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.guardian.net">
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <package android:name="com.sec.android.app.clockpackage" />
+        <package android:name="com.google.android.deskclock" />
+        <package android:name="com.android.deskclock" />
+    </queries>
+
     <!-- Critical Permissions -->
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
