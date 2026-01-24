@@ -93,6 +93,11 @@ class LockdownActivity : ComponentActivity() {
                     android.R.drawable.ic_lock_power_off, "FOCUS MODE", 
                     "You are intentionally locked out.\nDeep work in progress.", "EMERGENCY CALL"
                 )
+                "BREAK_TIME" -> Preset(
+                    Color(0xFF064E3B), Color(0xFF34D399), 
+                    android.R.drawable.ic_menu_today, "TIME TO BREATHE", 
+                    "Short break to protect your mind.\nLook away from the screen.", "EMERGENCY CALL"
+                )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
@@ -157,6 +162,36 @@ class LockdownActivity : ComponentActivity() {
                         )
                     }
 
+                    // TIMER FOR BREAK TIME
+                    if (blockType == "BREAK_TIME") {
+                        var remaining by remember { mutableStateOf(LockManager.getBreakRemaining(applicationContext)) }
+                        LaunchedEffect(Unit) {
+                            while(remaining > 0) {
+                                delay(500)
+                                remaining = LockManager.getBreakRemaining(applicationContext)
+                            }
+                        }
+                        val mins = (remaining / 1000) / 60
+                        val secs = (remaining / 1000) % 60
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = String.format("%02d:%02d", mins, secs),
+                            color = Color(0xFF34D399),
+                            fontSize = 64.sp,
+                            fontWeight = FontWeight.ExtraLight
+                        )
+                        
+                        // Zen Progress Circle
+                        Spacer(modifier = Modifier.height(16.dp))
+                        CircularProgressIndicator(
+                            progress = (remaining.toFloat() / (10 * 60 * 1000L)).coerceIn(0f, 1f), // Normalized to max break
+                            color = Color(0xFF34D399),
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(100.dp)
+                        )
+                    }
+
                     // DNS SELECTOR (Tap to Copy)
                     if (blockType == "DNS") {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -212,7 +247,7 @@ class LockdownActivity : ComponentActivity() {
                                          startActivity(i)
                                      }
                                  }
-                                 "USER_LOCKOUT" -> {
+                                 "USER_LOCKOUT", "BREAK_TIME" -> {
                                      val i = Intent(Intent.ACTION_DIAL)
                                      i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                      startActivity(i)
@@ -282,6 +317,9 @@ class LockdownActivity : ComponentActivity() {
                         // 1. CONDITIONAL EXIT
                         if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE" || blockType == "ROGUE_VIOLATION" || blockType == "USER_LOCKOUT") {
                              if (blockType == "USER_LOCKOUT" && !LockManager.isUserLockedOut(applicationContext)) {
+                                 finishAffinity()
+                             }
+                             if (blockType == "BREAK_TIME" && LockManager.getBreakRemaining(applicationContext) <= 0) {
                                  finishAffinity()
                              }
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
