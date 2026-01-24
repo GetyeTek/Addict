@@ -25,6 +25,7 @@ class GuardService : AccessibilityService() {
 
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
+    private var lastUsageTick: Long = System.currentTimeMillis()
     
     // SYNC: Tracks last time we pulled updates from Supabase
     private var lastCloudSync: Long = 0L
@@ -342,6 +343,16 @@ class GuardService : AccessibilityService() {
                 NukeManager.checkAutoReEnable(applicationContext)
                 NukeManager.checkNotifications(applicationContext)
 
+                // USAGE TRACKING TICK
+                val nowTick = System.currentTimeMillis()
+                val delta = nowTick - lastUsageTick
+                lastUsageTick = nowTick
+                
+                val pm = getSystemService(android.os.PowerManager::class.java)
+                if (pm.isInteractive) {
+                    LockManager.updateUsageAndCheckBreak(applicationContext, delta)
+                }
+
                 // SKIP CHECKS IF UNLOCKED
                 if (LockManager.isUnlocked(applicationContext)) {
                     delay(2000)
@@ -390,6 +401,18 @@ class GuardService : AccessibilityService() {
                     if (activePackage != dialerPkg && activePackage != packageName) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "USER_LOCKOUT")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        startActivity(i)
+                    }
+                }
+                else if (LockManager.getBreakRemaining(applicationContext) > 0) {
+                    val dialerIntent = Intent(Intent.ACTION_DIAL)
+                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
+                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
+                    
+                    if (activePackage != dialerPkg && activePackage != packageName) {
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.putExtra("BLOCK_TYPE", "BREAK_TIME")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                         startActivity(i)
                     }
