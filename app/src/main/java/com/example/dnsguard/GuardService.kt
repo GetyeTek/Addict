@@ -439,7 +439,8 @@ class GuardService : AccessibilityService() {
 
                 // 3. OVERLAY YANKING
                 if (LockManager.isSetupComplete(applicationContext) && !Settings.canDrawOverlays(applicationContext)) {
-                    if (!activePackage.contains("settings")) {
+                    // FIX: Broaden exception to include package installer
+                    if (!activePackage.contains("settings") && !activePackage.contains("packageinstaller")) {
                          val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
                          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                          startActivity(i)
@@ -478,10 +479,14 @@ class GuardService : AccessibilityService() {
 
                 // 1. SELF-HEALING: Check if Overlay Permission was revoked
                 if (!Settings.canDrawOverlays(applicationContext)) {
-                    val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                    i.data = Uri.parse("package:$packageName")
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(i)
+                    // FIX: Android disables overlays on Admin screens to prevent Tapjacking.
+                    // We must NOT interfere if the user is currently in Settings.
+                    if (!activePackage.contains("settings") && !activePackage.contains("packageinstaller")) {
+                        val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                        i.data = Uri.parse("package:$packageName")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(i)
+                    }
                 }
                 // 2. ENFORCE AUTO TIME (Required for Nuke Timer)
                 else if ((Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) != 1 ||
