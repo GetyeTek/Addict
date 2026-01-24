@@ -413,13 +413,11 @@ class GuardService : AccessibilityService() {
                 val penaltyRemaining = LockManager.getPenaltyRemaining(applicationContext)
                 
                 if (penaltyRemaining > 0) {
-                    // A. WARNING NOTIFICATION (T-Minus 1 Minute)
                     if (penaltyRemaining in 58000..65000 && !LockManager.wasPenaltyWarned(applicationContext)) {
                         sendPenaltyWarning()
                         LockManager.setPenaltyWarned(applicationContext)
                     }
 
-                    // B. ENFORCEMENT (Allow Dialer and Clock during Penalty)
                     val dialerIntent = Intent(Intent.ACTION_DIAL)
                     val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
                     val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
@@ -431,14 +429,8 @@ class GuardService : AccessibilityService() {
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                         startActivity(i)
                     }
-                } else {
-                    // C. CHECK FOR REBELLION (At this point, only Admin or Accessibility could be missing)
-                    if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
-                        // If we just finished a penalty but things aren't fixed, start 15m cycle
-                        // If this is the first time we see a violation, start 1h initial
-                        val isCycle = applicationContext.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("penalty_end_ts", 0L) > 0
-                        LockManager.triggerPenalty(applicationContext, isInitial = !isCycle)
-                    }
+                } else if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
+                    LockManager.triggerPenalty(applicationContext)
                 }
 
 
