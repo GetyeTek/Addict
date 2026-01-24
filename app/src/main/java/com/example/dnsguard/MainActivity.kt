@@ -82,7 +82,12 @@ class MainActivity : ComponentActivity() {
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // CARD 2: DANGER ZONE (Maintenance & Nuke)
+            // CARD 2: FOCUS MODE
+            FocusCard()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // CARD 3: DANGER ZONE (Maintenance & Nuke)
             DangerZoneCard()
 
             Spacer(modifier = Modifier.weight(1f))
@@ -139,6 +144,67 @@ class MainActivity : ComponentActivity() {
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.DarkGray)
         }
         Divider(color = Color(0xFF2C2C2C))
+    }
+
+    @Composable
+    fun FocusCard() {
+        var showDialog by remember { mutableStateOf(false) }
+        var minutesInput by remember { mutableStateOf("15") }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("SELF-CONTROL", style = MaterialTheme.typography.labelLarge, color = Color(0xFF818CF8))
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Button(
+                    onClick = { showDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Filled.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("LOCK ME OUT")
+                }
+            }
+        }
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Initiate Lockout") },
+                text = {
+                    Column {
+                        Text("How many minutes of focus?", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = minutesInput,
+                            onValueChange = { if (it.all { char -> char.isDigit() }) minutesInput = it },
+                            label = { Text("Minutes") },
+                            singleLine = true
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val mins = minutesInput.toIntOrNull() ?: 0
+                            if (mins > 0) {
+                                LockManager.setUserLockout(applicationContext, mins)
+                                showDialog = false
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5))
+                    ) { Text("CONFIRM") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) { Text("CANCEL") }
+                }
+            )
+        }
     }
 
     @Composable
