@@ -39,7 +39,8 @@ class WatcherService : Service() {
 
                     val hasNotifs = androidx.core.app.NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
 
-                    if (LockManager.getPenaltyRemaining(applicationContext) > 0) {
+                    // If we are in penalty, ENFORCE UI via Overlay (Respecting Grace Period)
+                    if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isBootGraceActive()) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
