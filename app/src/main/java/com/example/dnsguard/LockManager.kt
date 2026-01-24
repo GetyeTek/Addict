@@ -25,6 +25,8 @@ object LockManager {
     private const val KEY_SETUP_COMPLETE = "setup_complete"
     private const val KEY_PENALTY_NOTIFIED = "penalty_warned"
     private const val KEY_REBELLION_START = "rebellion_start_ts"
+    private const val KEY_SAFE_PKG = "safe_pkg_name"
+    private const val KEY_SAFE_TS = "safe_pkg_ts"
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -310,6 +312,21 @@ object LockManager {
         val start = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_REBELLION_START, 0L)
         if (start == 0L) return 0L
         return System.currentTimeMillis() - start
+    }
+
+    fun setSafeSession(ctx: Context, pkg: String) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_SAFE_PKG, pkg)
+            .putLong(KEY_SAFE_TS, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun isSafeSession(ctx: Context, pkg: String): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val safePkg = prefs.getString(KEY_SAFE_PKG, "")
+        val safeTs = prefs.getLong(KEY_SAFE_TS, 0L)
+        // Session is valid for 60 seconds
+        return safePkg == pkg && (System.currentTimeMillis() - safeTs < 60000)
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
