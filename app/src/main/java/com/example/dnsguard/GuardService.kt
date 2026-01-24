@@ -14,8 +14,7 @@ class GuardService : AccessibilityService() {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
 
-    private var windowManager: android.view.WindowManager? = null
-    private var overlayView: android.view.View? = null
+
 
     // POLLING & STRIKE SYSTEM
     private var pollingJob: Job? = null
@@ -119,13 +118,13 @@ class GuardService : AccessibilityService() {
         if (event == null) return
         val pkg = event.packageName?.toString() ?: ""
 
-        // EVENT-DRIVEN SECURITY: Check DNS/Security on every window change
+        // EVENT-DRIVEN SECURITY: Trigger Lockdown UI if DNS is broken
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             if (!NukeManager.isProtectionDisabled(applicationContext)) {
                 if (!DnsManager.isSecure(applicationContext)) {
-                    showInstantOverlay("DNS")
-                } else {
-                    hideInstantOverlay()
+                    val i = Intent(applicationContext, LockdownActivity::class.java)
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    startActivity(i)
                 }
             }
         }
@@ -771,41 +770,10 @@ class GuardService : AccessibilityService() {
         }
     }
 
-    private fun showInstantOverlay(type: String) {
-        if (overlayView != null) return
 
-        windowManager = getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager
-        val view = android.view.View(this).apply {
-            setBackgroundColor(android.graphics.Color.BLACK)
-        }
-
-        val params = android.view.WindowManager.LayoutParams(
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            android.view.WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or 
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            android.graphics.PixelFormat.TRANSLUCENT
-        )
-
-        try {
-            windowManager?.addView(view, params)
-            overlayView = view
-        } catch (e: Exception) { }
-    }
-
-    private fun hideInstantOverlay() {
-        overlayView?.let {
-            try {
-                windowManager?.removeView(it)
-            } catch (e: Exception) { }
-            overlayView = null
-        }
-    }
 
     override fun onDestroy() {
         super.onDestroy()
-        hideInstantOverlay()
         job.cancel()
         pollingJob?.cancel()
     }
