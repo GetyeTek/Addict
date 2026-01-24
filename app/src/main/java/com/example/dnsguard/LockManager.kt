@@ -325,8 +325,12 @@ object LockManager {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val safePkg = prefs.getString(KEY_SAFE_PKG, "")
         val safeTs = prefs.getLong(KEY_SAFE_TS, 0L)
-        // Session is valid for 60 seconds
-        return safePkg == pkg && (System.currentTimeMillis() - safeTs < 60000)
+        val now = System.currentTimeMillis()
+        
+        // If checking generally, just check if any session is still active within the 60s window
+        if (pkg == "ANY") return (now - safeTs < 60000)
+        
+        return safePkg == pkg && (now - safeTs < 60000)
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
