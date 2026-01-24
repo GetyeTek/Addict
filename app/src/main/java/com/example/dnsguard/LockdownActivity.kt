@@ -401,9 +401,9 @@ class LockdownActivity : ComponentActivity() {
                                  finishAffinity()
                              }
                         } else {
-                             // DNS Mode: Exit only if fixed. 
-                             // NOTE: We do NOT exit if Unlocked, because this screen might be showing "BROWSER" (Maintenance Mode)
-                             if (blockType == "DNS" && DnsManager.isSecure(applicationContext)) {
+                             // DNS Mode: Exit if fixed OR if in Maintenance Mode
+                             val isMaintenance = LockManager.isUnlocked(applicationContext)
+                             if (blockType == "DNS" && (DnsManager.isSecure(applicationContext) || isMaintenance)) {
                                  finishAffinity()
                              }
                         }
