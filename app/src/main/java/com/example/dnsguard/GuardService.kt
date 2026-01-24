@@ -117,25 +117,24 @@ class GuardService : AccessibilityService() {
         startForeground(1337, notif)
     }
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
-        val pkg = event.packageName?.toString() ?: ""
+     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+ if (event == null) return
+ val pkg = event.packageName?.toString() ?: ""
 
-        // EVENT-DRIVEN SECURITY: Trigger Lockdown UI if DNS is broken
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            if (!NukeManager.isProtectionDisabled(applicationContext)) {
-                val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
-                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
-                    val i = Intent(applicationContext, LockdownActivity::class.java)
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    startActivity(i)
-                }
-            }
-        }
-        // FIX: Session Leaking. Reset verification when window state changes (e.g. Recents/Alt-Tab).
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            verifiedSafeAppInfoSession = false
-        }
+ // EVENT-DRIVEN SECURITY
+ if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+ // Fix: Reset session verification
+ verifiedSafeAppInfoSession = false
+
+ if (!NukeManager.isProtectionDisabled(applicationContext)) {
+ val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
+ if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
+ val i = Intent(applicationContext, LockdownActivity::class.java)
+ i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+ startActivity(i)
+ }
+ }
+ }
         // DebugLogger.log("Event", "Pkg: $pkg Type: ${event.eventType} Class: ${event.className}")
 
         // GLOBAL RESET: If we switch to a different app (ignore SystemUI overlays like volume/keyboard)
@@ -162,39 +161,31 @@ class GuardService : AccessibilityService() {
             }
         }
 
-        // 0. PERMANENT BAN: The Dirty Dozen
-        // These apps either bypass DNS (Tor) or are dedicated to filth.
-        // They are blocked 24/7, regardless of Lock status.
-        val nukeList = listOf(
-            "twitter", "com.x.android", 
-            "torproject", // The only true DNS bypasser left
-            "org.plus18", "stashx", "adultfriendfinder", "ashleymadison", "com.grindr", "getpure" // Porn/Hookup
-        )
+         // 0. PERMANENT BAN: The Dirty Dozen
+ val nukeList = listOf(
+ "twitter", "com.x.android", "torproject", "org.plus18", "stashx", 
+ "adultfriendfinder", "ashleymadison", "com.grindr", "getpure"
+ )
+ if (nukeList.any { pkg.contains(it) }) {
+ performGlobalAction(GLOBAL_ACTION_HOME)
+ return
+ }
 
-                // 0. ROGUE BAN ENFORCEMENT (30 Minutes)
-        if (LockManager.isNonStandardAppBanned(applicationContext) && 
-            LockManager.isNonStandardApp(applicationContext, pkg)) {
-             val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-             startActivity(i)
-             performGlobalAction(GLOBAL_ACTION_BACK)
-             return
-        }
+ // 0. ROGUE BAN ENFORCEMENT (30 Minutes)
+ if (LockManager.isNonStandardAppBanned(applicationContext) && 
+ LockManager.isNonStandardApp(applicationContext, pkg)) {
+ showInstantOverlay("ROGUE_VIOLATION")
+ performGlobalAction(GLOBAL_ACTION_BACK)
+ return
+ }
 
-// 0. BROWSER BAN ENFORCEMENT
-        // If penalty box is active, block access immediately.
-        // 0. BROWSER BAN ENFORCEMENT
-        // If penalty box is active, block access immediately.
-        val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
-        if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
-             val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-             startActivity(i)
-             performGlobalAction(GLOBAL_ACTION_BACK)
-             return
-        }
+ // 0. BROWSER BAN ENFORCEMENT
+ val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
+ if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
+ showInstantOverlay("BROWSER_VIOLATION")
+ performGlobalAction(GLOBAL_ACTION_BACK)
+ return
+ }
 
         // REAL-TIME TRIGGER: Run check immediately on text/content changes
         // This acts as the "Keylogger" to catch typing instantly.
@@ -334,62 +325,47 @@ class GuardService : AccessibilityService() {
                     }
 
                                 // C. SELF-DEFENSE (App Info & Storage Guard)
-            if (isAppInfoPage) {
-                val nodePkg = root.packageName?.toString() ?: ""
-                val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
+             if (isAppInfoPage) {
+ val nodePkg = root.packageName?.toString() ?: ""
+ val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
 
-                // 1. Check for SELF-UNINSTALL (Always blocked)
-                if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
-                    confirmedDanger = true
-                    break
-                }
-
-                // 2. Check for VERIFIED INTENT
-                // Any App Info page accessed without a recently verified intent from Guardian is a violation.
-                if (!LockManager.isSafeSession(applicationContext, "ANY")) {
-                     confirmedDanger = true 
-                }
-            }
-        }
-    }
-    
-    // VERDICT: THREAT CONFIRMED
-    if (confirmedDanger) {
-                DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
-                
-                // 1. Kick to Home
-                performGlobalAction(GLOBAL_ACTION_HOME)
-                
-                // 2. Kill the Settings Process (Neutralizes the Recents entry)
-                val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-                am.killBackgroundProcesses("com.android.settings")
-                am.killBackgroundProcesses("com.samsung.accessibility")
-                am.killBackgroundProcesses("com.android.packageinstaller")
-
-                // 3. Launch Penalty Overlay
-                startTripwire()
-            } else if (isAppInfoPage) {
-                val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
-                if (verifiedSafeAppInfoSession) {
-                    // Allow scrolling in safe session
-                } else if (hasAnchor) {
-                    verifiedSafeAppInfoSession = true
-                } else {
-                    DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
-                    scope.launch {
-                        repeat(4) {
-                            performGlobalAction(GLOBAL_ACTION_BACK)
-                            delay(100)
-                        }
-                    }
-                }
-            } else {
-                val root = rootInActiveWindow
-                val hasSettingsHeader = root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true
-                if (hasSettingsHeader) verifiedSafeAppInfoSession = false
-            }
-        }
-    }
+ if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
+ confirmedDanger = true
+ break
+ }
+ if (!LockManager.isSafeSession(applicationContext, "ANY")) {
+ confirmedDanger = true 
+ }
+ }
+ }
+ }
+ 
+ if (confirmedDanger) {
+ DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
+ performGlobalAction(GLOBAL_ACTION_HOME)
+ val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+ am.killBackgroundProcesses("com.android.settings")
+ am.killBackgroundProcesses("com.samsung.accessibility")
+ am.killBackgroundProcesses("com.android.packageinstaller")
+ startTripwire()
+ } else if (isAppInfoPage) {
+ val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
+ if (!verifiedSafeAppInfoSession && !hasAnchor) {
+ DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
+ scope.launch {
+ repeat(4) { performGlobalAction(GLOBAL_ACTION_BACK); delay(100) }
+ }
+ } else if (hasAnchor) {
+ verifiedSafeAppInfoSession = true
+ }
+ } else {
+ val root = rootInActiveWindow
+ if (root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true) {
+ verifiedSafeAppInfoSession = false
+ }
+ }
+ }
+ }
 
 
     
