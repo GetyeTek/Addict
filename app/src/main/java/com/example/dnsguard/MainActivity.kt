@@ -402,14 +402,12 @@ class MainActivity : ComponentActivity() {
             var isLoading by remember { mutableStateOf(true) }
             var appList by remember { mutableStateOf(listOf<AppItem>()) }
 
-            // INSTANT LOADING FROM CACHE
             LaunchedEffect(Unit) {
                 val cached = AppCache.getCachedApps()
                 if (cached != null) {
                     appList = cached
                     isLoading = false
                 } else {
-                    // Fallback if pre-fetch isn't done yet
                     AppCache.loadApps(ctx)
                     appList = AppCache.getCachedApps() ?: listOf()
                     isLoading = false
@@ -418,36 +416,71 @@ class MainActivity : ComponentActivity() {
 
             AlertDialog(
                 onDismissRequest = { showList = false },
-                title = { Text("Verified App List") },
-                text = {
-                    Column(modifier = Modifier.heightIn(max = 450.dp)) {
-                        OutlinedTextField(
-                            value = filter,
-                            onValueChange = { filter = it },
-                            placeholder = { Text("Search Apps...") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.DarkGray)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        if (isLoading) {
-                            Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = Color.Gray)
-                            }
-                        } else {
-                            val filtered = remember(filter, appList) {
-                                if (filter.isBlank()) appList 
-                                else appList.filter { it.name.contains(filter, ignoreCase = true) || it.pkg.contains(filter, ignoreCase = true) }
-                            }
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+                content = {
+                    Surface(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        color = Color(0xFF1C1B1F),
+                        tonalElevation = 6.dp
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Text(
+                                "Select Verified App",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = Color.White
+                            )
+                            Text(
+                                "Bypass security traps for specific maintenance tasks.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                            
+                            Spacer(modifier = Modifier.height(20.dp))
 
-                            androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
-                                items(filtered.size) { index ->
-                                    val app = filtered[index]
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
+                            OutlinedTextField(
+                                value = filter,
+                                onValueChange = { filter = it },
+                                placeholder = { Text("Search installed apps...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                                trailingIcon = {
+                                    if (filter.isNotEmpty()) {
+                                        IconButton(onClick = { filter = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray)
+                                        }
+                                    }
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFBB86FC),
+                                    unfocusedBorderColor = Color(0xFF333333)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            if (isLoading) {
+                                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = Color(0xFFBB86FC))
+                                }
+                            } else {
+                                val filtered = remember(filter, appList) {
+                                    if (filter.isBlank()) appList 
+                                    else appList.filter { it.name.contains(filter, ignoreCase = true) || it.pkg.contains(filter, ignoreCase = true) }
+                                }
+
+                                if (filtered.isEmpty()) {
+                                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                                        Text("No apps found", color = Color.DarkGray)
+                                    }
+                                } else {
+                                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
+                                        items(filtered.size) { index ->
+                                            val app = filtered[index]
+                                            AppListRow(app) {
                                                 LockManager.setSafeSession(ctx, app.pkg)
                                                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                                                 intent.data = Uri.parse("package:${app.pkg}")
@@ -455,20 +488,78 @@ class MainActivity : ComponentActivity() {
                                                 ctx.startActivity(intent)
                                                 showList = false
                                             }
-                                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(app.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                                            Text(app.pkg, color = Color.Gray, fontSize = 11.sp)
+                                            if (index < filtered.size - 1) {
+                                                HorizontalDivider(modifier = Modifier.padding(horizontal = 56.dp), thickness = 0.5.dp, color = Color(0xFF333333))
+                                            }
                                         }
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            TextButton(
+                                onClick = { showList = false },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("DISMISS", color = Color(0xFFBB86FC), fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
-                },
-                confirmButton = { TextButton(onClick = { showList = false }) { Text("CLOSE") } }
+                }
+            )
+        }
+        }
+    }
+
+    @Composable
+    fun AppListRow(app: AppItem, onClick: () -> Unit) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onClick() }
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Monogram Placeholder for App Icon
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = Color(0xFF333333)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = app.name.take(1).uppercase(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = app.name,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    text = app.pkg,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
+            }
+            
+            Icon(
+                imageVector = Icons.Default.VerifiedUser,
+                contentDescription = null,
+                tint = Color(0xFF00E676).copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
             )
         }
     }
