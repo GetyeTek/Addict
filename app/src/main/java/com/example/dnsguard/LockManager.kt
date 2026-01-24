@@ -21,6 +21,12 @@ object LockManager {
     private const val KEY_LAST_THRESHOLD = "last_threshold"
     private const val KEY_LADDER_ENABLED = "ladder_enabled"
 
+    // THRESHOLDS
+    val T1 = 20 * 60 * 1000L
+    val T2 = 40 * 60 * 1000L
+    val T3 = 60 * 60 * 1000L
+    val T4 = 90 * 60 * 1000L
+
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
 
@@ -170,6 +176,10 @@ object LockManager {
     fun getBreakRemaining(ctx: Context): Long {
         val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_BREAK_END, 0L)
         return (end - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    fun getAccumulatedUsage(ctx: Context): Long {
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_USAGE_ACCUMULATED, 0L)
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
