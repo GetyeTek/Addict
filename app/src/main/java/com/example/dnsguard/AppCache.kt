@@ -6,10 +6,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object AppCache {
-    private var cachedApps: List<MainActivity.AppItem>? = null
+    private var cachedApps: List<AppItem>? = null
     private var isFetching = false
 
-    fun getCachedApps(): List<MainActivity.AppItem>? = cachedApps
+    fun getCachedApps(): List<AppItem>? = cachedApps
 
     suspend fun loadApps(ctx: Context) {
         if (cachedApps != null || isFetching) return
@@ -21,7 +21,7 @@ object AppCache {
                 // Using 0 instead of GET_META_DATA is significantly faster
                 val apps = pm.getInstalledApplications(0)
                     .filter { it.packageName != ctx.packageName }
-                    .map { MainActivity.AppItem(it.loadLabel(pm).toString(), it.packageName) }
+                    .map { AppItem(it.loadLabel(pm).toString(), it.packageName) }
                     .sortedBy { it.name.lowercase() }
                 
                 cachedApps = apps
