@@ -61,6 +61,10 @@
         </receiver>
 
         <!-- ENGINE: Accessibility Service (Used for monitoring) -->
+        <service android:name=".WatcherService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false" />
+
         <service android:name=".GuardService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
