@@ -17,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.Switch
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +73,7 @@ class MainActivity : ComponentActivity() {
         var hasBattery by remember { mutableStateOf(false) }
         var hasAccessibility by remember { mutableStateOf(false) }
         var hasAdmin by remember { mutableStateOf(false) }
+        var hasPhonePermission by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
             while (true) {
@@ -78,8 +81,9 @@ class MainActivity : ComponentActivity() {
                 hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
                 hasAccessibility = isAccessibilityEnabled(ctx)
                 hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+                hasPhonePermission = androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-                if (hasOverlay && hasBattery && hasAccessibility && hasAdmin) {
+                if (hasOverlay && hasBattery && hasAccessibility && hasAdmin && hasPhonePermission) {
                     LockManager.setSetupComplete(ctx)
                 }
                 delay(1000)
@@ -88,7 +92,7 @@ class MainActivity : ComponentActivity() {
 
         Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.Security, contentDescription = null, tint = if (hasOverlay && hasBattery && hasAccessibility && hasAdmin) Color(0xFF00E676) else Color.Red, modifier = Modifier.size(64.dp))
+                Icon(Icons.Filled.Security, contentDescription = null, tint = if (hasOverlay && hasBattery && hasAccessibility && hasAdmin && hasPhonePermission) Color(0xFF00E676) else Color.Red, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
                 Text("MANDATORY SETUP", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -111,6 +115,10 @@ class MainActivity : ComponentActivity() {
                     val i = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                     i.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
                     startActivity(i)
+                }
+                PermissionRow("Kill-Switch Permission", hasPhonePermission, Icons.Filled.Phone) {
+                    // Manual permission trigger for developer convenience
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
                 }
             }
         }
@@ -158,7 +166,8 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // HEADER
