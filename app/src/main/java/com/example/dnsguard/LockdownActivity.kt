@@ -235,13 +235,25 @@ class LockdownActivity : ComponentActivity() {
             }
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(type) {
             while(true) {
-                val isFixed = DnsManager.isSecure(applicationContext) || LockManager.isUnlocked(applicationContext)
-                val isViolation = type.contains("VIOLATION") || type.contains("SUSPENDED") || type == "PENALTY"
-                
-                if (!isViolation && isFixed) finishAffinity()
-                delay(2000)
+                val ctx = applicationContext
+                val shouldClose = when (type) {
+                    "SYSTEM" -> DnsManager.isSecure(ctx) || LockManager.isUnlocked(ctx)
+                    "NIGHT_LOCK" -> !LockManager.isNightLockActive(ctx)
+                    "BREAK_TIME" -> LockManager.getBreakRemaining(ctx) <= 0
+                    "USER_LOCKOUT" -> !LockManager.isUserLockedOut(ctx)
+                    "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
+                    "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
+                    "TELEGRAM_SUSPENDED" -> !LockManager.isTelegramBanned(ctx)
+                    else -> false
+                }
+
+                if (shouldClose) {
+                    finishAffinity()
+                    break
+                }
+                delay(1500)
             }
         }
     }
