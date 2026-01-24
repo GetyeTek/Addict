@@ -265,12 +265,13 @@ object LockManager {
         val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
         val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
         val hasOverlay = android.provider.Settings.canDrawOverlays(ctx)
+        val hasNotifs = androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()
         
         val expected = "${ctx.packageName}/${GuardService::class.java.canonicalName}"
         val enabledServices = android.provider.Settings.Secure.getString(ctx.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
         val hasAccessibility = enabledServices.contains(expected)
 
-        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay
+        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay || !hasNotifs
     }
 
     fun setPenaltyWarned(ctx: Context) {
