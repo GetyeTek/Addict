@@ -194,11 +194,12 @@ class LockdownActivity : ComponentActivity() {
 
                     // TIMER FOR BREAK TIME (Static Label Mode)
                     if (blockType == "BREAK_TIME") {
-                        val totalRemaining = remember { LockManager.getBreakRemaining(applicationContext) }
+                        // Calculate duration dynamically on each recomposition
+                        val remaining = LockManager.getBreakRemaining(applicationContext)
                         val breakLabel = when {
-                            totalRemaining > 8 * 60 * 1000L -> "10 Minute Refresh"
-                            totalRemaining > 4 * 60 * 1000L -> "5 Minute Reset"
-                            totalRemaining > 2 * 60 * 1000L -> "3 Minute Pause"
+                            remaining > 8 * 60 * 1000L -> "10 Minute Refresh"
+                            remaining > 4 * 60 * 1000L -> "5 Minute Reset"
+                            remaining > 2 * 60 * 1000L -> "3 Minute Pause"
                             else -> "30 Second Micro-Break"
                         }
 
@@ -207,14 +208,16 @@ class LockdownActivity : ComponentActivity() {
                             text = breakLabel,
                             color = Color(0xFF34D399),
                             fontSize = 32.sp,
-                            fontWeight = FontWeight.Light
+                            fontWeight = FontWeight.Bold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))
-                        // Simple non-ticking Zen ring
-                        CircularProgressIndicator(
-                            color = Color(0xFF34D399),
-                            strokeWidth = 2.dp,
+                        // Static icon instead of a progress indicator to keep it 'still'
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = Color(0xFF34D399),
                             modifier = Modifier.size(48.dp)
                         )
                     }
