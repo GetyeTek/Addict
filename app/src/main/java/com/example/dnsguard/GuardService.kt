@@ -401,6 +401,11 @@ class GuardService : AccessibilityService() {
                 NukeManager.checkNotifications(applicationContext)
 
                 // 1. PENALTY LOGIC
+                // REDEMPTION: If permissions are fixed, cancel the penalty immediately
+                if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isSystemCompromised(applicationContext)) {
+                    LockManager.clearPenalty(applicationContext)
+                }
+
                 val penaltyRemaining = LockManager.getPenaltyRemaining(applicationContext)
                 
                 if (penaltyRemaining > 0) {
