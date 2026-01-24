@@ -26,6 +26,32 @@ class GuardService : AccessibilityService() {
     // TIMESTAMP: Tracks when you were last touching settings
     private var lastSettingsInteraction: Long = 0L
     private var lastUsageTick: Long = System.currentTimeMillis()
+    private var lastMinuteWarningShown = 0L
+
+    private fun checkPreBreakWarnings(usage: Long) {
+        val thresholds = listOf(LockManager.T1, LockManager.T2, LockManager.T3, LockManager.T4)
+        
+        for (t in thresholds) {
+            val diff = t - usage
+            
+            // 1. THE 10-SECOND COUNTDOWN (All breaks)
+            if (diff in 1..10000) {
+                val secs = (diff / 1000) + 1
+                BreakWarningManager.showWarning(this, "Break starting in $secs...", true)
+                return
+            } 
+            
+            // 2. THE 1-MINUTE WARNING (Only T3 and T4)
+            if ((t == LockManager.T3 || t == LockManager.T4) && diff in 59000..61000) {
+                 if (lastMinuteWarningShown != t) {
+                     BreakWarningManager.showWarning(this, "Mindfulness break due in 1 minute", false)
+                     lastMinuteWarningShown = t
+                 }
+                 return
+            }
+        }
+        BreakWarningManager.hide()
+    }
     
     // SYNC: Tracks last time we pulled updates from Supabase
     private var lastCloudSync: Long = 0L
@@ -350,6 +376,8 @@ class GuardService : AccessibilityService() {
                 
                 val pm = getSystemService(android.os.PowerManager::class.java)
                 if (pm.isInteractive) {
+                    val usage = LockManager.getAccumulatedUsage(applicationContext)
+                    checkPreBreakWarnings(usage)
                     LockManager.updateUsageAndCheckBreak(applicationContext, delta)
                 }
 
