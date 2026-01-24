@@ -496,15 +496,18 @@ class GuardService : AccessibilityService() {
                     }
                 }
                 else if (LockManager.isNightLockActive(applicationContext)) {
-                    val clockPkg = "com.sec.android.app.clockpackage"
                     val dialerIntent = Intent(Intent.ACTION_DIAL)
                     val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
                     val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
+                    val isClock = activePackage.contains("clock") || activePackage.contains("alarm")
+                    
+                    // Prevent Intent flooding: Only start if our app isn't already the focus
+                    val isOurApp = activePackage == packageName || activePackage.contains(packageName)
 
-                    if (activePackage != dialerPkg && activePackage != clockPkg && activePackage != packageName) {
+                    if (!isOurApp && activePackage != dialerPkg && !isClock) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "NIGHT_LOCK")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                         startActivity(i)
                     }
                 }
