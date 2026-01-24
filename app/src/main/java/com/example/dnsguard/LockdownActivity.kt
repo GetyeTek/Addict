@@ -106,19 +106,61 @@ class LockdownActivity : ComponentActivity() {
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            Button(
-                onClick = { 
-                    val home = Intent(Intent.ACTION_MAIN).apply {
-                        addCategory(Intent.CATEGORY_HOME)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
+
+            if (hasEmergencyBypass) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            val i = Intent(Intent.ACTION_DIAL).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                            startActivity(i)
+                            moveTaskToBack(true)
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Phone, contentDescription = null, tint = config.color)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("PHONE", color = Color.White)
                     }
-                    startActivity(home) 
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = config.color),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("ACKNOWLEDGE", color = Color.Black, fontWeight = FontWeight.ExtraBold)
+                    
+                    Button(
+                        onClick = {
+                            val i = packageManager.getLaunchIntentForPackage("com.sec.android.app.clockpackage") 
+                                 ?: packageManager.getLaunchIntentForPackage("com.google.android.deskclock")
+                                 ?: packageManager.getLaunchIntentForPackage("com.android.deskclock")
+                            
+                            if (i != null) {
+                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                startActivity(i)
+                                moveTaskToBack(true)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Alarm, contentDescription = null, tint = config.color)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("CLOCK", color = Color.White)
+                    }
+                }
+            } else {
+                Button(
+                    onClick = { 
+                        val home = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(home) 
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = config.color),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("ACKNOWLEDGE", color = Color.Black, fontWeight = FontWeight.ExtraBold)
+                }
             }
         }
 
