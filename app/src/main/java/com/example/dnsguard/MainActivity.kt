@@ -39,6 +39,11 @@ class MainActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
         
+        // PRE-FETCH APPS IMMEDIATELY
+        kotlinx.coroutines.MainScope().launch {
+            AppCache.loadApps(applicationContext)
+        }
+        
         setContent {
             // DARK THEME DASHBOARD
             MaterialTheme(
@@ -397,16 +402,16 @@ class MainActivity : ComponentActivity() {
             var isLoading by remember { mutableStateOf(true) }
             var appList by remember { mutableStateOf(listOf<AppItem>()) }
 
-            // ASYNC LOADING: Prevents UI Lag
+            // INSTANT LOADING FROM CACHE
             LaunchedEffect(Unit) {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val pm = ctx.packageManager
-                    val apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
-                        .filter { it.packageName != ctx.packageName }
-                        .map { AppItem(it.loadLabel(pm).toString(), it.packageName) }
-                        .sortedBy { it.name.lowercase() }
-                    
-                    appList = apps
+                val cached = AppCache.getCachedApps()
+                if (cached != null) {
+                    appList = cached
+                    isLoading = false
+                } else {
+                    // Fallback if pre-fetch isn't done yet
+                    AppCache.loadApps(ctx)
+                    appList = AppCache.getCachedApps() ?: listOf()
                     isLoading = false
                 }
             }
