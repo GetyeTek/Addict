@@ -21,6 +21,8 @@ object LockManager {
     private const val KEY_LAST_THRESHOLD = "last_threshold"
     private const val KEY_LADDER_ENABLED = "ladder_enabled"
     private const val KEY_NIGHT_PASSES = "night_pass_history"
+    private const val KEY_PENALTY_END = "penalty_end_ts"
+    private const val KEY_SETUP_COMPLETE = "setup_complete"
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -230,6 +232,23 @@ object LockManager {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val isNightTime = hour >= 23 || hour < 5
         return isNightTime && !isTonightPassed(ctx)
+    }
+
+    fun setSetupComplete(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_SETUP_COMPLETE, true).apply()
+    }
+
+    fun isSetupComplete(ctx: Context): Boolean = 
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SETUP_COMPLETE, false)
+
+    fun triggerPenalty(ctx: Context) {
+        val end = System.currentTimeMillis() + (60 * 60 * 1000L) // 1 Hour
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(KEY_PENALTY_END, end).apply()
+    }
+
+    fun getPenaltyRemaining(ctx: Context): Long {
+        val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_PENALTY_END, 0L)
+        return (end - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
