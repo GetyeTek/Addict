@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,12 +47,6 @@ class LockdownActivity : ComponentActivity() {
 
         // Init state from first intent
         blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
-        
-        // INTRUSION: Remove system bars
-        window.setFlags(
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        )
         
         // INTRUSION: Remove system bars
         window.setFlags(
@@ -287,51 +283,47 @@ class LockdownActivity : ComponentActivity() {
                     
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (blockType == "PENALTY") {
-                         // Render nothing, no escape buttons allowed
-                    } else if (blockType == "NIGHT_LOCK") {
-                                 "DNS" -> {
-                                     val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
-                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                     startActivity(i)
-                                 }
-                                 "BROWSER" -> {
-                                     // Redirect to Chrome
-                                     try {
-                                         val i = packageManager.getLaunchIntentForPackage("com.android.chrome")
-                                         if (i != null) {
-                                             i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                             startActivity(i)
-                                             finishAffinity()
-                                         }
-                                     } catch (e: Exception) {
-                                         // If chrome missing, go home
-                                         val i = Intent(Intent.ACTION_MAIN)
-                                         i.addCategory(Intent.CATEGORY_HOME)
-                                         i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                         startActivity(i)
-                                     }
-                                 }
-                                 "USER_LOCKOUT", "BREAK_TIME" -> {
-                                     val i = Intent(Intent.ACTION_DIAL)
-                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                     startActivity(i)
-                                 }
-                                 "NIGHT_LOCK" -> {
-                                     // Emergency Action: Show choices
-                                 }
-                                 else -> {
-                                     // Default: Go Home
-                                     val i = Intent(Intent.ACTION_MAIN)
-                                     i.addCategory(Intent.CATEGORY_HOME)
-                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                     startActivity(i)
-                                 }
-                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = mainColor)
-                    ) {
-                        Text(btnText, color = Color.Black, fontWeight = FontWeight.Bold)
+                    if (blockType != "PENALTY") {
+                        Button(
+                            onClick = {
+                                when (blockType) {
+                                    "DNS" -> {
+                                        val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                                        i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        startActivity(i)
+                                    }
+                                    "BROWSER" -> {
+                                        try {
+                                            val i = packageManager.getLaunchIntentForPackage("com.android.chrome")
+                                            if (i != null) {
+                                                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                startActivity(i)
+                                                finishAffinity()
+                                            }
+                                        } catch (e: Exception) {
+                                            val i = Intent(Intent.ACTION_MAIN)
+                                            i.addCategory(Intent.CATEGORY_HOME)
+                                            i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                            startActivity(i)
+                                        }
+                                    }
+                                    "USER_LOCKOUT", "BREAK_TIME", "NIGHT_LOCK" -> {
+                                        val i = Intent(Intent.ACTION_DIAL)
+                                        i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        startActivity(i)
+                                    }
+                                    else -> {
+                                        val i = Intent(Intent.ACTION_MAIN)
+                                        i.addCategory(Intent.CATEGORY_HOME)
+                                        i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        startActivity(i)
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = mainColor)
+                        ) {
+                            Text(btnText, color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     // UNLOCK BUTTON (Only for DNS/System Lock)
