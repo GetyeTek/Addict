@@ -191,6 +191,11 @@ object LockManager {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_USAGE_ACCUMULATED, 0L)
     }
 
+    fun isBootGraceActive(): Boolean {
+        // 10 Minutes = 600,000 ms
+        return android.os.SystemClock.elapsedRealtime() < 10 * 60 * 1000
+    }
+
     // --- NIGHT PASS LOGIC ---
 
     private fun getNightPassTimestamps(ctx: Context): List<Long> {
