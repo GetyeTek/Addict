@@ -53,6 +53,85 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun DashboardContent(padding: PaddingValues) {
+        val ctx = applicationContext
+        val setupDone = LockManager.isSetupComplete(ctx)
+        
+        if (!setupDone) {
+            OnboardingGate()
+        } else {
+            DashboardMain(padding)
+        }
+    }
+
+    @Composable
+    fun OnboardingGate() {
+        val ctx = applicationContext
+        // Refresh state on every composition
+        var step by remember { mutableStateOf(1) }
+        
+        LaunchedEffect(Unit) {
+            while(true) {
+                val hasOverlay = Settings.canDrawOverlays(ctx)
+                val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
+                val hasAccessibility = isAccessibilityEnabled(ctx)
+                val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+
+                if (!hasOverlay) step = 1
+                else if (!hasBattery) step = 2
+                else if (!hasAccessibility) step = 3
+                else if (!hasAdmin) step = 4
+                else {
+                    LockManager.setSetupComplete(ctx)
+                }
+                delay(1000)
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Red, modifier = Modifier.size(64.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("MANDATORY SETUP", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Step $step of 4", color = Color.Gray)
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                val (title, desc, action) = when(step) {
+                    1 -> Triple("Appear on Top", "Required to block unsafe content.", { 
+                         val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                         startActivity(i)
+                    })
+                    2 -> Triple("Battery Immunity", "Required for 24/7 background protection.", { 
+                         val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                         startActivity(i)
+                    })
+                    3 -> Triple("Accessibility", "The core engine of Guardian's scanner.", {
+                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    })
+                    else -> Triple("Device Admin", "Prevents unauthorized app removal.", {
+                         val comp = android.content.ComponentName(ctx, AdminReceiver::class.java)
+                         val i = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                         i.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
+                         startActivity(i)
+                    })
+                }
+
+                Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                Text(desc, textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.LightGray)
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = { action() }, modifier = Modifier.fillMaxWidth()) { Text("GRANT PERMISSION") }
+            }
+        }
+    }
+
+    private fun isAccessibilityEnabled(ctx: Context): Boolean {
+        val expected = "$packageName/${GuardService::class.java.canonicalName}"
+        val enabledServices = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+        return enabledServices.contains(expected)
+    }
+
+    @Composable
+    fun DashboardMain(padding: PaddingValues) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
