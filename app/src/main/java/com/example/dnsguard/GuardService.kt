@@ -734,11 +734,21 @@ class GuardService : AccessibilityService() {
     }
 
     private fun showInstantOverlay(type: String) {
+    private fun showInstantOverlay(type: String) {
         val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
         
-        // Only show if the user is actually using the phone (Screen ON and Unlocked)
+        // Bypass if screen is off or locked
         if (!pm.isInteractive || km.isKeyguardLocked) return
+
+        // EMERGENCY BYPASS: Do not show overlay if user is in Phone or Clock during specific modes
+        val isEmergencyApp = activePackage.contains("dialer") || 
+                          activePackage.contains("telecom") || 
+                          activePackage.contains("clock") || 
+                          activePackage.contains("alarm")
+        
+        val blockTypesWithBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT")
+        if (isEmergencyApp && blockTypesWithBypass.contains(type)) return
 
         logSystemState(type)
         if (!android.provider.Settings.canDrawOverlays(this)) return
@@ -747,10 +757,8 @@ class GuardService : AccessibilityService() {
             putExtra("BLOCK_TYPE", type)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
-        try {
-            startActivity(i)
-        } catch (e: Exception) { }
-
+        try { startActivity(i) } catch (e: Exception) { }
+    }
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
         if (now - lastBrowserAction < 1000) return 
