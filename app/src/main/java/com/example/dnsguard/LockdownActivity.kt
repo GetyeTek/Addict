@@ -19,9 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Icon
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,52 +72,52 @@ class LockdownActivity : ComponentActivity() {
             val (bgColor, mainColor, icon, title, desc, btnText) = when (blockType) {
                 "BROWSER" -> Preset(
                     Color(0xFF202124), Color(0xFF4285F4),
-                    android.R.drawable.ic_dialog_alert, "RESTRICTED APP", 
+                    Icons.Filled.Warning, "RESTRICTED APP", 
                     "Maintenance Mode Active.\nUse Chrome for official logging.", "OPEN CHROME"
                 )
                 "BROWSER_VIOLATION" -> Preset(
                     Color(0xFF2B0000), Color(0xFFFF0033), 
-                    android.R.drawable.ic_delete, "BROWSER LOCKED", 
+                    Icons.Filled.Delete, "BROWSER LOCKED", 
                     "Security Violation Detected.\nLocked for 5 minutes.", "CLOSE BROWSER"
                 )
                 "TELEGRAM_SUSPENDED" -> Preset(
                     Color(0xFF1A1A00), Color(0xFFFFD700), 
-                    android.R.drawable.ic_lock_idle_lock, "TELEGRAM LOCKED", 
+                    Icons.Filled.Lock, "TELEGRAM LOCKED", 
                     "Security strikes exceeded.\nLocked for 10 minutes.", "ACKNOWLEDGE"
                 )
                 "SECURITY_TRIPWIRE" -> Preset(
                     Color(0xFF000000), Color(0xFF00FF00), 
-                    android.R.drawable.ic_secure, "SECURITY ALERT", 
+                    Icons.Filled.Security, "SECURITY ALERT", 
                     "Do not tamper with settings.", "GO BACK"
                 )
                 "ROGUE_VIOLATION" -> Preset(
                     Color(0xFF4A0000), Color(0xFFFF4444), 
-                    android.R.drawable.ic_delete, "APP BLOCKED", 
+                    Icons.Filled.Delete, "APP BLOCKED", 
                     "Non-standard app violation detected.\nLocked for 30 minutes.", "UNINSTALL"
                 )
                 "USER_LOCKOUT" -> Preset(
                     Color(0xFF0F172A), Color(0xFF818CF8), 
-                    android.R.drawable.ic_lock_power_off, "FOCUS MODE", 
+                    Icons.Filled.PowerSettingsNew, "FOCUS MODE", 
                     "You are intentionally locked out.\nDeep work in progress.", "EMERGENCY CALL"
                 )
                 "BREAK_TIME" -> Preset(
                     Color(0xFF064E3B), Color(0xFF34D399), 
-                    android.R.drawable.ic_menu_today, "TIME TO BREATHE", 
+                    Icons.Filled.CalendarToday, "TIME TO BREATHE", 
                     "Short break to protect your mind.\nLook away from the screen.", "EMERGENCY CALL"
                 )
                 "NIGHT_LOCK" -> Preset(
                     Color(0xFF020617), Color(0xFF94A3B8), 
-                    android.R.drawable.ic_lock_idle_alarm, "SLEEP WELL", 
+                    Icons.Filled.Alarm, "SLEEP WELL", 
                     "Phone usage restricted until 5:00 AM.\nRest is the ultimate productivity.", "EMERGENCY"
                 )
                 "PENALTY" -> Preset(
                     Color(0xFF450a0a), Color(0xFFf87171), 
-                    android.R.drawable.ic_delete, "CONSEQUENCE", 
+                    Icons.Filled.Delete, "CONSEQUENCE", 
                     "You have tampered with critical permissions.\nGuardian is now locked for 1 hour.", "INSECURE"
                 )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
-                    android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
+                    Icons.Filled.Warning, "SYSTEM INSECURE", 
                     "Private DNS must be set to one of the following providers:", "FIX DNS"
                 )
             }
@@ -132,7 +131,7 @@ class LockdownActivity : ComponentActivity() {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // ICON
                     androidx.compose.foundation.Image(
-                        painter = androidx.compose.ui.res.painterResource(id = icon),
+                        imageVector = icon,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(mainColor)
@@ -426,7 +425,7 @@ class LockdownActivity : ComponentActivity() {
 
     // DATA CLASS FOR UI PRESETS
     data class Preset(
-        val bg: Color, val main: Color, val icon: Int, 
+        val bg: Color, val main: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector, 
         val title: String, val desc: String, val btn: String
     )
 
