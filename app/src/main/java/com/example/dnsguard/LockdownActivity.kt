@@ -51,11 +51,14 @@ class LockdownActivity : ComponentActivity() {
         // Init state from first intent
         blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
         
-        // INTRUSION: Remove system bars
+        // INTRUSION: Remove system bars and prevent Picture-in-Picture
         window.setFlags(
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            setPictureInPictureParams(android.app.PictureInPictureParams.Builder().build())
+        }
 
         setContent {
             val blockType by blockTypeState
