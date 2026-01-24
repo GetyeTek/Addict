@@ -30,36 +30,27 @@ class WatcherService : Service() {
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
 
                 if (isSetupDone) {
-                    // CRITICAL: No-Exception Penalty for core system permissions
-                    if (!hasOverlay || !hasBattery) {
-                        LockManager.triggerPenalty(applicationContext, isInitial = false)
-                    }
-                }
+                    val isCompromised = LockManager.isSystemCompromised(applicationContext)
+                    val isLocked = LockManager.getPenaltyRemaining(applicationContext) > 0
 
-                if (!hasAcc && isSetupDone) {
-                    // 1. Mark defiance start
-                    LockManager.startRebellion(applicationContext)
-                    
-                    // 2. 15 Minute Hammer
-                    if (LockManager.getRebellionTime(applicationContext) > 15 * 60 * 1000L) {
-                        LockManager.triggerPenalty(applicationContext, isInitial = false)
-                        LockManager.clearRebellion(applicationContext)
+                    if (isCompromised && !isLocked) {
+                        LockManager.triggerPenalty(applicationContext)
                     }
 
-                    // 3. THE YANK
-                    val yankIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                    yankIntent.data = Uri.parse("package:$packageName")
-                    yankIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    try {
-                        startActivity(yankIntent)
-                    } catch (e: Exception) {
-                        // If Overlay settings fail, try general Accessibility settings
-                        val fallback = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(fallback)
+                    // If we are in penalty, ENFORCE UI via Overlay
+                    if (LockManager.getPenaltyRemaining(applicationContext) > 0) {
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.putExtra("BLOCK_TYPE", "PENALTY")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        startActivity(i)
+                    } 
+                    // If not locked but missing accessibility, use the Yank Penalty
+                    else if (!hasAcc) {
+                        val yankIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                        yankIntent.data = Uri.parse("package:$packageName")
+                        yankIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        try { startActivity(yankIntent) } catch (e: Exception) {}
                     }
-                } else {
-                    LockManager.clearRebellion(applicationContext)
                 }
                 
                 delay(1500)
