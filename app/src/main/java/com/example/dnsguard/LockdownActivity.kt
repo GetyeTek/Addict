@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.ClipboardManager
+import android.content.ClipData
+import android.widget.Toast
 import kotlinx.coroutines.delay
 
 class LockdownActivity : ComponentActivity() {
@@ -41,6 +44,14 @@ class LockdownActivity : ComponentActivity() {
                         radius = 1800f
                     )))
                     
+                    var showPassDialog by remember { mutableStateOf(false) }
+                    if (showPassDialog) {
+                        MaintenanceDialog(onDismiss = { showPassDialog = false }) {
+                            LockManager.unlock(applicationContext)
+                            showPassDialog = false
+                            finishAffinity()
+                        }
+                    }
                     LockdownContent(uiConfig, type)
                 }
             }
@@ -49,6 +60,9 @@ class LockdownActivity : ComponentActivity() {
 
     @Composable
     fun LockdownContent(config: UiConfig, type: String) {
+        var showPassDialog by remember { mutableStateOf(false) }
+        var passInput by remember { mutableStateOf("") }
+        val context = LocalContext.current
         val infiniteTransition = rememberInfiniteTransition(label = "")
         val alpha by infiniteTransition.animateFloat(
             initialValue = 0.3f, targetValue = 0.9f,
@@ -104,11 +118,68 @@ class LockdownActivity : ComponentActivity() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // SPECIAL SECTION: DNS HOSTNAMES
+            if (type == "SYSTEM") {
+                Text("Tap to copy safe hostname:", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
+                DnsManager.ALLOWED_HOSTNAMES.forEach { host ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryData(ClipData.newPlainText("DNS", host))
+                                if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.S_V2) {
+                                    Toast.makeText(context, "Copied: $host", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF111111),
+                        border = BorderStroke(0.5.dp, Color.DarkGray)
+                    ) {
+                        Text(host, color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center)
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
 
             val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
 
-            if (hasEmergencyBypass) {
+            if (type == "SYSTEM") {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { showPassDialog = true },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.LockOpen, null, tint = Color.Gray)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("UNLOCK", color = Color.White)
+                    }
+                    
+                    Button(
+                        onClick = {
+                            val intent = Intent("android.settings.PVT_DNS_SETTINGS")
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            try {
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = config.color),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Build, null, tint = Color.Black)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("FIX", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else if (hasEmergencyBypass) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = {
@@ -188,6 +259,28 @@ class LockdownActivity : ComponentActivity() {
     }
 
     data class UiConfig(val icon: ImageVector, val color: Color, val title: String, val description: String)
+
+    @Composable
+    private fun MaintenanceDialog(onDismiss: () -> Unit, onCorrect: () -> Unit) {
+        var text by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Maintenance Access") },
+            text = { 
+                OutlinedTextField(
+                    value = text, 
+                    onValueChange = { text = it },
+                    label = { Text("Admin Password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true
+                ) 
+            },
+            confirmButton = {
+                Button(onClick = { if (text == "1234") onCorrect() }) { Text("CONFIRM") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("CANCEL") } }
+        )
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
