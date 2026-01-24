@@ -240,6 +240,9 @@ object LockManager {
     }
 
     fun isNightLockActive(ctx: Context): Boolean {
+        // Night lock should NOT trigger if admin has unlocked maintenance mode
+        if (isUnlocked(ctx)) return false
+
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val isNightTime = hour >= 23 || hour < 5
         return isNightTime && !isTonightPassed(ctx)
