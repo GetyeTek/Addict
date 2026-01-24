@@ -1,8 +1,11 @@
 package com.guardian.net
 
 import android.accessibilityservice.AccessibilityService
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.content.Context
@@ -32,10 +35,10 @@ class GuardService : AccessibilityService() {
     private var lastMinuteWarningShown = 0L
 
     private fun sendPenaltyWarning() {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "security_penalties"
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val chan = android.app.NotificationChannel(channelId, "Security Penalties", android.app.NotificationManager.IMPORTANCE_HIGH)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val chan = NotificationChannel(channelId, "Security Penalties", NotificationManager.IMPORTANCE_HIGH)
             nm.createNotificationChannel(chan)
         }
         val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
@@ -751,6 +754,13 @@ class GuardService : AccessibilityService() {
         }
     }
 
+    private fun showInstantOverlay(type: String) {
+        val i = Intent(this, LockdownActivity::class.java)
+        i.putExtra("BLOCK_TYPE", type)
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        startActivity(i)
+    }
+
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
         if (now - lastBrowserAction < 1000) return 
@@ -762,10 +772,6 @@ class GuardService : AccessibilityService() {
         if (browserStrikes.size >= 4) {
              LockManager.banBrowser(applicationContext)
              showInstantOverlay("BROWSER_VIOLATION")
-             val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "BROWSER_VIOLATION")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-             startActivity(i)
         } else {
              performGlobalAction(GLOBAL_ACTION_BACK)
         }
