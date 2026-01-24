@@ -192,33 +192,30 @@ class LockdownActivity : ComponentActivity() {
                         Text("DO NOT REPEAT", color = Color.Gray, fontSize = 12.sp)
                     }
 
-                    // TIMER FOR BREAK TIME
+                    // TIMER FOR BREAK TIME (Static Label Mode)
                     if (blockType == "BREAK_TIME") {
-                        var remaining by remember { mutableStateOf(LockManager.getBreakRemaining(applicationContext)) }
-                        LaunchedEffect(Unit) {
-                            while(remaining > 0) {
-                                delay(500)
-                                remaining = LockManager.getBreakRemaining(applicationContext)
-                            }
+                        val totalRemaining = remember { LockManager.getBreakRemaining(applicationContext) }
+                        val breakLabel = when {
+                            totalRemaining > 8 * 60 * 1000L -> "10 Minute Refresh"
+                            totalRemaining > 4 * 60 * 1000L -> "5 Minute Reset"
+                            totalRemaining > 2 * 60 * 1000L -> "3 Minute Pause"
+                            else -> "30 Second Micro-Break"
                         }
-                        val mins = (remaining / 1000) / 60
-                        val secs = (remaining / 1000) % 60
-                        
+
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = String.format("%02d:%02d", mins, secs),
+                            text = breakLabel,
                             color = Color(0xFF34D399),
-                            fontSize = 64.sp,
-                            fontWeight = FontWeight.ExtraLight
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Light
                         )
                         
-                        // Zen Progress Circle
                         Spacer(modifier = Modifier.height(16.dp))
+                        // Simple non-ticking Zen ring
                         CircularProgressIndicator(
-                            progress = (remaining.toFloat() / (10 * 60 * 1000L)).coerceIn(0f, 1f), // Normalized to max break
                             color = Color(0xFF34D399),
                             strokeWidth = 2.dp,
-                            modifier = Modifier.size(100.dp)
+                            modifier = Modifier.size(48.dp)
                         )
                     }
 
