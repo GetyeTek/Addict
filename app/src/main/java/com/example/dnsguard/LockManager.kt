@@ -157,7 +157,9 @@ object LockManager {
     }
 
     fun setUserLockout(ctx: Context, minutes: Int) {
-        val endTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        // Clamp minutes between 0 and 1440 (24 hours)
+        val safeMinutes = minutes.coerceIn(0, 1440)
+        val endTime = System.currentTimeMillis() + (safeMinutes * 60 * 1000L)
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putLong(KEY_LOCKOUT_END, endTime).apply()
     }
