@@ -43,7 +43,11 @@ class WatcherService : Service() {
                     val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                     val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
                     
-                    val isEmergency = (Settings.Secure.getString(contentResolver, "default_input_method") ?: "").contains("dialer") // Simplified check
+                    // IMPROVED EMERGENCY CHECK: Get the current top activity package if possible
+                    val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                    val topPkg = am.getRunningTasks(1).firstOrNull()?.topActivity?.packageName ?: ""
+                    val isEmergency = topPkg.contains("dialer") || topPkg.contains("telecom") || topPkg.contains("clock") || topPkg.contains("alarm")
+
                     if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked && !isEmergency) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
