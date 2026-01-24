@@ -271,6 +271,13 @@ object LockManager {
         return (end - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
+    fun clearPenalty(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .remove(KEY_PENALTY_END)
+            .remove(KEY_PENALTY_NOTIFIED)
+            .apply()
+    }
+
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
         if (!isLadderEnabled(ctx)) return false
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
