@@ -15,6 +15,7 @@ object LockManager {
     private const val BROWSER_BAN_MS = 5 * 60 * 1000 // 5 Minutes
     private const val NON_STD_BAN_MS = 30 * 60 * 1000 // 30 Minutes
     private const val KEY_NON_STD_BAN = "non_std_ban_ts"
+    private const val KEY_LOCKOUT_END = "user_lockout_end_ts"
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
@@ -139,6 +140,21 @@ object LockManager {
         
         // 3. If it's any other detected browser, it's NON-STANDARD
         return isBlacklistedBrowser(ctx, pkg)
+    }
+
+    fun setUserLockout(ctx: Context, minutes: Int) {
+        val endTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_LOCKOUT_END, endTime).apply()
+    }
+
+    fun getLockoutRemainingMillis(ctx: Context): Long {
+        val endTime = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_LOCKOUT_END, 0L)
+        return (endTime - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    fun isUserLockedOut(ctx: Context): Boolean {
+        return getLockoutRemainingMillis(ctx) > 0
     }
 
 
