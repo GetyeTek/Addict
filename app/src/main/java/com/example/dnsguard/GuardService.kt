@@ -124,7 +124,8 @@ class GuardService : AccessibilityService() {
         // EVENT-DRIVEN SECURITY: Trigger Lockdown UI if DNS is broken
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             if (!NukeManager.isProtectionDisabled(applicationContext)) {
-                if (!DnsManager.isSecure(applicationContext)) {
+                val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
+                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
                     val i = Intent(applicationContext, LockdownActivity::class.java)
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     startActivity(i)
@@ -536,7 +537,8 @@ class GuardService : AccessibilityService() {
                     }
                 }
                                 // 5. CHECK DNS
-                if (!DnsManager.isSecure(applicationContext)) {
+                val isSettingsApp = activePackage.contains("settings") || activePackage.contains("accessibility")
+                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
