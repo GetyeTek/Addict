@@ -363,6 +363,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    data class AppItem(val name: String, val pkg: String)
+
     @Composable
     fun AppManagerCard() {
         var showList by remember { mutableStateOf(false) }
@@ -392,46 +394,70 @@ class MainActivity : ComponentActivity() {
 
         if (showList) {
             var filter by remember { mutableStateOf("") }
-            val apps = remember { 
-                ctx.packageManager.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
-                    .filter { it.packageName != ctx.packageName } // FILTER SELF
-                    .sortedBy { it.loadLabel(ctx.packageManager).toString() }
+            var isLoading by remember { mutableStateOf(true) }
+            var appList by remember { mutableStateOf(listOf<AppItem>()) }
+
+            // ASYNC LOADING: Prevents UI Lag
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val pm = ctx.packageManager
+                    val apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
+                        .filter { it.packageName != ctx.packageName }
+                        .map { AppItem(it.loadLabel(pm).toString(), it.packageName) }
+                        .sortedBy { it.name.lowercase() }
+                    
+                    appList = apps
+                    isLoading = false
+                }
             }
 
             AlertDialog(
                 onDismissRequest = { showList = false },
                 title = { Text("Verified App List") },
                 text = {
-                    Column(modifier = Modifier.heightIn(max = 400.dp)) {
+                    Column(modifier = Modifier.heightIn(max = 450.dp)) {
                         OutlinedTextField(
                             value = filter,
                             onValueChange = { filter = it },
                             placeholder = { Text("Search Apps...") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.DarkGray)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        androidx.compose.foundation.lazy.LazyColumn {
-                            val filtered = apps.filter { it.loadLabel(ctx.packageManager).toString().contains(filter, ignoreCase = true) }
-                            items(filtered.size) { index ->
-                                val app = filtered[index]
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            LockManager.setSafeSession(ctx, app.packageName)
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                            intent.data = Uri.parse("package:${app.packageName}")
-                                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                            ctx.startActivity(intent)
-                                            showList = false
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (isLoading) {
+                            Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.Gray)
+                            }
+                        } else {
+                            val filtered = remember(filter, appList) {
+                                if (filter.isBlank()) appList 
+                                else appList.filter { it.name.contains(filter, ignoreCase = true) || it.pkg.contains(filter, ignoreCase = true) }
+                            }
+
+                            androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
+                                items(filtered.size) { index ->
+                                    val app = filtered[index]
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                LockManager.setSafeSession(ctx, app.pkg)
+                                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                                intent.data = Uri.parse("package:${app.pkg}")
+                                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                ctx.startActivity(intent)
+                                                showList = false
+                                            }
+                                            .padding(vertical = 12.dp, horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(app.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                                            Text(app.pkg, color = Color.Gray, fontSize = 11.sp)
                                         }
-                                        .padding(vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(app.loadLabel(ctx.packageManager).toString(), color = Color.White)
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(app.packageName, color = Color.Gray, fontSize = 10.sp)
+                                    }
                                 }
                             }
                         }
