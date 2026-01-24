@@ -483,17 +483,7 @@ class GuardService : AccessibilityService() {
                 }
                 // 4. CHECK USER LOCKOUT (Focus Mode)
                 else if (LockManager.isUserLockedOut(applicationContext)) {
-                    val dialerIntent = Intent(Intent.ACTION_DIAL)
-                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
-                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
-                    
-                    // If we are NOT in the dialer and NOT in the LockdownActivity, force overlay
-                    if (activePackage != dialerPkg && activePackage != packageName) {
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", "USER_LOCKOUT")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        startActivity(i)
-                    }
+                    showInstantOverlay("USER_LOCKOUT")
                 }
                 else if (LockManager.isNightLockActive(applicationContext)) {
                     val isClock = activePackage.contains("clock") || activePackage.contains("alarm")
@@ -504,16 +494,7 @@ class GuardService : AccessibilityService() {
                     }
                 }
                 else if (LockManager.getBreakRemaining(applicationContext) > 0) {
-                    val dialerIntent = Intent(Intent.ACTION_DIAL)
-                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
-                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
-                    
-                    if (activePackage != dialerPkg && activePackage != packageName) {
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", "BREAK_TIME")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        startActivity(i)
-                    }
+                    showInstantOverlay("BREAK_TIME")
                 }
                                 // 5. CHECK DNS (Honors Maintenance Mode)
                 val isSettingsApp = activePackage.contains("settings") || activePackage.contains("accessibility")
@@ -694,14 +675,20 @@ class GuardService : AccessibilityService() {
         // Bypass if screen is off or locked
         if (!pm.isInteractive || km.isKeyguardLocked) return
 
-        // EMERGENCY BYPASS: Do not show overlay if user is in Phone or Clock during specific modes
+        // STRICT EMERGENCY BYPASS
         val isEmergencyApp = activePackage.contains("dialer") || 
                           activePackage.contains("telecom") || 
                           activePackage.contains("clock") || 
-                          activePackage.contains("alarm")
+                          activePackage.contains("alarm") ||
+                          activePackage.contains("incallui")
         
-        val blockTypesWithBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT")
-        if (isEmergencyApp && blockTypesWithBypass.contains(type)) return
+        // List of modes that MUST NOT interrupt a phone call or alarm
+        val softBlockTypes = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT", "SYSTEM")
+        
+        if (isEmergencyApp && softBlockTypes.contains(type)) {
+            DebugLogger.log("BYPASS", "Emergency app detected ($activePackage). Suppressing $type overlay.")
+            return
+        }
 
         logSystemState(type)
         if (!android.provider.Settings.canDrawOverlays(this)) return
