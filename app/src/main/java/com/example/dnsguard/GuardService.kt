@@ -455,11 +455,7 @@ class GuardService : AccessibilityService() {
                     LockManager.updateUsageAndCheckBreak(applicationContext, delta)
                 }
 
-                // SKIP CHECKS IF UNLOCKED
-                if (LockManager.isUnlocked(applicationContext)) {
-                    delay(2000)
-                    continue
-                }
+                // Global skip removed: Maintenance mode is now targeted to DNS only
 
                 // 3. NUKE CHECK: If Nuke Protocol is active, we STOP here.
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
@@ -536,9 +532,10 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     }
                 }
-                                // 5. CHECK DNS
+                                // 5. CHECK DNS (Honors Maintenance Mode)
                 val isSettingsApp = activePackage.contains("settings") || activePackage.contains("accessibility")
-                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
+                val isMaintenance = LockManager.isUnlocked(applicationContext)
+                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp && !isMaintenance) {
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
