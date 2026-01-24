@@ -41,13 +41,15 @@
         </activity>
 
         <!-- THE BLOCKER: High priority, full screen -->
-        <activity
+                <activity
             android:name=".LockdownActivity"
             android:exported="false"
             android:launchMode="singleInstance"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:excludeFromRecents="true"
-            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
             android:taskAffinity="" />
 
         <!-- PERSISTENCE: Device Admin -->
