@@ -725,11 +725,32 @@ class GuardService : AccessibilityService() {
         }
     }
 
+    private fun logSystemState(reason: String) {
+        val dns = DnsManager.isSecure(applicationContext)
+        val acc = LockManager.isSystemCompromised(applicationContext)
+        val night = LockManager.isNightLockActive(applicationContext)
+        val overlay = android.provider.Settings.canDrawOverlays(applicationContext)
+        DebugLogger.log("STATE_DUMP", "Reason: $reason | DNS: $dns | Compromised: $acc | Night: $night | Overlay: $overlay")
+    }
+
     private fun showInstantOverlay(type: String) {
-        val i = Intent(this, LockdownActivity::class.java)
-        i.putExtra("BLOCK_TYPE", type)
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        startActivity(i)
+        logSystemState(type)
+        if (!android.provider.Settings.canDrawOverlays(this)) {
+             DebugLogger.log("LOCK", "Cannot show overlay: Permission missing")
+             return
+        }
+        val i = Intent(this, LockdownActivity::class.java).apply {
+            putExtra("BLOCK_TYPE", type)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        }
+        try {
+            startActivity(i)
+        } catch (e: Exception) {
+            DebugLogger.log("LAUNCH_ERR", e.message ?: "Unknown Activity Launch Error")
+        }
     }
 
     private fun handleBrowserStrike() {
