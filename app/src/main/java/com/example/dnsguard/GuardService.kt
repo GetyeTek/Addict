@@ -350,7 +350,18 @@ class GuardService : AccessibilityService() {
             
             // VERDICT: THREAT CONFIRMED
             if (confirmedDanger) {
-                DebugLogger.log("BLOCK", "Threat Confirmed! Launching Tripwire.")
+                DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
+                
+                // 1. Kick to Home
+                performGlobalAction(GLOBAL_ACTION_HOME)
+                
+                // 2. Kill the Settings Process (Neutralizes the Recents entry)
+                val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                am.killBackgroundProcesses("com.android.settings")
+                am.killBackgroundProcesses("com.samsung.accessibility")
+                am.killBackgroundProcesses("com.android.packageinstaller")
+
+                // 3. Launch Penalty Overlay
                 startTripwire()
             } else if (isAppInfoPage) {
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
