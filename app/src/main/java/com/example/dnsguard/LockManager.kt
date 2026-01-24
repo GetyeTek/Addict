@@ -281,17 +281,7 @@ object LockManager {
     fun wasPenaltyWarned(ctx: Context): Boolean = 
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_PENALTY_NOTIFIED, false)
 
-    fun isSystemCompromised(ctx: Context): Boolean {
-        val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
-        val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
-        
-        // Check Accessibility
-        val expected = "${ctx.packageName}/${GuardService::class.java.canonicalName}"
-        val enabledServices = android.provider.Settings.Secure.getString(ctx.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-        val hasAccessibility = enabledServices.contains(expected)
 
-        return !hasBattery || !hasAdmin || !hasAccessibility
-    }
 
     fun getPenaltyRemaining(ctx: Context): Long {
         val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_PENALTY_END, 0L)
