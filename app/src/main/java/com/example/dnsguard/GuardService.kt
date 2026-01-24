@@ -734,24 +734,22 @@ class GuardService : AccessibilityService() {
     }
 
     private fun showInstantOverlay(type: String) {
+        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
+        
+        // Only show if the user is actually using the phone (Screen ON and Unlocked)
+        if (!pm.isInteractive || km.isKeyguardLocked) return
+
         logSystemState(type)
-        if (!android.provider.Settings.canDrawOverlays(this)) {
-             DebugLogger.log("LOCK", "Cannot show overlay: Permission missing")
-             return
-        }
+        if (!android.provider.Settings.canDrawOverlays(this)) return
+
         val i = Intent(this, LockdownActivity::class.java).apply {
             putExtra("BLOCK_TYPE", type)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         try {
             startActivity(i)
-        } catch (e: Exception) {
-            DebugLogger.log("LAUNCH_ERR", e.message ?: "Unknown Activity Launch Error")
-        }
-    }
+        } catch (e: Exception) { }
 
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
