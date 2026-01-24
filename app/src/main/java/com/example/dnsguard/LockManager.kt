@@ -20,6 +20,7 @@ object LockManager {
     private const val KEY_USAGE_ACCUMULATED = "usage_ms"
     private const val KEY_LAST_THRESHOLD = "last_threshold"
     private const val KEY_LADDER_ENABLED = "ladder_enabled"
+    private const val KEY_NIGHT_PASSES = "night_pass_history"
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -180,6 +181,55 @@ object LockManager {
 
     fun getAccumulatedUsage(ctx: Context): Long {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_USAGE_ACCUMULATED, 0L)
+    }
+
+    // --- NIGHT PASS LOGIC ---
+
+    private fun getNightPassTimestamps(ctx: Context): List<Long> {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_NIGHT_PASSES, "") ?: ""
+        return if (raw.isEmpty()) emptyList() else raw.split(",").mapNotNull { it.toLongOrNull() }
+    }
+
+    fun getRemainingNightPasses(ctx: Context): Int {
+        val weekAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+        val recent = getNightPassTimestamps(ctx).filter { it > weekAgo }
+        return (3 - recent.size).coerceAtLeast(0)
+    }
+
+    fun isNightPassActivationWindow(): Boolean {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return hour in 10..17 // 10 AM to 6 PM
+    }
+
+    fun isTonightPassed(ctx: Context): Boolean {
+        val cal = java.util.Calendar.getInstance()
+        // If it's before 5 AM, we are checking for the pass used yesterday
+        if (cal.get(java.util.Calendar.HOUR_OF_DAY) < 5) cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+        
+        val yearDay = "${cal.get(java.util.Calendar.YEAR)}-${cal.get(java.util.Calendar.DAY_OF_YEAR)}"
+        val stamps = getNightPassTimestamps(ctx)
+        
+        return stamps.any { 
+            val passCal = java.util.Calendar.getInstance()
+            passCal.timeInMillis = it
+            "${passCal.get(java.util.Calendar.YEAR)}-${passCal.get(java.util.Calendar.DAY_OF_YEAR)}" == yearDay
+        }
+    }
+
+    fun useNightPass(ctx: Context): Boolean {
+        if (!isNightPassActivationWindow() || getRemainingNightPasses(ctx) <= 0) return false
+        val stamps = getNightPassTimestamps(ctx).toMutableList()
+        stamps.add(System.currentTimeMillis())
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY_NIGHT_PASSES, stamps.joinToString(",")).apply()
+        return true
+    }
+
+    fun isNightLockActive(ctx: Context): Boolean {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val isNightTime = hour >= 23 || hour < 5
+        return isNightTime && !isTonightPassed(ctx)
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
