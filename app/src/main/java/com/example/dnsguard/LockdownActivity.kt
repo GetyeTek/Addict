@@ -48,6 +48,12 @@ class LockdownActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // FAIL-SAFE: If we are in the 10-minute boot grace period, KILL the overlay.
+        if (LockManager.isBootGraceActive()) {
+            finish()
+            return
+        }
+
         // Init state from first intent
         blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "DNS"
         
