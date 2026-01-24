@@ -369,6 +369,35 @@ class GuardService : AccessibilityService() {
                 NukeManager.checkAutoReEnable(applicationContext)
                 NukeManager.checkNotifications(applicationContext)
 
+                // 1. REBELLION CHECK (If Setup was complete but permissions are missing)
+                if (LockManager.isSetupComplete(applicationContext)) {
+                    val hasBattery = (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
+                    val hasAdmin = (getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(applicationContext, AdminReceiver::class.java))
+                    
+                    if (!hasBattery || !hasAdmin) {
+                        LockManager.triggerPenalty(applicationContext)
+                    }
+                }
+
+                // 2. PENALTY BOX ENFORCEMENT
+                if (LockManager.getPenaltyRemaining(applicationContext) > 0) {
+                    if (activePackage != packageName) {
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.putExtra("BLOCK_TYPE", "PENALTY")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        startActivity(i)
+                    }
+                }
+
+                // 3. OVERLAY YANKING
+                if (LockManager.isSetupComplete(applicationContext) && !Settings.canDrawOverlays(applicationContext)) {
+                    if (!activePackage.contains("settings")) {
+                         val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                         startActivity(i)
+                    }
+                }
+
                 // USAGE TRACKING TICK
                 val nowTick = System.currentTimeMillis()
                 val delta = nowTick - lastUsageTick
