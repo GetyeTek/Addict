@@ -58,7 +58,7 @@ object CloudLogger {
         withContext(Dispatchers.IO) {
             try {
                 // Fetch only the 'word' column
-                val url = URL("$SUPABASE_URL/../bad_words?select=word")
+                val url = URL("https://xvldfsmxskhemkslsbym.supabase.co/rest/v1/bad_words?select=word")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
                 conn.setRequestProperty("apikey", SUPABASE_KEY)
