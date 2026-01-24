@@ -198,11 +198,6 @@ class MainActivity : ComponentActivity() {
             FocusCard()
             
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // CARD 2.5: USAGE LADDER
-            LadderCard()
-            
-            Spacer(modifier = Modifier.height(16.dp))
 
             // CARD 2.6: NIGHT PASS
             NightPassCard()
