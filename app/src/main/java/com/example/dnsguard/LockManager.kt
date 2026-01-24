@@ -24,6 +24,7 @@ object LockManager {
     private const val KEY_PENALTY_END = "penalty_end_ts"
     private const val KEY_SETUP_COMPLETE = "setup_complete"
     private const val KEY_PENALTY_NOTIFIED = "penalty_warned"
+    private const val KEY_REBELLION_START = "rebellion_start_ts"
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -282,6 +283,23 @@ object LockManager {
             .remove(KEY_PENALTY_END)
             .remove(KEY_PENALTY_NOTIFIED)
             .apply()
+    }
+
+    fun startRebellion(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getLong(KEY_REBELLION_START, 0L) == 0L) {
+            prefs.edit().putLong(KEY_REBELLION_START, System.currentTimeMillis()).apply()
+        }
+    }
+
+    fun clearRebellion(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_REBELLION_START).apply()
+    }
+
+    fun getRebellionTime(ctx: Context): Long {
+        val start = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_REBELLION_START, 0L)
+        if (start == 0L) return 0L
+        return System.currentTimeMillis() - start
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
