@@ -26,4 +26,9 @@ object DebugLogger {
     fun clear() {
         logBuffer.setLength(0)
     }
+
+    fun logCrash(ex: Throwable) {
+        val trace = android.util.Log.getStackTraceString(ex)
+        log("CRASH", "Unhandled Exception: $trace")
+    }
 }
