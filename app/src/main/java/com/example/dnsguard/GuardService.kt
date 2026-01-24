@@ -108,7 +108,7 @@ class GuardService : AccessibilityService() {
         val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
             .setContentTitle("Protection Active")
             .setContentText("Guardian is monitoring network security.")
-            .setSmallIcon(android.R.drawable.ic_secure)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .build()
@@ -587,8 +587,6 @@ class GuardService : AccessibilityService() {
 
         // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
-            // DEBUG SPY: Independent scan to capture URL bar IDs.
-            // Triggers if you type "google" or "http" to help you find the ID.
             val spyKeywords = listOf("google", "http")
             for (key in spyKeywords) {
                 val spies = root.findAccessibilityNodeInfosByText(key)
@@ -599,85 +597,49 @@ class GuardService : AccessibilityService() {
             }
 
             val blacklist = listOf(
-                // Social & Microblogging
                 "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
-                // Fediverse
                 "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
-                // Community & Messaging
                 "web.telegram.org", "t.me", "telegram.org", "discord.com", "kik.com", "snapchat.com", "slack.com",
-                // Art & Creative
                 "pixiv.net", "deviantart.com", "newgrounds.com", "artstation.com", "furaffinity.net", "hentai-foundry.com", "gelbooru.com", "danbooru.donmai.us",
-                // Creator & Membership
                 "onlyfans.com", "fansly.com", "patreon.com", "subscribestar.com", "fanbox.cc", "unifans.io", "buymeacoffee.com", "ko-fi.com",
-                // Video & Streaming
                 "kick.com", "bitchute.com", "rumble.com", "vimeo.com", "dailymotion.com", "dlive.tv", "picarto.tv",
-                // Specialized & Existing
                 "fetlife.com", "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", "pornhub", "xnxx"
             )
             
             for (site in blacklist) {
                 val candidates = root.findAccessibilityNodeInfosByText(site)
                 for (node in candidates) {
-                    // 1. CONTEXT CHECK: Is this the URL Bar?
-                    // We check if the node is editable (typing) OR if its ID indicates it's an address bar.
                     val resId = node.viewIdResourceName?.lowercase() ?: ""
+                    val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox") || 
+                                   resId.contains("search_box") || resId.contains("location") || resId.contains("toolbar") || 
+                                   resId.contains("title") || resId.contains("input") || resId.contains("bar") ||
+                                   resId.contains("mozac") || resId.contains("search_text") || resId.contains("edit_text") || resId.contains("query")
                     
-                    // FIX: Broadened IDs to catch Firefox/Opera/Samsung 'Read-Only' URL bars
-                    val isUrlBar = node.isEditable || 
-                                   resId.contains("url") || 
-                                   resId.contains("address") || 
-                                   resId.contains("omnibox") || 
-                                   resId.contains("search_box") || 
-                                   resId.contains("location") ||
-                                   resId.contains("toolbar") ||
-                                   resId.contains("title") ||
-                                   resId.contains("input") ||
-                                   resId.contains("bar") ||
-                                   // COMPREHENSIVE LIST (Firefox, Bing, Samsung, etc)
-                                   resId.contains("mozac") ||
-                                   resId.contains("search_text") ||
-                                   resId.contains("edit_text") ||
-                                   resId.contains("query")
-                    // If it's just static text on a page (e.g. a Google Search Result description), ignore it.
-                    // However, if we are unsure, we err on the side of caution if the node is NOT a web content view.
                     val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
-
-                    // HYBRID FALLBACK:
-                    // 1. If it's a URL bar (ID match), we scan it.
-                    // 2. If it's NOT a URL bar, we check if it's Web Content.
-                    //    - If it IS Web Content (and not a URL bar), we skip it (False Positive Protection).
-                    //    - If it is NOT Web Content (it's UI, like Firefox toolbar), we scan it.
                     if (!isUrlBar && isWebContent) continue
 
-                    
-                    // 2. TEXT MATCHING
                     val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                     val lowerText = rawText.lowercase()
                     val index = lowerText.indexOf(site)
 
                     if (index != -1) {
-                        // STRICT CHECK: char before must NOT be letter/digit
                         val charBefore = if (index > 0) lowerText[index - 1] else ' '
-
                         if (!charBefore.isLetterOrDigit()) {
-                            // CHECK: Is this a Non-Standard App?
                             if (LockManager.isNonStandardApp(applicationContext, activePackage)) {
-                                // IMMEDIATE 30 MIN BLOCK
                                 LockManager.banNonStandardApp(applicationContext)
                                 val i = Intent(applicationContext, LockdownActivity::class.java)
                                 i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
                                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                                 startActivity(i)
                             } else {
-                                // STANDARD STRIKE SYSTEM
                                 handleBrowserStrike()
                             }
                             return
                         }
+                    }
                 }
             }
         }
-    }
 
         // 2. TELEGRAM LOGIC (Fingerprint Scan)
         if (isTelegram) {
@@ -733,7 +695,6 @@ class GuardService : AccessibilityService() {
         DebugLogger.log("STATE_DUMP", "Reason: $reason | DNS: $dns | Compromised: $acc | Night: $night | Overlay: $overlay")
     }
 
-    private fun showInstantOverlay(type: String) {
     private fun showInstantOverlay(type: String) {
         val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
