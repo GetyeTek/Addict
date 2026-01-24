@@ -9,9 +9,12 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 object CloudLogger {
 
     private const val FILE_NAME = "suspects.log"
+    private val isSyncing = AtomicBoolean(false)
     
     // SUPABASE CREDENTIALS
     private const val SUPABASE_URL = "https://xvldfsmxskhemkslsbym.supabase.co/rest/v1/scraped_content"
@@ -33,6 +36,16 @@ object CloudLogger {
 
     // 2. Upload to Supabase AND Download Updates
     suspend fun syncToCloud(ctx: Context) {
+        if (isSyncing.get()) return
+        isSyncing.set(true)
+        try {
+            internalSync(ctx)
+        } finally {
+            isSyncing.set(false)
+        }
+    }
+
+    private suspend fun internalSync(ctx: Context) {
         // A. PUSH (Upload Logs)
         val file = File(ctx.filesDir, FILE_NAME)
         if (file.exists()) {
