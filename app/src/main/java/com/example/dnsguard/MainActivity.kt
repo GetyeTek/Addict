@@ -204,6 +204,11 @@ class MainActivity : ComponentActivity() {
 
             // CARD 2: FOCUS MODE
             FocusCard()
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // CARD 2.5: APP MANAGER (Safe Path)
+            AppManagerCard()
             
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -350,6 +355,85 @@ class MainActivity : ComponentActivity() {
                     colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF34D399))
                 )
             }
+        }
+    }
+
+    @Composable
+    fun AppManagerCard() {
+        var showList by remember { mutableStateOf(false) }
+        val ctx = LocalContext.current
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("MAINTENANCE PATH", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Manage other apps without triggering security traps.", fontSize = 12.sp, color = Color.DarkGray)
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Button(
+                    onClick = { showList = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333))
+                ) {
+                    Icon(Icons.Filled.SettingsSuggest, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("OPEN SAFE APP LIST")
+                }
+            }
+        }
+
+        if (showList) {
+            var filter by remember { mutableStateOf("") }
+            val apps = remember { 
+                ctx.packageManager.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
+                    .filter { it.packageName != ctx.packageName } // FILTER SELF
+                    .sortedBy { it.loadLabel(ctx.packageManager).toString() }
+            }
+
+            AlertDialog(
+                onDismissRequest = { showList = false },
+                title = { Text("Verified App List") },
+                text = {
+                    Column(modifier = Modifier.heightIn(max = 400.dp)) {
+                        OutlinedTextField(
+                            value = filter,
+                            onValueChange = { filter = it },
+                            placeholder = { Text("Search Apps...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        androidx.compose.foundation.lazy.LazyColumn {
+                            val filtered = apps.filter { it.loadLabel(ctx.packageManager).toString().contains(filter, ignoreCase = true) }
+                            items(filtered.size) { index ->
+                                val app = filtered[index]
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            LockManager.setSafeSession(ctx, app.packageName)
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                            intent.data = Uri.parse("package:${app.packageName}")
+                                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                            ctx.startActivity(intent)
+                                            showList = false
+                                        }
+                                        .padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(app.loadLabel(ctx.packageManager).toString(), color = Color.White)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(app.packageName, color = Color.Gray, fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showList = false }) { Text("CLOSE") } }
+            )
         }
     }
 
