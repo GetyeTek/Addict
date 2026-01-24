@@ -66,21 +66,19 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun OnboardingGate() {
         val ctx = applicationContext
-        // Refresh state on every composition
-        var step by remember { mutableStateOf(1) }
-        
-        LaunchedEffect(Unit) {
-            while(true) {
-                val hasOverlay = Settings.canDrawOverlays(ctx)
-                val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
-                val hasAccessibility = isAccessibilityEnabled(ctx)
-                val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+        var hasOverlay by remember { mutableStateOf(false) }
+        var hasBattery by remember { mutableStateOf(false) }
+        var hasAccessibility by remember { mutableStateOf(false) }
+        var hasAdmin by remember { mutableStateOf(false) }
 
-                if (!hasOverlay) step = 1
-                else if (!hasBattery) step = 2
-                else if (!hasAccessibility) step = 3
-                else if (!hasAdmin) step = 4
-                else {
+        LaunchedEffect(Unit) {
+            while (true) {
+                hasOverlay = Settings.canDrawOverlays(ctx)
+                hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
+                hasAccessibility = isAccessibilityEnabled(ctx)
+                hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+
+                if (hasOverlay && hasBattery && hasAccessibility && hasAdmin) {
                     LockManager.setSetupComplete(ctx)
                 }
                 delay(1000)
@@ -89,37 +87,60 @@ class MainActivity : ComponentActivity() {
 
         Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Red, modifier = Modifier.size(64.dp))
+                Icon(Icons.Filled.Security, contentDescription = null, tint = if (hasOverlay && hasBattery && hasAccessibility && hasAdmin) Color(0xFF00E676) else Color.Red, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("MANDATORY SETUP", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text("MANDATORY SETUP", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Step $step of 4", color = Color.Gray)
+                Text("All permissions must be granted to continue", color = Color.Gray, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(32.dp))
-                
-                val (title, desc, action) = when(step) {
-                    1 -> Triple("Appear on Top", "Required to block unsafe content.", { 
-                         val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
-                         startActivity(i)
-                    })
-                    2 -> Triple("Battery Immunity", "Required for 24/7 background protection.", { 
-                         val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
-                         startActivity(i)
-                    })
-                    3 -> Triple("Accessibility", "The core engine of Guardian's scanner.", {
-                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    })
-                    else -> Triple("Device Admin", "Prevents unauthorized app removal.", {
-                         val comp = android.content.ComponentName(ctx, AdminReceiver::class.java)
-                         val i = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                         i.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
-                         startActivity(i)
-                    })
-                }
 
-                Text(title, fontSize = 20.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                Text(desc, textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.LightGray)
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { action() }, modifier = Modifier.fillMaxWidth()) { Text("GRANT PERMISSION") }
+                PermissionRow("Appear on Top", hasOverlay, Icons.Filled.Layers) {
+                    val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                    startActivity(i)
+                }
+                PermissionRow("Battery Immunity", hasBattery, Icons.Filled.BatteryAlert) {
+                    val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                    startActivity(i)
+                }
+                PermissionRow("Accessibility Service", hasAccessibility, Icons.Filled.Visibility) {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                }
+                PermissionRow("Device Admin", hasAdmin, Icons.Filled.AdminPanelSettings) {
+                    val comp = android.content.ComponentName(ctx, AdminReceiver::class.java)
+                    val i = Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                    i.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
+                    startActivity(i)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun PermissionRow(label: String, isGranted: Boolean, icon: ImageVector, onClick: () -> Unit) {
+        val color = if (isGranted) Color(0xFF00E676) else Color(0xFFCF6679)
+        
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .clickable(enabled = !isGranted) { onClick() },
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF1E1E1E),
+            border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.3f))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(label, color = if (isGranted) Color.Gray else Color.White, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                if (isGranted) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = color)
+                } else {
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.DarkGray)
+                }
             }
         }
     }
@@ -188,6 +209,22 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun SetupCard() {
+        val ctx = applicationContext
+        var hasOverlay by remember { mutableStateOf(Settings.canDrawOverlays(ctx)) }
+        var hasBattery by remember { mutableStateOf((ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)) }
+        var hasAccessibility by remember { mutableStateOf(isAccessibilityEnabled(ctx)) }
+        var hasAdmin by remember { mutableStateOf((ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))) }
+
+        LaunchedEffect(Unit) {
+            while(true) {
+                hasOverlay = Settings.canDrawOverlays(ctx)
+                hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
+                hasAccessibility = isAccessibilityEnabled(ctx)
+                hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+                delay(2000)
+            }
+        }
+
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth()
@@ -196,44 +233,28 @@ class MainActivity : ComponentActivity() {
                 Text("SYSTEM INTEGRITY", style = MaterialTheme.typography.labelLarge, color = Color.Gray)
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                SetupItem("Device Admin", Icons.Filled.AdminPanelSettings) {
+                PermissionRow("Device Admin", hasAdmin, Icons.Filled.AdminPanelSettings) {
                     val comp = ComponentName(this@MainActivity, AdminReceiver::class.java)
                     val i = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                     i.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
                     startActivity(i)
                 }
-                SetupItem("Accessibility Monitor", Icons.Filled.Visibility) {
+                PermissionRow("Accessibility Service", hasAccessibility, Icons.Filled.Visibility) {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 }
-                SetupItem("Overlay Permission", Icons.Filled.Layers) {
-                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                PermissionRow("Overlay Permission", hasOverlay, Icons.Filled.Layers) {
+                    val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                    startActivity(i)
                 }
-                SetupItem("Battery Immunity", Icons.Filled.BatteryAlert) {
-                    val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                    i.data = Uri.parse("package:$packageName")
+                PermissionRow("Battery Immunity", hasBattery, Icons.Filled.BatteryAlert) {
+                    val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
                     startActivity(i)
                 }
             }
         }
     }
 
-    @Composable
-    fun SetupItem(label: String, icon: ImageVector, onClick: () -> Unit) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(label, color = Color.White, fontSize = 14.sp)
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.DarkGray)
-        }
-        Divider(color = Color(0xFF2C2C2C))
-    }
+
 
     @Composable
     fun NightPassCard() {
