@@ -16,6 +16,10 @@ object LockManager {
     private const val NON_STD_BAN_MS = 30 * 60 * 1000 // 30 Minutes
     private const val KEY_NON_STD_BAN = "non_std_ban_ts"
     private const val KEY_LOCKOUT_END = "user_lockout_end_ts"
+    private const val KEY_BREAK_END = "break_end_ts"
+    private const val KEY_USAGE_ACCUMULATED = "usage_ms"
+    private const val KEY_LAST_THRESHOLD = "last_threshold"
+    private const val KEY_LADDER_ENABLED = "ladder_enabled"
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
@@ -155,6 +159,44 @@ object LockManager {
 
     fun isUserLockedOut(ctx: Context): Boolean {
         return getLockoutRemainingMillis(ctx) > 0
+    }
+
+    fun isLadderEnabled(ctx: Context): Boolean = 
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_LADDER_ENABLED, true)
+
+    fun setLadderEnabled(ctx: Context, enabled: Boolean) = 
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_LADDER_ENABLED, enabled).apply()
+
+    fun getBreakRemaining(ctx: Context): Long {
+        val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_BREAK_END, 0L)
+        return (end - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
+        if (!isLadderEnabled(ctx)) return false
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        var usage = prefs.getLong(KEY_USAGE_ACCUMULATED, 0L) + deltaMs
+        var lastT = prefs.getInt(KEY_LAST_THRESHOLD, 0)
+        
+        var breakMs = 0L
+        var newT = 0
+
+        when {
+            usage >= 90 * 60 * 1000L -> { breakMs = 10 * 60 * 1000L; usage = 0; newT = 0 }
+            usage >= 60 * 60 * 1000L && lastT < 60 -> { breakMs = 5 * 60 * 1000L; newT = 60 }
+            usage >= 40 * 60 * 1000L && lastT < 40 -> { breakMs = 3 * 60 * 1000L; newT = 40 }
+            usage >= 20 * 60 * 1000L && lastT < 20 -> { breakMs = 30 * 1000L; newT = 20 }
+        }
+
+        val editor = prefs.edit().putLong(KEY_USAGE_ACCUMULATED, usage)
+        if (breakMs > 0) {
+            editor.putLong(KEY_BREAK_END, System.currentTimeMillis() + breakMs)
+            editor.putInt(KEY_LAST_THRESHOLD, newT)
+            editor.apply()
+            return true
+        }
+        editor.apply()
+        return false
     }
 
 
