@@ -120,29 +120,55 @@ class LockdownActivity : ComponentActivity() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // SPECIAL SECTION: DNS HOSTNAMES
+            // TOP 3 STABLE DNS HOSTNAMES
             if (type == "SYSTEM") {
-                Text("Tap to copy safe hostname:", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
+                Text(
+                    "STABLE DNS PROVIDERS", 
+                    color = config.color, 
+                    fontSize = 10.sp, 
+                    fontWeight = FontWeight.Bold, 
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
                 DnsManager.ALLOWED_HOSTNAMES.forEach { host ->
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
+                            .padding(vertical = 6.dp)
                             .clickable {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryData(ClipData.newPlainText("DNS", host))
-                                if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.S_V2) {
-                                    Toast.makeText(context, "Copied: $host", Toast.LENGTH_SHORT).show()
-                                }
+                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                             },
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF111111),
-                        border = BorderStroke(0.5.dp, Color.DarkGray)
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF1A1A1A),
+                        border = BorderStroke(1.dp, Color(0xFF333333))
                     ) {
-                        Text(host, color = Color.White, fontSize = 13.sp, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center)
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.ContentCopy, null, tint = config.color, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = host, 
+                                color = Color.White, 
+                                fontSize = 14.sp, 
+                                fontWeight = FontWeight.Medium,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    "Tap a hostname to copy, then tap FIX to paste in settings",
+                    color = Color.Gray,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                )
             }
 
             val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
