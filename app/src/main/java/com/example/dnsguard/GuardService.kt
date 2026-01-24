@@ -428,7 +428,18 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     }
                 } else {
-                    // C. CHECK FOR REBELLION OR CYCLE RESTART
+                    // BATTERY NAG: If Battery is missing, nag continuously before punishing
+                    val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                    if (LockManager.isSetupComplete(applicationContext) && !pm.isIgnoringBatteryOptimizations(packageName)) {
+                         val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                         i.data = Uri.parse("package:$packageName")
+                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                         try { startActivity(i) } catch(e: Exception) {}
+                         delay(5000) // Wait 5s for user to click Allow
+                         continue // Skip the penalty trigger for now
+                    }
+
+                    // C. CHECK FOR REBELLION (At this point, only Admin or Accessibility could be missing)
                     if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
                         // If we just finished a penalty but things aren't fixed, start 15m cycle
                         // If this is the first time we see a violation, start 1h initial
