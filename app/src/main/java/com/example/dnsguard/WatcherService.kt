@@ -37,14 +37,20 @@ class WatcherService : Service() {
                         LockManager.triggerPenalty(applicationContext)
                     }
 
-                    // If we are in penalty, ENFORCE UI via Overlay
+                    val hasNotifs = androidx.core.app.NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
+
                     if (LockManager.getPenaltyRemaining(applicationContext) > 0) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
                     } 
-                    // If not locked but missing accessibility, use the Yank Penalty
+                    else if (!hasNotifs) {
+                        val i = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        i.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        try { startActivity(i) } catch (e: Exception) {}
+                    }
                     else if (!hasAcc) {
                         val yankIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                         yankIntent.data = Uri.parse("package:$packageName")
