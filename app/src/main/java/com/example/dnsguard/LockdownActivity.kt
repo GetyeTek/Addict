@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -215,7 +216,7 @@ class LockdownActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(16.dp))
                         // Static icon instead of a progress indicator to keep it 'still'
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Spa,
+                            imageVector = androidx.compose.material.icons.Icons.Filled.Spa,
                             contentDescription = null,
                             tint = Color(0xFF34D399),
                             modifier = Modifier.size(48.dp)
