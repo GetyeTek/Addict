@@ -23,6 +23,7 @@ object LockManager {
     private const val KEY_NIGHT_PASSES = "night_pass_history"
     private const val KEY_PENALTY_END = "penalty_end_ts"
     private const val KEY_SETUP_COMPLETE = "setup_complete"
+    private const val KEY_PENALTY_NOTIFIED = "penalty_warned"
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -241,9 +242,26 @@ object LockManager {
     fun isSetupComplete(ctx: Context): Boolean = 
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SETUP_COMPLETE, false)
 
-    fun triggerPenalty(ctx: Context) {
-        val end = System.currentTimeMillis() + (60 * 60 * 1000L) // 1 Hour
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(KEY_PENALTY_END, end).apply()
+    fun triggerPenalty(ctx: Context, isInitial: Boolean = true) {
+        val duration = if (isInitial) 60 * 60 * 1000L else 15 * 60 * 1000L
+        val end = System.currentTimeMillis() + duration
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_PENALTY_END, end)
+            .putBoolean(KEY_PENALTY_NOTIFIED, false)
+            .apply()
+    }
+
+    fun setPenaltyWarned(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_PENALTY_NOTIFIED, true).apply()
+    }
+
+    fun wasPenaltyWarned(ctx: Context): Boolean = 
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_PENALTY_NOTIFIED, false)
+
+    fun isSystemCompromised(ctx: Context): Boolean {
+        val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
+        val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
+        return !hasBattery || !hasAdmin
     }
 
     fun getPenaltyRemaining(ctx: Context): Long {
