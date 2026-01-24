@@ -57,17 +57,18 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun DashboardContent(padding: PaddingValues) {
         val ctx = applicationContext
-        val setupDone = LockManager.isSetupComplete(ctx)
+        // Use mutable state to trigger immediate recomposition
+        var setupDone by remember { mutableStateOf(LockManager.isSetupComplete(ctx)) }
         
         if (!setupDone) {
-            OnboardingGate()
+            OnboardingGate(onSetupComplete = { setupDone = true })
         } else {
             DashboardMain(padding)
         }
     }
 
     @Composable
-    fun OnboardingGate() {
+    fun OnboardingGate(onSetupComplete: () -> Unit) {
         val ctx = applicationContext
         var hasOverlay by remember { mutableStateOf(false) }
         var hasBattery by remember { mutableStateOf(false) }
@@ -85,6 +86,7 @@ class MainActivity : ComponentActivity() {
 
                 if (hasOverlay && hasBattery && hasAccessibility && hasAdmin && hasPhonePermission) {
                     LockManager.setSetupComplete(ctx)
+                    onSetupComplete()
                 }
                 delay(1000)
             }
