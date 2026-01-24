@@ -333,23 +333,31 @@ class GuardService : AccessibilityService() {
                          break
                     }
 
-                    // C. SELF-DEFENSE (App Info & Storage Guard)
-                    if (isAppInfoPage) {
-                        val nodePkg = root.packageName?.toString() ?: ""
-                        val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
+                                // C. SELF-DEFENSE (App Info & Storage Guard)
+            if (isAppInfoPage) {
+                val nodePkg = root.packageName?.toString() ?: ""
+                val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
 
-                        if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
-                            confirmedDanger = true
-                            performGlobalAction(GLOBAL_ACTION_BACK)
-                            startTripwire()
-                            break
-                        }
-                    }
+                // 1. Check for SELF-UNINSTALL (Always blocked)
+                if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
+                    confirmedDanger = true
+                    break
+                }
+
+                // 2. Check for VERIFIED INTENT
+                // We scan the screen for any text that might identify WHICH app info this is.
+                // Note: This is hard because the page doesn't always have the pkg name in text.
+                // However, we can check if a Safe Session is active at all.
+                if (!LockManager.isSafeSession(applicationContext, "ANY")) {
+                     // No verified session active? Then any App Info page is a potential bypass attempt.
+                     // confirmedDanger = true // Uncomment to be ultra-aggressive
                 }
             }
-            
-            // VERDICT: THREAT CONFIRMED
-            if (confirmedDanger) {
+        }
+    }
+    
+    // VERDICT: THREAT CONFIRMED
+    if (confirmedDanger) {
                 DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
                 
                 // 1. Kick to Home
