@@ -394,6 +394,8 @@ class GuardService : AccessibilityService() {
 
     
     private fun startTripwire() {
+        if (LockManager.isBootGraceActive()) return
+
         val i = Intent(applicationContext, LockdownActivity::class.java)
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -440,10 +442,12 @@ class GuardService : AccessibilityService() {
                     val clockPkg = "com.sec.android.app.clockpackage"
 
                     if (activePackage != packageName && activePackage != dialerPkg && activePackage != clockPkg) {
-                        val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", "PENALTY")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        startActivity(i)
+                        if (!LockManager.isBootGraceActive()) {
+                            val i = Intent(applicationContext, LockdownActivity::class.java)
+                            i.putExtra("BLOCK_TYPE", "PENALTY")
+                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            startActivity(i)
+                        }
                     }
                 } else if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
                     LockManager.triggerPenalty(applicationContext)
