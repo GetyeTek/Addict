@@ -84,6 +84,11 @@ class MainActivity : ComponentActivity() {
 
             // CARD 2: FOCUS MODE
             FocusCard()
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // CARD 2.5: USAGE LADDER
+            LadderCard()
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -144,6 +149,34 @@ class MainActivity : ComponentActivity() {
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.DarkGray)
         }
         Divider(color = Color(0xFF2C2C2C))
+    }
+
+    @Composable
+    fun LadderCard() {
+        var enabled by remember { mutableStateOf(LockManager.isLadderEnabled(applicationContext)) }
+        
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("USAGE LADDER", style = MaterialTheme.typography.labelLarge, color = Color(0xFF34D399))
+                    Text("Auto-breaks every 20/40/60/90m", fontSize = 12.sp, color = Color.LightGray)
+                }
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = {
+                        enabled = it
+                        LockManager.setLadderEnabled(applicationContext, it)
+                    },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF34D399))
+                )
+            }
+        }
     }
 
     @Composable
