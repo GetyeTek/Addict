@@ -88,6 +88,11 @@ class LockdownActivity : ComponentActivity() {
                     android.R.drawable.ic_delete, "APP BLOCKED", 
                     "Non-standard app violation detected.\nLocked for 30 minutes.", "UNINSTALL"
                 )
+                "USER_LOCKOUT" -> Preset(
+                    Color(0xFF0F172A), Color(0xFF818CF8), 
+                    android.R.drawable.ic_lock_power_off, "FOCUS MODE", 
+                    "You are intentionally locked out.\nDeep work in progress.", "EMERGENCY CALL"
+                )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
@@ -129,6 +134,28 @@ class LockdownActivity : ComponentActivity() {
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)
                     )
+
+                    // TIMER FOR USER LOCKOUT
+                    if (blockType == "USER_LOCKOUT") {
+                        var remaining by remember { mutableStateOf(LockManager.getLockoutRemainingMillis(applicationContext)) }
+                        LaunchedEffect(Unit) {
+                            while(remaining > 0) {
+                                delay(1000)
+                                remaining = LockManager.getLockoutRemainingMillis(applicationContext)
+                            }
+                        }
+                        val mins = (remaining / 1000) / 60
+                        val secs = (remaining / 1000) % 60
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = String.format("%02d:%02d", mins, secs),
+                            color = Color.White,
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Light,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
 
                     // DNS SELECTOR (Tap to Copy)
                     if (blockType == "DNS") {
@@ -184,6 +211,11 @@ class LockdownActivity : ComponentActivity() {
                                          i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                          startActivity(i)
                                      }
+                                 }
+                                 "USER_LOCKOUT" -> {
+                                     val i = Intent(Intent.ACTION_DIAL)
+                                     i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                     startActivity(i)
                                  }
                                  else -> {
                                      // Default: Go Home
@@ -248,7 +280,10 @@ class LockdownActivity : ComponentActivity() {
                 scope.launch {
                     while(true) {
                         // 1. CONDITIONAL EXIT
-                        if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE" || blockType == "ROGUE_VIOLATION") {
+                        if (blockType == "BROWSER" || blockType == "BROWSER_VIOLATION" || blockType == "TELEGRAM_SUSPENDED" || blockType == "SECURITY_TRIPWIRE" || blockType == "ROGUE_VIOLATION" || blockType == "USER_LOCKOUT") {
+                             if (blockType == "USER_LOCKOUT" && !LockManager.isUserLockedOut(applicationContext)) {
+                                 finishAffinity()
+                             }
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
                              if (blockType == "TELEGRAM_SUSPENDED" && !LockManager.isTelegramBanned(applicationContext)) {
                                  finishAffinity()
