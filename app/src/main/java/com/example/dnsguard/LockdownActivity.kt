@@ -103,6 +103,11 @@ class LockdownActivity : ComponentActivity() {
                     android.R.drawable.ic_lock_idle_alarm, "SLEEP WELL", 
                     "Phone usage restricted until 5:00 AM.\nRest is the ultimate productivity.", "EMERGENCY"
                 )
+                "PENALTY" -> Preset(
+                    Color(0xFF450a0a), Color(0xFFf87171), 
+                    android.R.drawable.ic_delete, "CONSEQUENCE", 
+                    "You have tampered with critical permissions.\nGuardian is now locked for 1 hour.", "INSECURE"
+                )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
@@ -165,6 +170,28 @@ class LockdownActivity : ComponentActivity() {
                             fontWeight = FontWeight.Light,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                         )
+                    }
+
+                    // TIMER FOR PENALTY
+                    if (blockType == "PENALTY") {
+                        var remaining by remember { mutableStateOf(LockManager.getPenaltyRemaining(applicationContext)) }
+                        LaunchedEffect(Unit) {
+                            while(remaining > 0) {
+                                delay(1000)
+                                remaining = LockManager.getPenaltyRemaining(applicationContext)
+                            }
+                        }
+                        val mins = (remaining / 1000) / 60
+                        val secs = (remaining / 1000) % 60
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = String.format("%02d:%02d", mins, secs),
+                            color = Color(0xFFf87171),
+                            fontSize = 64.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text("DO NOT REPEAT", color = Color.Gray, fontSize = 12.sp)
                     }
 
                     // TIMER FOR BREAK TIME
@@ -260,9 +287,9 @@ class LockdownActivity : ComponentActivity() {
                     
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { 
-                             when (blockType) {
+                    if (blockType == "PENALTY") {
+                         // Render nothing, no escape buttons allowed
+                    } else if (blockType == "NIGHT_LOCK") {
                                  "DNS" -> {
                                      val i = Intent(Settings.ACTION_WIRELESS_SETTINGS)
                                      i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -364,6 +391,9 @@ class LockdownActivity : ComponentActivity() {
                                  finishAffinity()
                              }
                              if (blockType == "NIGHT_LOCK" && !LockManager.isNightLockActive(applicationContext)) {
+                                 finishAffinity()
+                             }
+                             if (blockType == "PENALTY" && LockManager.getPenaltyRemaining(applicationContext) <= 0) {
                                  finishAffinity()
                              }
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
