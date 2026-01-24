@@ -46,13 +46,13 @@ class WatcherService : Service() {
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
                     } 
-                    else if (!hasNotifs) {
+                    else if (!hasNotifs && !LockManager.isBootGraceActive()) {
                         val i = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         i.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         try { startActivity(i) } catch (e: Exception) {}
                     }
-                    else if (!hasAcc) {
+                    else if (!hasAcc && !LockManager.isBootGraceActive()) {
                         val yankIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                         yankIntent.data = Uri.parse("package:$packageName")
                         yankIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
