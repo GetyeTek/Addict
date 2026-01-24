@@ -33,6 +33,10 @@ import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        Thread.setDefaultUncaughtExceptionHandler { _, throwable ->
+            DebugLogger.logCrash(throwable)
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
         super.onCreate(savedInstanceState)
         
         setContent {
