@@ -380,8 +380,21 @@ class GuardService : AccessibilityService() {
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(i)
                 }
-                // 4. CHECK DNS
-                else if (!DnsManager.isSecure(applicationContext)) {
+                // 4. CHECK USER LOCKOUT (Focus Mode)
+                else if (LockManager.isUserLockedOut(applicationContext)) {
+                    val dialerIntent = Intent(Intent.ACTION_DIAL)
+                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
+                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
+                    
+                    // If we are NOT in the dialer and NOT in the LockdownActivity, force overlay
+                    if (activePackage != dialerPkg && activePackage != packageName) {
+                        val i = Intent(applicationContext, LockdownActivity::class.java)
+                        i.putExtra("BLOCK_TYPE", "USER_LOCKOUT")
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        startActivity(i)
+                    }
+                }
+                // 5. CHECK DNS
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
