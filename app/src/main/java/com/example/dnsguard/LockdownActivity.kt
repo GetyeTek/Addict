@@ -98,6 +98,11 @@ class LockdownActivity : ComponentActivity() {
                     android.R.drawable.ic_menu_today, "TIME TO BREATHE", 
                     "Short break to protect your mind.\nLook away from the screen.", "EMERGENCY CALL"
                 )
+                "NIGHT_LOCK" -> Preset(
+                    Color(0xFF020617), Color(0xFF94A3B8), 
+                    android.R.drawable.ic_lock_idle_alarm, "SLEEP WELL", 
+                    "Phone usage restricted until 5:00 AM.\nRest is the ultimate productivity.", "EMERGENCY"
+                )
                 else -> Preset(
                     Color(0xFF050505), Color(0xFFEF4565), 
                     android.R.drawable.stat_sys_warning, "SYSTEM INSECURE", 
@@ -222,6 +227,39 @@ class LockdownActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(32.dp))
                     
                     // ACTION BUTTON
+                    if (blockType == "NIGHT_LOCK") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    val i = Intent(Intent.ACTION_DIAL)
+                                    i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    startActivity(i)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                            ) {
+                                Icon(androidx.compose.material.icons.Icons.Filled.Phone, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("PHONE")
+                            }
+                            Button(
+                                onClick = {
+                                    val i = packageManager.getLaunchIntentForPackage("com.sec.android.app.clockpackage")
+                                    if (i != null) {
+                                        i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        startActivity(i)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                            ) {
+                                Icon(androidx.compose.material.icons.Icons.Filled.Alarm, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("CLOCK")
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = { 
                              when (blockType) {
@@ -251,6 +289,9 @@ class LockdownActivity : ComponentActivity() {
                                      val i = Intent(Intent.ACTION_DIAL)
                                      i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                      startActivity(i)
+                                 }
+                                 "NIGHT_LOCK" -> {
+                                     // Emergency Action: Show choices
                                  }
                                  else -> {
                                      // Default: Go Home
@@ -320,6 +361,9 @@ class LockdownActivity : ComponentActivity() {
                                  finishAffinity()
                              }
                              if (blockType == "BREAK_TIME" && LockManager.getBreakRemaining(applicationContext) <= 0) {
+                                 finishAffinity()
+                             }
+                             if (blockType == "NIGHT_LOCK" && !LockManager.isNightLockActive(applicationContext)) {
                                  finishAffinity()
                              }
                              // User must press CLOSE APP or wait for suspension to end (if they stay on screen)
