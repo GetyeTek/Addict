@@ -345,12 +345,9 @@ class GuardService : AccessibilityService() {
                 }
 
                 // 2. Check for VERIFIED INTENT
-                // We scan the screen for any text that might identify WHICH app info this is.
-                // Note: This is hard because the page doesn't always have the pkg name in text.
-                // However, we can check if a Safe Session is active at all.
+                // Any App Info page accessed without a recently verified intent from Guardian is a violation.
                 if (!LockManager.isSafeSession(applicationContext, "ANY")) {
-                     // No verified session active? Then any App Info page is a potential bypass attempt.
-                     // confirmedDanger = true // Uncomment to be ultra-aggressive
+                     confirmedDanger = true 
                 }
             }
         }
