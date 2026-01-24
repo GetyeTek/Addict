@@ -252,7 +252,7 @@ class LockdownActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(32.dp))
                     
                     // ACTION BUTTON
-                    if (blockType == "NIGHT_LOCK") {
+                    if (blockType == "NIGHT_LOCK" || blockType == "PENALTY") {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
