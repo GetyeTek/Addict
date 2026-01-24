@@ -28,6 +28,23 @@ class GuardService : AccessibilityService() {
     private var lastUsageTick: Long = System.currentTimeMillis()
     private var lastMinuteWarningShown = 0L
 
+    private fun sendPenaltyWarning() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val channelId = "security_penalties"
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val chan = android.app.NotificationChannel(channelId, "Security Penalties", android.app.NotificationManager.IMPORTANCE_HIGH)
+            nm.createNotificationChannel(chan)
+        }
+        val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("SECURITY ALERT")
+            .setContentText("Fix the permissions in 1 minute or lockout will resume.")
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .setAutoCancel(true)
+        nm.notify(999, builder.build())
+    }
+
     private fun checkPreBreakWarnings(usage: Long) {
         val thresholds = listOf(LockManager.T1, LockManager.T2, LockManager.T3, LockManager.T4)
         
@@ -369,23 +386,30 @@ class GuardService : AccessibilityService() {
                 NukeManager.checkAutoReEnable(applicationContext)
                 NukeManager.checkNotifications(applicationContext)
 
-                // 1. REBELLION CHECK (If Setup was complete but permissions are missing)
-                if (LockManager.isSetupComplete(applicationContext)) {
-                    val hasBattery = (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(packageName)
-                    val hasAdmin = (getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(applicationContext, AdminReceiver::class.java))
-                    
-                    if (!hasBattery || !hasAdmin) {
-                        LockManager.triggerPenalty(applicationContext)
+                // 1. PENALTY LOGIC
+                val penaltyRemaining = LockManager.getPenaltyRemaining(applicationContext)
+                
+                if (penaltyRemaining > 0) {
+                    // A. WARNING NOTIFICATION (T-Minus 1 Minute)
+                    if (penaltyRemaining in 58000..65000 && !LockManager.wasPenaltyWarned(applicationContext)) {
+                        sendPenaltyWarning()
+                        LockManager.setPenaltyWarned(applicationContext)
                     }
-                }
 
-                // 2. PENALTY BOX ENFORCEMENT
-                if (LockManager.getPenaltyRemaining(applicationContext) > 0) {
+                    // B. ENFORCEMENT
                     if (activePackage != packageName) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", "PENALTY")
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                         startActivity(i)
+                    }
+                } else {
+                    // C. CHECK FOR REBELLION OR CYCLE RESTART
+                    if (LockManager.isSetupComplete(applicationContext) && LockManager.isSystemCompromised(applicationContext)) {
+                        // If we just finished a penalty but things aren't fixed, start 15m cycle
+                        // If this is the first time we see a violation, start 1h initial
+                        val isCycle = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("penalty_end_ts", 0L) > 0
+                        LockManager.triggerPenalty(applicationContext, isInitial = !isCycle)
                     }
                 }
 
