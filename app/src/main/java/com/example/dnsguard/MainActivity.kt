@@ -380,7 +380,7 @@ class MainActivity : ComponentActivity() {
                 title = { Text("Initiate Lockout") },
                 text = {
                     Column {
-                        Text("How many minutes of focus?", fontSize = 14.sp)
+                        Text("How many minutes of focus? (Max 1440)", fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = minutesInput,
