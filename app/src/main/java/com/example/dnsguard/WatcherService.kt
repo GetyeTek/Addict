@@ -131,12 +131,15 @@ class WatcherService : Service() {
             nm.createNotificationChannel(chan)
         }
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Guardian Protection")
+            .setContentTitle("GUARDIAN STATUS")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
-            .setShowWhen(false) // Fixes sorting jitter
+            .setShowWhen(false)
             .setOnlyAlertOnce(true)
+            .setGroup("guardian_service_group")
+            .setSortKey("1")
+            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_SERVICE)
             .build()
     }
 
