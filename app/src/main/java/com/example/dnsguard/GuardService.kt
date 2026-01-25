@@ -696,7 +696,7 @@ class GuardService : AccessibilityService() {
  if (!pm.isInteractive || km.isKeyguardLocked) return
 
  // Get prioritized type
- val prioritizedType = LockManager.getActiveBlockType(applicationContext) ?: return
+ val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: return
 
  // STRICT EMERGENCY BYPASS
  val isEmergencyApp = activePackage.contains("dialer") || 
