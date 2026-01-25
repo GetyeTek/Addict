@@ -108,16 +108,26 @@ class LockdownActivity : ComponentActivity() {
 
             Text(
                 type.replace("_", " "),
-                color = config.color,
+                color = Color.White.copy(alpha = 0.9f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                config.description,
+                color = Color.LightGray,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
 
             if (type == "SYSTEM") {
-                Text("PICK ONE, GENIUS", color = config.color, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                Text("PICK ONE, GENIUS", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
                 DnsManager.ALLOWED_HOSTNAMES.forEach { host ->
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
