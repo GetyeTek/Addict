@@ -46,8 +46,8 @@ class GuardService : AccessibilityService() {
         }
         val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("SECURITY ALERT")
-            .setContentText("Fix the permissions in 1 minute or lockout will resume.")
+            .setContentTitle("YO, CUT IT OUT")
+            .setContentText("Fix it in 1 min or get bricked.")
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
             .setVibrate(longArrayOf(0, 500, 200, 500))
             .setAutoCancel(true)
@@ -63,14 +63,14 @@ class GuardService : AccessibilityService() {
             // 1. THE 10-SECOND COUNTDOWN (All breaks)
             if (diff in 1..10000) {
                 val secs = (diff / 1000) + 1
-                BreakWarningManager.showWarning(this, "Break starting in $secs...", true)
+                BreakWarningManager.showWarning(this, "Sit down in $secs...", true)
                 return
             } 
             
             // 2. THE 1-MINUTE WARNING (Only T3 and T4)
             if ((t == LockManager.T3 || t == LockManager.T4) && diff in 59000..61000) {
                  if (lastMinuteWarningShown != t) {
-                     BreakWarningManager.showWarning(this, "Mindfulness break due in 1 minute", false)
+                     BreakWarningManager.showWarning(this, "You're done in 1 minute", false)
                      lastMinuteWarningShown = t
                  }
                  return
@@ -109,8 +109,8 @@ class GuardService : AccessibilityService() {
         }
 
         val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Protection Active")
-            .setContentText("Guardian is monitoring network security.")
+            .setContentTitle("I'm Watching You")
+            .setContentText("Don't try anything stupid.")
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
