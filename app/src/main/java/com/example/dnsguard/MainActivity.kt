@@ -744,6 +744,8 @@ class MainActivity : ComponentActivity() {
     fun DiagnosticsRow() {
         var showLogs by remember { mutableStateOf(false) }
         var showStats by remember { mutableStateOf(false) }
+        val ctx = LocalContext.current
+
         Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { showStats = true }, border = BorderStroke(1.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
                 Text("SYSTEM AUTOPSY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
@@ -753,12 +755,43 @@ class MainActivity : ComponentActivity() {
                 Text("VIEW LOGS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             }
         }
+
         if (showLogs) {
-            AlertDialog(onDismissRequest = { showLogs = false }, title = { Text("Debug Logs") }, text = {
-                Box(modifier = Modifier.height(400.dp).verticalScroll(rememberScrollState())) {
-                    SelectionContainer { Text(DebugLogger.getLogs(), fontSize = 10.sp, color = Color.LightGray) }
+            var logText by remember { mutableStateOf(DebugLogger.getLogs()) }
+            AlertDialog(
+                onDismissRequest = { showLogs = false },
+                title = { 
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Security Logs")
+                        Text("${logText.lines().size} entries", fontSize = 10.sp, color = Color.Gray)
+                    }
+                },
+                text = {
+                    Box(modifier = Modifier.height(450.dp).background(Color(0xFF0F172A), RoundedCornerShape(8.dp)).padding(8.dp)) {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            SelectionContainer {
+                                Text(
+                                    text = if (logText.isEmpty()) "No logs recorded yet." else logText,
+                                    fontSize = 11.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = Color(0xFF94A3B8),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(modifier = Modifier.weight(1f), onClick = { DebugLogger.clear(); logText = "" }) { Text("CLEAR", color = Color.Red) }
+                        Button(modifier = Modifier.weight(1f), onClick = { 
+                            val cb = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cb.setPrimaryClip(android.content.ClipData.newPlainText("Logs", logText))
+                        }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) { Text("COPY") }
+                        Button(modifier = Modifier.weight(1f), onClick = { showLogs = false }) { Text("DONE") }
+                    }
                 }
-            }, confirmButton = { Button(onClick = { showLogs = false }) { Text("DONE") } })
+            )
         }
         if (showStats) StatsDialog(onDismiss = { showStats = false })
     }
