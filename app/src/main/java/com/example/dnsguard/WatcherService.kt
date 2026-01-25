@@ -112,7 +112,14 @@ class WatcherService : Service() {
         return enabledServices.contains(expected)
     }
 
+    // Cache to prevent useless updates
+    private var lastNotifContent = ""
+
     private fun updateNotification(content: String) {
+        // Optimization: Only notify if text changed (prevents flickering)
+        if (content == lastNotifContent) return
+        lastNotifContent = content
+        
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(99, createNotification(content))
     }
@@ -129,6 +136,8 @@ class WatcherService : Service() {
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
+            .setShowWhen(false) // Fixes sorting jitter
+            .setOnlyAlertOnce(true)
             .build()
     }
 
