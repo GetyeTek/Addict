@@ -275,13 +275,30 @@ object LockManager {
         val hasBattery = (ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
         val hasAdmin = (ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).isAdminActive(android.content.ComponentName(ctx, AdminReceiver::class.java))
         val hasOverlay = android.provider.Settings.canDrawOverlays(ctx)
-        val hasNotifs = androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()
         
+        // 1. Check Global Notification Switch
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val areGlobalNotifsEnabled = androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+        
+        // 2. Check Specific Mandatory Channels (Android 8.0+)
+        var areChannelsEnabled = true
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val mandatoryChannels = listOf("dns_guard_channel", "watcher_channel")
+            for (id in mandatoryChannels) {
+                val channel = nm.getNotificationChannel(id)
+                // If channel exists and importance is NONE, it's blocked
+                if (channel != null && channel.importance == android.app.NotificationManager.IMPORTANCE_NONE) {
+                    areChannelsEnabled = false
+                    break
+                }
+            }
+        }
+
         val expected = "${ctx.packageName}/${GuardService::class.java.canonicalName}"
         val enabledServices = android.provider.Settings.Secure.getString(ctx.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
         val hasAccessibility = enabledServices.contains(expected)
 
-        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay || !hasNotifs
+        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay || !areGlobalNotifsEnabled || !areChannelsEnabled
     }
 
     fun setPenaltyWarned(ctx: Context) {
