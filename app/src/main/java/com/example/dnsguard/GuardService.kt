@@ -63,7 +63,7 @@ class GuardService : AccessibilityService() {
             // 1. THE 10-SECOND COUNTDOWN (All breaks)
             if (diff in 1..10000) {
                 val secs = (diff / 1000) + 1
-                BreakWarningManager.showWarning(this, "Sit down in $secs...", true)
+                BreakWarningManager.showWarning(this, "⚠️ LOCKDOWN IN ${secs}s", true)
                 return
             } 
             
