@@ -94,7 +94,7 @@ class WatcherService : Service() {
         val channelId = "watcher_channel"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, "Guardian Monitor", NotificationManager.IMPORTANCE_LOW)
+            val chan = NotificationChannel(channelId, "Guardian Monitor", NotificationManager.IMPORTANCE_HIGH)
             nm.createNotificationChannel(chan)
         }
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
