@@ -201,7 +201,7 @@ class MainActivity : ComponentActivity() {
                         Text(item.label, color = Color.White, fontWeight = FontWeight.Medium)
                         Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
                     }
-                    Divider(color = Color(0xFF7F1D1D))
+                    HorizontalDivider(color = Color(0xFF7F1D1D))
                 }
             }
         }
@@ -707,7 +707,7 @@ class MainActivity : ComponentActivity() {
             Surface(modifier = Modifier.fillMaxSize().padding(16.dp), color = Color.Black, border = BorderStroke(2.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text("GUARDIAN CORE STATS", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 20.sp)
-                    Divider(color = Color(0xFF00FFFF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                    HorizontalDivider(color = Color(0xFF00FFFF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
                     
                     StatRow("RUNTIME", uptime, Color.White)
                     StatRow("CPU LOAD", String.format("%.1f%%", cpu), if (cpu > 5) Color.Yellow else Color(0xFF10B981))
@@ -716,7 +716,7 @@ class MainActivity : ComponentActivity() {
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("SECURITY AUDIT", color = Color(0xFFFF0055), fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Divider(color = Color(0xFFFF0055), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                    HorizontalDivider(color = Color(0xFFFF0055), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
                     
                     val dns = if (DnsManager.isSecure(ctx)) "SECURE" else "HIJACKED"
                     StatRow("DNS STATUS", dns, if (dns == "SECURE") Color(0xFF10B981) else Color.Red)
