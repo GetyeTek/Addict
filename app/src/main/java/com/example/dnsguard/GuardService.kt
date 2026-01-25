@@ -624,7 +624,10 @@ class GuardService : AccessibilityService() {
 
                 if (matchCount >= 3) {
                     val finalContent = contentToCheck.toString()
-                    if (!WordBank.isSafe(applicationContext, finalContent)) {
+                    val violations = WordBank.getViolations(applicationContext, finalContent)
+                    if (violations.isNotEmpty()) {
+                        val reason = violations.joinToString(", ")
+                        DebugLogger.log("TG_BLOCK", "REASON: [$reason] | TEXT: \"$finalContent\"")
                         scope.launch { CloudLogger.logViolation(applicationContext, finalContent) }
                         handleTelegramStrike()
                         return
