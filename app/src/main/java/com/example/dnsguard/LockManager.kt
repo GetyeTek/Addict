@@ -401,6 +401,37 @@ object LockManager {
         return list.map { it.activityInfo.packageName }.distinct().sorted()
     }
 
+    /**
+     * THE PRIORITY ENGINE
+     * Evaluates all security states and returns the single most important block type.
+     */
+    fun getActiveBlockType(ctx: Context): String? {
+        // 0. Maintenance Bypass
+        if (isUnlocked(ctx)) return null
+
+        // 1. Critical: Penalty (System Compromised)
+        if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
+
+        // 2. Critical: DNS Insecure
+        if (!DnsManager.isSecure(ctx)) return "SYSTEM"
+
+        // 3. Enforcement: Rogue App / Browser Ban
+        if (isNonStandardAppBanned(ctx)) return "ROGUE_VIOLATION"
+        if (isBrowserBanned(ctx)) return "BROWSER_VIOLATION"
+        if (isTelegramBanned(ctx)) return "TELEGRAM_SUSPENDED"
+
+        // 4. User Requested: Focus Mode
+        if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
+
+        // 5. Scheduled: Usage Ladder
+        if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
+
+        // 6. Scheduled: Night Lock
+        if (isNightLockActive(ctx)) return "NIGHT_LOCK"
+
+        return null
+    }
+
     private fun isVpnActive(ctx: Context): Boolean {
         try {
             val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
