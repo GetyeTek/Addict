@@ -98,8 +98,8 @@ class WatcherService : Service() {
             nm.createNotificationChannel(chan)
         }
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("System Integrity Active")
-            .setContentText("Guardian is verifying security permissions.")
+            .setContentTitle("Sheriff is in Town")
+            .setContentText("Making sure you behave.")
             .setSmallIcon(android.R.drawable.ic_secure)
             .setOngoing(true)
             .build()
