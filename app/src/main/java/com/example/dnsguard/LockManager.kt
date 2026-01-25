@@ -27,6 +27,8 @@ object LockManager {
     private const val KEY_REBELLION_START = "rebellion_start_ts"
     private const val KEY_SAFE_PKG = "safe_pkg_name"
     private const val KEY_SAFE_TS = "safe_pkg_ts"
+    private const val KEY_FIX_TS = "perm_fix_ts"
+    private var currentActivePackage: String = ""
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
@@ -352,10 +354,29 @@ object LockManager {
         val safeTs = prefs.getLong(KEY_SAFE_TS, 0L)
         val now = System.currentTimeMillis()
         
-        // If checking generally, just check if any session is still active within the 60s window
         if (pkg == "ANY") return (now - safeTs < 60000)
-        
         return safePkg == pkg && (now - safeTs < 60000)
+    }
+
+    fun updateActivePackage(pkg: String) {
+        currentActivePackage = pkg
+    }
+
+    fun startPermissionFixSession(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_FIX_TS, System.currentTimeMillis()).apply()
+    }
+
+    fun isPermissionFixActive(ctx: Context): Boolean {
+        val lastFix = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_FIX_TS, 0L)
+        val now = System.currentTimeMillis()
+        val isRecent = (now - lastFix < 15000) // 15 second window
+        
+        // Only active if we are actually in Settings or the Package Installer
+        val inSettings = currentActivePackage.contains("settings") || 
+                         currentActivePackage.contains("packageinstaller")
+        
+        return isRecent && inSettings
     }
 
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
@@ -423,8 +444,8 @@ object LockManager {
      * Evaluates all security states and returns the single most important block type.
      */
     fun getActiveBlockType(ctx: Context): String? {
-        // 0. Maintenance Bypass
-        if (isUnlocked(ctx)) return null
+        // 0. Maintenance Bypass or Permission Fixing
+        if (isUnlocked(ctx) || isPermissionFixActive(ctx)) return null
 
         // 1. Critical: Penalty (System Compromised)
         if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
