@@ -128,13 +128,21 @@ class GuardService : AccessibilityService() {
  if (event == null) return
  val pkg = event.packageName?.toString() ?: ""
 
- // EVENT-DRIVEN SECURITY
+ // EVENT-DRIVEN SECURITY (High Priority)
  if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
- // Fix: Reset session verification
  verifiedSafeAppInfoSession = false
-
- val isMaintenance = LockManager.isUnlocked(applicationContext)
  val isGraceActive = LockManager.isBootGraceActive()
+
+ if (!NukeManager.isProtectionDisabled(applicationContext) && !isGraceActive) {
+ val blockType = LockManager.getActiveBlockType(applicationContext, pkg)
+ if (blockType != null) {
+ showInstantOverlay(blockType)
+ if (blockType == "PERMANENT_BAN" || blockType == "ROGUE_VIOLATION") {
+ performGlobalAction(GLOBAL_ACTION_HOME)
+ }
+ return // Stop further processing
+ }
+ }
 
  if (!NukeManager.isProtectionDisabled(applicationContext)) {
  val block = LockManager.getActiveBlockType(applicationContext, pkg)
@@ -565,14 +573,15 @@ class GuardService : AccessibilityService() {
 
     private fun managePolling(pkg: String) {
         pollingJob?.cancel()
-
+        // Scanners (Browser/Telegram) still need polling for content, 
+        // but App-Blocking is now handled instantly via onAccessibilityEvent
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
             pollingJob = scope.launch {
                 while (isActive) {
-                    delay(1500) // 1.5 Second Heartbeat
+                    delay(1000) // Content scanning heartbeat
                     scanForViolations(isBrowser, isTelegram)
                 }
             }
@@ -696,8 +705,7 @@ class GuardService : AccessibilityService() {
  val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
  val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
  
- // Bypass if screen is off or locked
- if (!pm.isInteractive || km.isKeyguardLocked) return
+ if (!pm.isInteractive) return
 
  // Get prioritized type
  val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: return
