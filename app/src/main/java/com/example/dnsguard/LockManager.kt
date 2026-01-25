@@ -28,6 +28,8 @@ object LockManager {
     private const val KEY_SAFE_PKG = "safe_pkg_name"
     private const val KEY_SAFE_TS = "safe_pkg_ts"
     private const val KEY_FIX_TS = "perm_fix_ts"
+    private const val KEY_PERM_BANS = "perm_banned_apps"
+    private const val KEY_TEMP_LOCKS = "temp_locked_apps"
     private var currentActivePackage: String = ""
 
     // THRESHOLDS
@@ -438,15 +440,42 @@ object LockManager {
         return list.map { it.activityInfo.packageName }.distinct().sorted()
     }
 
-    /**
-     * THE PRIORITY ENGINE
-     * Evaluates all security states and returns the single most important block type.
-     */
-    fun getActiveBlockType(ctx: Context): String? {
-        // 0. Maintenance Bypass or Permission Fixing
+    fun banAppPermanently(ctx: Context, pkgs: Set<String>) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val current = prefs.getStringSet(KEY_PERM_BANS, emptySet())?.toMutableSet() ?: mutableSetOf()
+        current.addAll(pkgs)
+        prefs.edit().putStringSet(KEY_PERM_BANS, current).apply()
+    }
+
+    fun lockAppsTemporarily(ctx: Context, pkgs: Set<String>, minutes: Int) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val current = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet())?.toMutableSet() ?: mutableSetOf()
+        val expiry = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        pkgs.forEach { pkg ->
+            current.removeIf { it.startsWith("$pkg:") }
+            current.add("$pkg:$expiry")
+        }
+        prefs.edit().putStringSet(KEY_TEMP_LOCKS, current).apply()
+    }
+
+    fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
+        // 0. PERMANENT BAN (Cannot be bypassed by maintenance mode)
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
+        if (permBans.contains(pkg)) return "PERMANENT_BAN"
+
+        // 1. Maintenance Bypass or Permission Fixing
         if (isUnlocked(ctx) || isPermissionFixActive(ctx)) return null
 
-        // 1. Critical: Penalty (System Compromised)
+        // 2. MANUAL TEMP LOCK
+        val tempLocks = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet()) ?: emptySet()
+        val entry = tempLocks.find { it.startsWith("$pkg:") }
+        if (entry != null) {
+            val expiry = entry.substringAfter(":").toLongOrNull() ?: 0L
+            if (System.currentTimeMillis() < expiry) return "MANUAL_LOCK"
+        }
+
+        // 3. Critical: Penalty (System Compromised)
         if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
 
         // 2. Critical: DNS Insecure
