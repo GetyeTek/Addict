@@ -32,7 +32,7 @@ object LockManager {
     private const val KEY_TEMP_LOCKS = "temp_locked_apps"
     private const val KEY_DEEP_FOCUS_END = "deep_focus_end_ts"
     private const val KEY_DEEP_FOCUS_ALLOWED = "deep_focus_allowed_apps"
-    private var currentActivePackage: String = ""
+    var currentActivePackage: String = ""
 
     // THRESHOLDS
     val T1 = 20 * 60 * 1000L
