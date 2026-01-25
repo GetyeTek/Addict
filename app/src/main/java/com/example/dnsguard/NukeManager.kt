@@ -116,6 +116,27 @@ object NukeManager {
         return diff >= WAIT_TIME && diff <= EXPIRY_TIME
     }
 
+    data class NukeStatus(
+        val isProtectionDisabled: Boolean,
+        val isWaiting: Boolean,
+        val isReady: Boolean,
+        val remainingWaitMs: Long,
+        val otpGenerated: Boolean
+    )
+
+    fun getStatus(ctx: Context): NukeStatus {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val disabled = prefs.getBoolean(KEY_DISABLED, false)
+        val ts = prefs.getLong(KEY_OTP_TS, 0L)
+        val now = System.currentTimeMillis()
+        
+        val isWaiting = ts > 0 && (now - ts < WAIT_TIME)
+        val isReady = ts > 0 && (now - ts >= WAIT_TIME) && (now - ts <= EXPIRY_TIME)
+        val remaining = if (isWaiting) WAIT_TIME - (now - ts) else 0L
+        
+        return NukeStatus(disabled, isWaiting, isReady, remaining, ts > 0)
+    }
+
     fun generateOtp(ctx: Context): String {
         val otp = UUID.randomUUID().toString().substring(0, 6).uppercase()
         val now = System.currentTimeMillis()
