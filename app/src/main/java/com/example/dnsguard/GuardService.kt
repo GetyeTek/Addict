@@ -129,32 +129,22 @@ class GuardService : AccessibilityService() {
     }
 
      override fun onAccessibilityEvent(event: AccessibilityEvent?) {
- if (event == null) return
- val pkg = event.packageName?.toString() ?: ""
+        if (event == null) return
+        val pkg = event.packageName?.toString() ?: ""
 
- // EVENT-DRIVEN SECURITY (High Priority)
- if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
- verifiedSafeAppInfoSession = false
- val isGraceActive = LockManager.isBootGraceActive()
+        // 1. EVENT-DRIVEN SECURITY (High Priority)
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            verifiedSafeAppInfoSession = false
+            val isGraceActive = LockManager.isBootGraceActive()
 
- if (!NukeManager.isProtectionDisabled(applicationContext) && !isGraceActive) {
- val blockType = LockManager.getActiveBlockType(applicationContext, pkg)
- if (blockType != null) {
- showInstantOverlay(blockType)
- return // Stop further processing
- }
- }
-
- if (!NukeManager.isProtectionDisabled(applicationContext)) {
- val block = LockManager.getActiveBlockType(applicationContext, pkg)
- if (block != null && !isGraceActive) {
- val i = Intent(applicationContext, LockdownActivity::class.java)
- i.putExtra("BLOCK_TYPE", block)
- i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
- startActivity(i)
- }
- }
- }
+            if (!NukeManager.isProtectionDisabled(applicationContext) && !isGraceActive) {
+                val blockType = LockManager.getActiveBlockType(applicationContext, pkg)
+                if (blockType != null) {
+                    showInstantOverlay(blockType)
+                    return
+                }
+            }
+        }
         // DebugLogger.log("Event", "Pkg: $pkg Type: ${event.eventType} Class: ${event.className}")
 
         // GLOBAL RESET: If we switch to a different app (ignore SystemUI overlays like volume/keyboard)
@@ -575,113 +565,79 @@ class GuardService : AccessibilityService() {
     }
 
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
-        // MULTI-WINDOW SCAN: Check every visible window, not just the focused one
         val windows = this.windows
         for (window in windows) {
             val root = window.root ?: continue
             
-            // 1. BROWSER LOGIC (Strict Domain Matching)
-        if (isBrowser) {
-            val spyKeywords = listOf("google", "http")
-            for (key in spyKeywords) {
-                val spies = root.findAccessibilityNodeInfosByText(key)
-                for (node in spies) {
-                    val resId = node.viewIdResourceName?.lowercase() ?: "null"
-                    DebugLogger.log("SPY", "Pkg: $activePackage | ID: $resId | Text: ${node.text}")
-                }
-            }
+            if (isBrowser) {
+                val blacklist = listOf(
+                    "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
+                    "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
+                    "web.telegram.org", "t.me", "telegram.org", "discord.com", "kik.com", "snapchat.com", "slack.com",
+                    "pixiv.net", "deviantart.com", "newgrounds.com", "artstation.com", "furaffinity.net", "hentai-foundry.com", "gelbooru.com", "danbooru.donmai.us",
+                    "onlyfans.com", "fansly.com", "patreon.com", "subscribestar.com", "fanbox.cc", "unifans.io", "buymeacoffee.com", "ko-fi.com",
+                    "kick.com", "bitchute.com", "rumble.com", "vimeo.com", "dailymotion.com", "dlive.tv", "picarto.tv",
+                    "fetlife.com", "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", "pornhub", "xnxx"
+                )
+                
+                for (site in blacklist) {
+                    val candidates = root.findAccessibilityNodeInfosByText(site)
+                    for (node in candidates) {
+                        val resId = node.viewIdResourceName?.lowercase() ?: ""
+                        val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox")
+                        val isWebContent = node.className == "android.webkit.WebView" || resId.contains("content")
+                        if (!isUrlBar && isWebContent) continue
 
-            val blacklist = listOf(
-                "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
-                "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
-                "web.telegram.org", "t.me", "telegram.org", "discord.com", "kik.com", "snapchat.com", "slack.com",
-                "pixiv.net", "deviantart.com", "newgrounds.com", "artstation.com", "furaffinity.net", "hentai-foundry.com", "gelbooru.com", "danbooru.donmai.us",
-                "onlyfans.com", "fansly.com", "patreon.com", "subscribestar.com", "fanbox.cc", "unifans.io", "buymeacoffee.com", "ko-fi.com",
-                "kick.com", "bitchute.com", "rumble.com", "vimeo.com", "dailymotion.com", "dlive.tv", "picarto.tv",
-                "fetlife.com", "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", "pornhub", "xnxx"
-            )
-            
-            for (site in blacklist) {
-                val candidates = root.findAccessibilityNodeInfosByText(site)
-                for (node in candidates) {
-                    val resId = node.viewIdResourceName?.lowercase() ?: ""
-                    val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox") || 
-                                   resId.contains("search_box") || resId.contains("location") || resId.contains("toolbar") || 
-                                   resId.contains("title") || resId.contains("input") || resId.contains("bar") ||
-                                   resId.contains("mozac") || resId.contains("search_text") || resId.contains("edit_text") || resId.contains("query")
-                    
-                    val isWebContent = resId.contains("content") || node.className == "android.webkit.WebView"
-                    if (!isUrlBar && isWebContent) continue
+                        val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
+                        val lowerText = rawText.lowercase()
+                        val index = lowerText.indexOf(site)
 
-                    val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
-                    val lowerText = rawText.lowercase()
-                    val index = lowerText.indexOf(site)
-
-                    if (index != -1) {
-                        val charBefore = if (index > 0) lowerText[index - 1] else ' '
-                        if (!charBefore.isLetterOrDigit()) {
-                            val targetPkg = root.packageName?.toString() ?: activePackage
-                            if (LockManager.isNonStandardApp(applicationContext, targetPkg)) {
-                                LockManager.banNonStandardApp(applicationContext)
-                                val i = Intent(applicationContext, LockdownActivity::class.java)
-                                i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
-                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                startActivity(i)
-                            } else {
-                                handleBrowserStrike()
+                        if (index != -1) {
+                            val charBefore = if (index > 0) lowerText[index - 1] else ' '
+                            if (!charBefore.isLetterOrDigit()) {
+                                val targetPkg = root.packageName?.toString() ?: activePackage
+                                if (LockManager.isNonStandardApp(applicationContext, targetPkg)) {
+                                    LockManager.banNonStandardApp(applicationContext)
+                                    showInstantOverlay("ROGUE_VIOLATION")
+                                } else {
+                                    handleBrowserStrike()
+                                }
+                                return
                             }
-                            return
                         }
                     }
                 }
             }
-        }
 
-        // 2. TELEGRAM LOGIC (Fingerprint Scan)
-        if (isTelegram) {
-            // FINGERPRINT: The specific UI structure of the Search Screen
-            val visibleTabs = setOf("chats", "channels", "apps", "posts")
-            val hiddenTabs = setOf("media", "downloads", "links", "files", "music", "voice")
-            val allTabs = visibleTabs + hiddenTabs + "global search"
-
-            // A. EXTRACT ALL TEXT
-            val screenContent = mutableListOf<String>()
-            fun extract(node: AccessibilityNodeInfo?) {
-                if (node == null) return
-                if (!node.text.isNullOrBlank()) screenContent.add(node.text.toString())
-                if (!node.contentDescription.isNullOrBlank()) screenContent.add(node.contentDescription.toString())
-                for (i in 0 until node.childCount) extract(node.getChild(i))
-            }
-            extract(root)
-
-            // B. CALCULATE CONFIDENCE & FILTER
-            var matchCount = 0
-            val contentToCheck = StringBuilder()
-
-            for (text in screenContent) {
-                val lower = text.trim().lowercase()
-                if (allTabs.contains(lower)) {
-                    // It matches our fingerprint -> Increase Confidence
-                    matchCount++
-                } else {
-                    // It is NOT a UI tab -> This is content we must check (e.g. what you typed)
-                    contentToCheck.append(text).append(" ")
+            if (isTelegram) {
+                val allTabs = setOf("chats", "channels", "apps", "posts", "media", "downloads", "links", "files", "music", "voice", "global search")
+                val screenContent = mutableListOf<String>()
+                fun extract(node: AccessibilityNodeInfo?) {
+                    if (node == null) return
+                    if (!node.text.isNullOrBlank()) screenContent.add(node.text.toString())
+                    if (!node.contentDescription.isNullOrBlank()) screenContent.add(node.contentDescription.toString())
+                    for (i in 0 until node.childCount) extract(node.getChild(i))
                 }
-            }
+                extract(root)
 
-            // C. MATHEMATICAL PROOF (Threshold)
-            // We require at least 3 UI elements to match before we assume this is the Search Screen.
-            // This prevents false positives (e.g., chatting about "Channels" in a group).
-            if (matchCount >= 3) {
-                val finalContent = contentToCheck.toString()
+                var matchCount = 0
+                val contentToCheck = StringBuilder()
+                for (text in screenContent) {
+                    val lower = text.trim().lowercase()
+                    if (allTabs.contains(lower)) matchCount++ else contentToCheck.append(text).append(" ")
+                }
 
-                if (!WordBank.isSafe(applicationContext, finalContent)) {
-                   scope.launch { CloudLogger.logViolation(applicationContext, finalContent) }
-                   handleTelegramStrike()
+                if (matchCount >= 3) {
+                    val finalContent = contentToCheck.toString()
+                    if (!WordBank.isSafe(applicationContext, finalContent)) {
+                        scope.launch { CloudLogger.logViolation(applicationContext, finalContent) }
+                        handleTelegramStrike()
+                        return
+                    }
                 }
             }
         }
-        } // End of windows loop
+    }
 
     private fun logSystemState(reason: String) {
         val dns = DnsManager.isSecure(applicationContext)
