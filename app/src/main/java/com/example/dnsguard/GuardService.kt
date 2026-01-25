@@ -176,7 +176,7 @@ class GuardService : AccessibilityService() {
          // 0. PERMANENT BAN: The Dirty Dozen
  val nukeList = listOf(
  "twitter", "com.x.android", "torproject", "org.plus18", "stashx", 
- "adultfriendfinder", "ashleymadison", "com.grindr", "getpure"
+ "adultfriendfinder", "ashleymadison", "com.grindr", "getpure", "reddit"
  )
  if (nukeList.any { pkg.contains(it) }) {
  performGlobalAction(GLOBAL_ACTION_HOME)
