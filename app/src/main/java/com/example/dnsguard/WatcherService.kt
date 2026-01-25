@@ -61,9 +61,8 @@ class WatcherService : Service() {
                     val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                     val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
                     
-                    // IMPROVED EMERGENCY CHECK: Get the current top activity package if possible
-                    val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                    val topPkg = am.getRunningTasks(1).firstOrNull()?.topActivity?.packageName ?: ""
+                    // CORRECTED: Use shared state from Accessibility Service via LockManager
+                    val topPkg = LockManager.currentActivePackage
                     val isEmergency = topPkg.contains("dialer") || topPkg.contains("telecom") || topPkg.contains("clock") || topPkg.contains("alarm")
 
                     val blockType = LockManager.getActiveBlockType(applicationContext, topPkg)
