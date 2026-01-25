@@ -255,7 +255,21 @@ class MainActivity : ComponentActivity() {
                             Text("PROVE IT'S YOU")
                         }
                     } else if (status.otpGenerated) {
-                        Text("Code generated. Don't lose it.", color = Color.Gray)
+                        Column {
+                            Text("Code generated. Don't lose it.", color = Color.Gray, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { 
+                                    val saved = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE).getString("nuke_otp", "????")
+                                    generatedOtp = saved ?: "????"
+                                    showOtpDialog = true 
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("VIEW MY CODE")
+                            }
+                        }
                     } else {
                          Column {
                              if (!status.isWindowOpen) {
