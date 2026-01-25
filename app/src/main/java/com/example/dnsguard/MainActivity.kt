@@ -171,6 +171,8 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
             AppManagerCard()
             Spacer(modifier = Modifier.height(16.dp))
+            AppVaultCard()
+            Spacer(modifier = Modifier.height(16.dp))
             NightPassCard()
             Spacer(modifier = Modifier.height(16.dp))
             EmergencyProtocolCard()
@@ -377,6 +379,90 @@ class MainActivity : ComponentActivity() {
             }, confirmButton = {
                 Button(onClick = { LockManager.setUserLockout(applicationContext, mins.toIntOrNull() ?: 0); showDialog = false }) { Text("BEGIN") }
             })
+        }
+    }
+
+    @Composable
+    fun AppVaultCard() {
+        var showVault by remember { mutableStateOf(false) }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)), border = BorderStroke(1.dp, Color(0xFF334155)), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Lock, null, tint = Color(0xFF818CF8), modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("APP VAULT", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
+                }
+                Button(onClick = { showVault = true }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))) {
+                    Text("MANAGE BAN LIST")
+                }
+            }
+        }
+        if (showVault) AppVaultDialog(onDismiss = { showVault = false })
+    }
+
+    @Composable
+    fun AppVaultDialog(onDismiss: () -> Unit) {
+        val ctx = LocalContext.current
+        var filter by remember { mutableStateOf("") }
+        val appList = AppCache.getCachedApps() ?: listOf()
+        val selectedApps = remember { mutableStateListOf<String>() }
+        var lockMinutes by remember { mutableStateOf("30") }
+        var isPermanent by remember { mutableStateOf(false) }
+
+        Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), shape = RoundedCornerShape(28.dp), color = Color(0xFF1E293B)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("App Vault", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    
+                    Row(modifier = Modifier.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = isPermanent, onCheckedChange = { isPermanent = it })
+                        Text("PERMANENT BAN", color = if(isPermanent) Color.Red else Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (!isPermanent) {
+                        OutlinedTextField(
+                            value = lockMinutes, 
+                            onValueChange = { if (it.all { c -> c.isDigit() }) lockMinutes = it },
+                            label = { Text("Lock Duration (Minutes)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    OutlinedTextField(value = filter, onValueChange = { filter = it }, placeholder = { Text("Search apps...") },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
+                    
+                    val filtered = appList.filter { it.name.contains(filter, true) || it.pkg.contains(filter, true) }
+                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(filtered.size) { index ->
+                            val app = filtered[index]
+                            val isSelected = selectedApps.contains(app.pkg)
+                            Row(modifier = Modifier.fillMaxWidth().clickable { 
+                                if (isSelected) selectedApps.remove(app.pkg) else selectedApps.add(app.pkg)
+                            }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = isSelected, onCheckedChange = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(app.name, color = Color.White)
+                            }
+                        }
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = onDismiss) { Text("CANCEL") }
+                        Button(
+                            onClick = {
+                                if (isPermanent) {
+                                    LockManager.banAppPermanently(ctx, selectedApps.toSet())
+                                } else {
+                                    LockManager.lockAppsTemporarily(ctx, selectedApps.toSet(), lockMinutes.toIntOrNull() ?: 0)
+                                }
+                                onDismiss()
+                            },
+                            enabled = selectedApps.isNotEmpty(),
+                            colors = ButtonDefaults.buttonColors(containerColor = if(isPermanent) Color.Red else Color(0xFF6366F1))
+                        ) { Text(if(isPermanent) "EXECUTE BAN" else "LOCK APPS") }
+                    }
+                }
+            }
         }
     }
 
