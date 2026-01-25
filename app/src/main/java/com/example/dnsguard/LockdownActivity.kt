@@ -148,9 +148,9 @@ class LockdownActivity : ComponentActivity() {
             }
 
             val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
-            val isContentViolation = listOf("BROWSER_VIOLATION", "TELEGRAM_SUSPENDED", "ROGUE_VIOLATION").contains(type)
+            val isBrowserViolation = type == "BROWSER_VIOLATION"
 
-            if (isContentViolation) {
+            if (isBrowserViolation) {
                 Button(
                     onClick = {
                         LockManager.startFixWindow(context)
