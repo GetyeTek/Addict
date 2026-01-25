@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                      Icon(Icons.Filled.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(20.dp))
                      Spacer(modifier = Modifier.width(8.dp))
-                     Text("AIN'T NOBODY GETTING IN", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                     Text("YOU ARE CURRENTLY COMPLIANT", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -229,7 +229,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Dangerous, null, tint = Color(0xFFF87171))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("THE NUCLEAR OPTION", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
+                    Text("THE COWARD'S EXIT", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -401,7 +401,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("ZEN MODE (WHITELIST)", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFACC15))
+                Text("SOLITARY CONFINEMENT", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFACC15))
                 if (remaining > 0) {
                     val mins = (remaining / 60000) + 1
                     Text("$mins MINS REMAINING", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
@@ -480,7 +480,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("FOCUS MODE", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFF6366F1))
+                Text("CHAIN TO THE DESK", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFF6366F1))
                 Button(
                     onClick = { showDialog = true }, 
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
@@ -510,7 +510,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Lock, null, tint = Color(0xFF818CF8), modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("APP VAULT", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
+                    Text("THE BLACKLIST", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
                 }
                 Button(onClick = { showVault = true }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))) {
                     Text("MANAGE BAN LIST")
@@ -665,7 +665,7 @@ class MainActivity : ComponentActivity() {
 
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF172554)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("HALL PASSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
+                Text("LAME EXCUSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
                 Button(onClick = { showConfirm = true },
                     enabled = LockManager.isNightPassActivationWindow() && remaining > 0 && !LockManager.isTonightPassed(ctx),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), disabledContainerColor = Color(0xFF1E3A8A))) {
@@ -700,7 +700,7 @@ class MainActivity : ComponentActivity() {
         var showStats by remember { mutableStateOf(false) }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { showStats = true }, border = BorderStroke(1.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
-                Text("SYSTEM STATS", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, fontSize = 10.sp)
+                Text("SYSTEM AUTOPSY", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, fontSize = 10.sp)
             }
             Spacer(modifier = Modifier.width(16.dp))
             TextButton(onClick = { showLogs = true }) {
