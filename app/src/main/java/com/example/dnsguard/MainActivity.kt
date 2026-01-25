@@ -162,8 +162,6 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
             FocusCard()
             Spacer(modifier = Modifier.height(16.dp))
-            LadderCard()
-            Spacer(modifier = Modifier.height(16.dp))
             AppManagerCard()
             Spacer(modifier = Modifier.height(16.dp))
             NightPassCard()
@@ -228,20 +226,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun LadderCard() {
-        val ctx = LocalContext.current
-        var enabled by remember { mutableStateOf(LockManager.isLadderEnabled(ctx)) }
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)), modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("USAGE LADDER", color = Color(0xFF34D399), style = MaterialTheme.typography.labelLarge)
-                    Text("Enforces periodic breaks", color = Color.LightGray, fontSize = 11.sp)
-                }
-                Switch(checked = enabled, onCheckedChange = { enabled = it; LockManager.setLadderEnabled(ctx, it) })
-            }
-        }
-    }
+
 
     @Composable
     fun NightPassCard() {
