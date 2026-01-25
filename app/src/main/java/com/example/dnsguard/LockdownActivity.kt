@@ -148,6 +148,24 @@ class LockdownActivity : ComponentActivity() {
             }
 
             val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
+            val isContentViolation = listOf("BROWSER_VIOLATION", "TELEGRAM_SUSPENDED", "ROGUE_VIOLATION").contains(type)
+
+            if (isContentViolation) {
+                Button(
+                    onClick = {
+                        LockManager.startFixWindow(context)
+                        finishAffinity()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Filled.Build, null, tint = Color.Black)
+                    Spacer(Modifier.width(8.dp))
+                    Text("FIX CONTENT (60s)", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             if (type == "SYSTEM") {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
