@@ -532,7 +532,6 @@ object LockManager {
         if (System.currentTimeMillis() - fixTs < 60000) return null
 
         // 1. HARD BLOCKERS (Never bypassed)
-        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
         if (permBans.contains(pkg)) return "PERMANENT_BAN"
 
