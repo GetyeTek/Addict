@@ -143,6 +143,7 @@ class LockdownActivity : ComponentActivity() {
                     
                     Button(
                         onClick = {
+                            LockManager.startPermissionFixSession(context)
                             val dnsIntent = Intent("android.settings.PVT_DNS_SETTINGS").apply { 
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK 
                             }
