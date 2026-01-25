@@ -483,22 +483,21 @@ class GuardService : AccessibilityService() {
                         startActivity(i)
                     }
                 }
-                // 2. ENFORCE AUTO TIME (Required for Nuke Timer)
-                else if ((Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) != 1 ||
-                          Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) != 1)) {
-                    val i = Intent(Settings.ACTION_DATE_SETTINGS)
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(i)
-                }
-                // 3. ENFORCE ENGLISH LANGUAGE (Required for Text Scanners)
-                else if (java.util.Locale.getDefault().language != "en") {
-                    val i = Intent(Settings.ACTION_LOCALE_SETTINGS)
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(i)
-                }
+
                 // 4. CHECK USER LOCKOUT (Focus Mode)
                 else if (LockManager.isUserLockedOut(applicationContext)) {
                     showInstantOverlay("USER_LOCKOUT")
+                }
+                // 5. ENFORCE SYSTEM TIME (No Maintenance Bypass)
+                else if (Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) != 1 ||
+                         Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME_ZONE, 0) != 1) {
+                    val i = Intent(Settings.ACTION_DATE_SETTINGS).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                    startActivity(i)
+                }
+                // 6. ENFORCE LANGUAGE (No Maintenance Bypass)
+                else if (java.util.Locale.getDefault().language != "en") {
+                    val i = Intent(Settings.ACTION_LOCALE_SETTINGS).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                    startActivity(i)
                 }
                 else if (LockManager.isNightLockActive(applicationContext)) {
                     val isClock = activePackage.contains("clock") || activePackage.contains("alarm")
