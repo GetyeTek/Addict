@@ -226,8 +226,8 @@ class GuardService : AccessibilityService() {
                 recursiveScan(source, dialogText)
                 val text = dialogText.toString()
                 
-                // DIALOG TRAP: Matches "Stop The Warden?" or "Deactivate The Warden?"
-                if (text.contains("The Warden", ignoreCase = true) && 
+                // DIALOG TRAP: Matches "Stop Guardian?" or "Deactivate Guardian?"
+                if (text.contains("Guardian", ignoreCase = true) && 
                    (text.contains("Stop", ignoreCase = true) || text.contains("Deactivate", ignoreCase = true))) {
                     performGlobalAction(GLOBAL_ACTION_BACK)
                     // Also try to find the "Cancel" button and click it
@@ -311,8 +311,8 @@ class GuardService : AccessibilityService() {
                     val root = window.root ?: continue
                     
                     // GLOBAL SCAN: Locate identifying strings first
-                    // We look for the App Name "The Warden" to detect our own App Info page
-                    val hasDnsGuard = root.findAccessibilityNodeInfosByText("The Warden")
+                    // We look for the App Name "Guardian" to detect our own App Info page
+                    val hasDnsGuard = root.findAccessibilityNodeInfosByText("Guardian")
                     
                     // A. ACCESSIBILITY TRAP (Targeted)
                     // Matches new strings.xml values
