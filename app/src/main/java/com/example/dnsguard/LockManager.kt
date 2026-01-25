@@ -30,6 +30,8 @@ object LockManager {
     private const val KEY_FIX_TS = "perm_fix_ts"
     private const val KEY_PERM_BANS = "perm_banned_apps"
     private const val KEY_TEMP_LOCKS = "temp_locked_apps"
+    private const val KEY_DEEP_FOCUS_END = "deep_focus_end_ts"
+    private const val KEY_DEEP_FOCUS_ALLOWED = "deep_focus_allowed_apps"
     private var currentActivePackage: String = ""
 
     // THRESHOLDS
@@ -458,7 +460,31 @@ object LockManager {
         prefs.edit().putStringSet(KEY_TEMP_LOCKS, current).apply()
     }
 
+    fun startDeepFocus(ctx: Context, allowedPkgs: Set<String>, minutes: Int) {
+        val end = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_DEEP_FOCUS_END, end)
+            .putStringSet(KEY_DEEP_FOCUS_ALLOWED, allowedPkgs)
+            .apply()
+    }
+
+    fun getDeepFocusRemaining(ctx: Context): Long {
+        val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_DEEP_FOCUS_END, 0L)
+        return (end - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
+        // 0. DEEP FOCUS (Whitelist Logic)
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val deepFocusEnd = prefs.getLong(KEY_DEEP_FOCUS_END, 0L)
+        if (System.currentTimeMillis() < deepFocusEnd) {
+            val allowed = prefs.getStringSet(KEY_DEEP_FOCUS_ALLOWED, emptySet()) ?: emptySet()
+            val isSystem = pkg.contains("launcher") || pkg.contains("systemui") || pkg.contains("packageinstaller") || pkg.contains("settings") || pkg.contains("accessibility")
+            val isAllowed = allowed.contains(pkg) || pkg == ctx.packageName || isSystem
+            
+            if (!isAllowed && pkg.isNotEmpty()) return "DEEP_FOCUS"
+        }
+
         // 0. PERMANENT BAN (Cannot be bypassed by maintenance mode)
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
