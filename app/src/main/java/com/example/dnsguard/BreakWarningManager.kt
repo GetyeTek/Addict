@@ -36,7 +36,7 @@ object BreakWarningManager {
 
         val view = TextView(ctx).apply {
             text = message
-            setTextColor(0xFF10B981.toInt())
+            setTextColor(0xFFFFFFFF.toInt()) // High contrast White
             setBackground(background)
             setPadding(60, 20, 60, 20)
             gravity = Gravity.CENTER
