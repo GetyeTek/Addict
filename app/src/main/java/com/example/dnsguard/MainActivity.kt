@@ -207,7 +207,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isDark) Color.White else Color.Black,
-                    contentColor = if (isDark) Color.Black else Color.White
+                    contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -294,9 +294,9 @@ class MainActivity : ComponentActivity() {
                 } 
                 else {
                     // Idle or Ready
-                    if (status.isReady) {
+                                        if (status.isReady) {
                          Button(onClick = { showEntryDialog = true }, 
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626), contentColor = Color.White),
                             modifier = Modifier.fillMaxWidth()) {
                             Text("PROVE IT'S YOU")
                         }
@@ -310,7 +310,7 @@ class MainActivity : ComponentActivity() {
                                     generatedOtp = saved ?: "????"
                                     showOtpDialog = true 
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("VIEW MY CODE")
@@ -321,7 +321,7 @@ class MainActivity : ComponentActivity() {
                              if (!status.isWindowOpen) {
                                  Text("Window opens at 06:00", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
                              }
-                             Button(onClick = {
+                             Button(onClick = { 
                                  val check = NukeManager.canRequestNuke(ctx)
                                  if (check == "OK") {
                                      showConfirmRequestDialog = true
@@ -332,7 +332,7 @@ class MainActivity : ComponentActivity() {
                                 enabled = status.isWindowOpen,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF450A0A), 
-                                    contentColor = Color(0xFFF87171),
+                                    contentColor = Color.White,
                                     disabledContainerColor = Color(0xFF1A1A1A),
                                     disabledContentColor = Color(0xFF333333)
                                 ),
@@ -409,7 +409,7 @@ class MainActivity : ComponentActivity() {
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("SYSTEM MAINTENANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                Button(onClick = { showMainte = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) {
+                Button(onClick = { showMainte = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White)) {
                     Text("DNS REPAIR MODE")
                 }
             }
@@ -452,10 +452,10 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
                         shape = RoundedCornerShape(4.dp),
                         border = BorderStroke(1.dp, Color.White),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF854D0E))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF854D0E), contentColor = Color.White)
                     ) {
-                        Icon(Icons.Filled.CenterFocusStrong, null, modifier = Modifier.size(20.dp))
-                        Text(" START WHITELIST", fontWeight = FontWeight.Black)
+                        Icon(Icons.Filled.CenterFocusStrong, null, modifier = Modifier.size(20.dp), tint = Color.White)
+                        Text(" START WHITELIST", fontWeight = FontWeight.Black, color = Color.White)
                     }
                 }
             }
@@ -527,10 +527,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
                     shape = RoundedCornerShape(4.dp),
                     border = BorderStroke(1.dp, Color.White),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA), contentColor = Color.White)
                 ) {
-                    Icon(Icons.Filled.Timer, null, modifier = Modifier.size(20.dp))
-                    Text(" ACTIVATE", fontWeight = FontWeight.Black)
+                    Icon(Icons.Filled.Timer, null, modifier = Modifier.size(20.dp), tint = Color.White)
+                    Text(" ACTIVATE", fontWeight = FontWeight.Black, color = Color.White)
                 }
             }
         }
@@ -558,7 +558,7 @@ class MainActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("THE BLACKLIST", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
                 }
-                Button(onClick = { showVault = true }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))) {
+                Button(onClick = { showVault = true }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA), contentColor = Color.White)) {
                     Text("MANAGE BAN LIST")
                 }
             }
@@ -655,7 +655,7 @@ class MainActivity : ComponentActivity() {
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("WEAKNESSES", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                Button(onClick = { showList = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) {
+                Button(onClick = { showList = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White)) {
                     Text("WHITELIST CRAP")
                 }
             }
@@ -714,7 +714,7 @@ class MainActivity : ComponentActivity() {
                 Text("LAME EXCUSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
                 Button(onClick = { showConfirm = true },
                     enabled = LockManager.isNightPassActivationWindow() && remaining > 0 && !LockManager.isTonightPassed(ctx),
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), disabledContainerColor = Color(0xFF1E3A8A))) {
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), contentColor = Color.White, disabledContainerColor = Color(0xFF1E3A8A))) {
                     Text("SKIP BEDTIME ($remaining LEFT)")
                 }
             }
@@ -746,11 +746,11 @@ class MainActivity : ComponentActivity() {
         var showStats by remember { mutableStateOf(false) }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { showStats = true }, border = BorderStroke(1.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
-                Text("SYSTEM AUTOPSY", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, fontSize = 10.sp)
+                Text("SYSTEM AUTOPSY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
             }
             Spacer(modifier = Modifier.width(16.dp))
             TextButton(onClick = { showLogs = true }) {
-                Text("VIEW LOGS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                Text("VIEW LOGS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             }
         }
         if (showLogs) {
@@ -802,8 +802,8 @@ class MainActivity : ComponentActivity() {
                     StatRow("TAMPER EVENTS", "$totalPens Detected", if (totalPens > 0) Color.Yellow else Color(0xFF10B981))
                     
                     Spacer(modifier = Modifier.weight(1f))
-                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
-                        Text("RETURN TO TERMINAL", color = Color.Black, fontWeight = FontWeight.Black)
+                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFFF), contentColor = Color.White), shape = RoundedCornerShape(4.dp)) {
+                        Text("RETURN TO TERMINAL", color = Color.White, fontWeight = FontWeight.Black)
                     }
                 }
             }
