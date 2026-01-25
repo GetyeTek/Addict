@@ -114,7 +114,7 @@ class LockdownActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(32.dp))
 
             if (type == "SYSTEM") {
-                Text("STABLE DNS PROVIDERS", color = config.color, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                Text("PICK ONE, GENIUS", color = config.color, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
                 DnsManager.ALLOWED_HOSTNAMES.forEach { host ->
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
@@ -139,7 +139,7 @@ class LockdownActivity : ComponentActivity() {
                         modifier = Modifier.weight(1f).height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A)),
                         shape = RoundedCornerShape(12.dp)
-                    ) { Text("UNLOCK") }
+                    ) { Text("LET ME OUT") }
                     
                     Button(
                         onClick = {
@@ -167,7 +167,7 @@ class LockdownActivity : ComponentActivity() {
                         modifier = Modifier.weight(1f).height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = config.color),
                         shape = RoundedCornerShape(12.dp)
-                    ) { Text("FIX", color = Color.Black, fontWeight = FontWeight.Bold) }
+                    ) { Text("FIX IT", color = Color.Black, fontWeight = FontWeight.Bold) }
                 }
             } else if (hasEmergencyBypass) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -188,7 +188,7 @@ class LockdownActivity : ComponentActivity() {
                     val home = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME); flags = Intent.FLAG_ACTIVITY_NEW_TASK }
                     startActivity(home) 
                 }, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = config.color)) {
-                    Text("ACKNOWLEDGE", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("FINE, WHATEVER", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -229,13 +229,13 @@ class LockdownActivity : ComponentActivity() {
 
     private fun getUiConfig(type: String): UiConfig {
         return when (type) {
-            "BROWSER_VIOLATION" -> UiConfig(Icons.Default.Block, Color(0xFFFF3B30), "ACCESS DENIED", "Web access restricted.")
-            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Default.Lock, Color(0xFFFF9500), "APP SUSPENDED", "Access temporarily revoked.")
-            "NIGHT_LOCK" -> UiConfig(Icons.Default.NightsStay, Color(0xFF5856D6), "REST MODE", "Night protocol engaged.")
-            "BREAK_TIME" -> UiConfig(Icons.Default.Timer, Color(0xFF34C759), "MINDFUL BREAK", "Take a moment to step away.")
-            "USER_LOCKOUT" -> UiConfig(Icons.Default.Timer, Color(0xFF007AFF), "FOCUS ACTIVE", "Deep work mode active.")
-            "PENALTY" -> UiConfig(Icons.Default.Warning, Color(0xFFFF2D55), "SYSTEM RECOVERY", "Permission tampering detected.")
-            else -> UiConfig(Icons.Default.Shield, Color(0xFFEF4565), "SYSTEM INSECURE", "Private DNS required.")
+            "BROWSER_VIOLATION" -> UiConfig(Icons.Default.Block, Color(0xFFFF3B30), "GET REKT", "No browsing for you.")
+            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Default.Lock, Color(0xFFFF9500), "TOUCH GRASS", "You're grounded, kiddo.")
+            "NIGHT_LOCK" -> UiConfig(Icons.Default.NightsStay, Color(0xFF5856D6), "GO TO SLEEP", "It's past your bedtime.")
+            "BREAK_TIME" -> UiConfig(Icons.Default.Timer, Color(0xFF34C759), "CHILL OUT", "Sit your ass down for a bit.")
+            "USER_LOCKOUT" -> UiConfig(Icons.Default.Timer, Color(0xFF007AFF), "LOCKED IN", "Do some actual work.")
+            "PENALTY" -> UiConfig(Icons.Default.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
+            else -> UiConfig(Icons.Default.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
         }
     }
 
