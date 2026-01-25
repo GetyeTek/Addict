@@ -29,6 +29,7 @@ class WatcherService : Service() {
                 val hasBattery = powerManager.isIgnoringBatteryOptimizations(packageName)
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
                 val isMaintenance = LockManager.isUnlocked(applicationContext)
+                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
 
                 if (isSetupDone && !isMaintenance) {
                     val isCompromised = LockManager.isSystemCompromised(applicationContext)
@@ -70,7 +71,12 @@ class WatcherService : Service() {
                     }
                 }
                 
-                delay(1500)
+                // Harmonized Polling: 2s when active, 10s when sleeping
+                if (pm.isInteractive) {
+                    delay(2000)
+                } else {
+                    delay(10000)
+                }
             }
         }
         return START_STICKY
