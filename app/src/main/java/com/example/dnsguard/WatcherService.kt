@@ -12,7 +12,11 @@ class WatcherService : Service() {
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(99, createNotification())
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            startForeground(99, createNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(99, createNotification())
+        }
         
         scope.launch {
             while (isActive) {
@@ -104,7 +108,7 @@ class WatcherService : Service() {
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
             .setContentTitle("Sheriff is in Town")
             .setContentText("Making sure you behave.")
-            .setSmallIcon(android.R.drawable.ic_secure)
+            .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
             .build()
     }
