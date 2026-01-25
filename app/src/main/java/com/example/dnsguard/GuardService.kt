@@ -669,37 +669,33 @@ class GuardService : AccessibilityService() {
         DebugLogger.log("STATE_DUMP", "Reason: $reason | DNS: $dns | Compromised: $acc | Night: $night | Overlay: $overlay")
     }
 
-    private fun showInstantOverlay(type: String) {
-        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
-        
-        // Bypass if screen is off or locked
-        if (!pm.isInteractive || km.isKeyguardLocked) return
+     private fun showInstantOverlay(type: String) {
+ val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+ val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
+ 
+ // Bypass if screen is off or locked
+ if (!pm.isInteractive || km.isKeyguardLocked) return
 
-        // STRICT EMERGENCY BYPASS
-        val isEmergencyApp = activePackage.contains("dialer") || 
+ // Get prioritized type
+ val prioritizedType = LockManager.getActiveBlockType(applicationContext) ?: return
+
+ // STRICT EMERGENCY BYPASS
+ val isEmergencyApp = activePackage.contains("dialer") || 
                           activePackage.contains("telecom") || 
                           activePackage.contains("clock") || 
                           activePackage.contains("alarm") ||
                           activePackage.contains("incallui")
-        
-        // List of modes that MUST NOT interrupt a phone call or alarm
-        val softBlockTypes = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT", "SYSTEM")
-        
-        if (isEmergencyApp && softBlockTypes.contains(type)) {
-            DebugLogger.log("BYPASS", "Emergency app detected ($activePackage). Suppressing $type overlay.")
-            return
-        }
+ 
+ if (isEmergencyApp) return
 
-        logSystemState(type)
-        if (!android.provider.Settings.canDrawOverlays(this)) return
+ if (!android.provider.Settings.canDrawOverlays(this)) return
 
-        val i = Intent(this, LockdownActivity::class.java).apply {
-            putExtra("BLOCK_TYPE", type)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
-        try { startActivity(i) } catch (e: Exception) { }
-    }
+ val i = Intent(this, LockdownActivity::class.java).apply {
+ putExtra("BLOCK_TYPE", prioritizedType)
+ addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+ }
+ try { startActivity(i) } catch (e: Exception) { }
+ }
     private fun handleBrowserStrike() {
         val now = System.currentTimeMillis()
         if (now - lastBrowserAction < 1000) return 
