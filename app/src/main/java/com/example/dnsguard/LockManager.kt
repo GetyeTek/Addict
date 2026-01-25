@@ -245,9 +245,6 @@ object LockManager {
     }
 
     fun isNightLockActive(ctx: Context): Boolean {
-        // Night lock should NOT trigger if admin has unlocked maintenance mode
-        if (isUnlocked(ctx)) return false
-
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val isNightTime = hour >= 23 || hour < 5
         return isNightTime && !isTonightPassed(ctx)
@@ -499,54 +496,46 @@ object LockManager {
     }
 
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
-        // 0. DEEP FOCUS (Whitelist Logic)
+        // 1. HARD BLOCKERS (Never bypassed)
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
+        if (permBans.contains(pkg)) return "PERMANENT_BAN"
+
+        if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
+
+        // 2. SYSTEM BYPASSES (Maintenance/Setup)
+        if (isPermissionFixActive(ctx)) return null
+
+        // 3. DNS ENFORCEMENT (The ONLY block that respects isUnlocked)
+        if (!DnsManager.isSecure(ctx)) {
+            if (!isUnlocked(ctx)) return "SYSTEM"
+        }
+
+        // 4. USER/CONTENT ENFORCEMENT (Bypassed only by Nuke)
+        if (isNonStandardAppBanned(ctx) && isNonStandardApp(ctx, pkg)) return "ROGUE_VIOLATION"
+        if (isBrowserBanned(ctx) && isBlacklistedBrowser(ctx, pkg)) return "BROWSER_VIOLATION"
+        if (isTelegramBanned(ctx) && (pkg.contains("telegram") || pkg.contains("challegram"))) return "TELEGRAM_SUSPENDED"
+
+        // 5. DEEP FOCUS / ZEN MODE
         val deepFocusEnd = prefs.getLong(KEY_DEEP_FOCUS_END, 0L)
         if (System.currentTimeMillis() < deepFocusEnd) {
             val allowed = prefs.getStringSet(KEY_DEEP_FOCUS_ALLOWED, emptySet()) ?: emptySet()
             val isSystem = pkg.contains("launcher") || pkg.contains("systemui") || pkg.contains("packageinstaller") || pkg.contains("settings") || pkg.contains("accessibility")
             val isAllowed = allowed.contains(pkg) || pkg == ctx.packageName || isSystem
-            
             if (!isAllowed && pkg.isNotEmpty()) return "DEEP_FOCUS"
         }
 
-        // 0. PERMANENT BAN (Cannot be bypassed by maintenance mode)
-        val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
-        if (permBans.contains(pkg)) return "PERMANENT_BAN"
+        // 6. FOCUS / LADDER / NIGHT LOCK
+        if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
+        if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
+        if (isNightLockActive(ctx)) return "NIGHT_LOCK"
 
-        // 1. Permission Fixing Bypass (Internal app logic)
-        if (isPermissionFixActive(ctx)) return null
-
-        // 2. MANUAL TEMP LOCK
         val tempLocks = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet()) ?: emptySet()
         val entry = tempLocks.find { it.startsWith("$pkg:") }
         if (entry != null) {
             val expiry = entry.substringAfter(":").toLongOrNull() ?: 0L
             if (System.currentTimeMillis() < expiry) return "MANUAL_LOCK"
         }
-
-        // 3. Critical: Penalty (System Compromised)
-        if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
-
-        // 2. Critical: DNS Insecure (Respects Maintenance Bypass ONLY here)
-        if (!DnsManager.isSecure(ctx)) {
-            if (isUnlocked(ctx)) return null
-            return "SYSTEM"
-        }
-
-        // 3. Enforcement: Rogue App / Browser Ban (SCOPED TO APP)
-        if (isNonStandardAppBanned(ctx) && isNonStandardApp(ctx, pkg)) return "ROGUE_VIOLATION"
-        if (isBrowserBanned(ctx) && isBlacklistedBrowser(ctx, pkg)) return "BROWSER_VIOLATION"
-        if (isTelegramBanned(ctx) && (pkg.contains("telegram") || pkg.contains("challegram"))) return "TELEGRAM_SUSPENDED"
-
-        // 4. User Requested: Focus Mode
-        if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
-
-        // 5. Scheduled: Usage Ladder
-        if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
-
-        // 6. Scheduled: Night Lock
-        if (isNightLockActive(ctx)) return "NIGHT_LOCK"
 
         return null
     }
