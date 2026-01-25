@@ -52,9 +52,11 @@ class LockdownActivity : ComponentActivity() {
                 
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                     Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(
-                        colors = listOf(uiConfig.color.copy(alpha = 0.15f), Color.Black),
-                        radius = 1800f
+                        colors = listOf(uiConfig.color.copy(alpha = 0.4f), Color.Black),
+                        radius = 2500f
                     )))
+                    // Glowing Border for entire screen
+                    Box(modifier = Modifier.fillMaxSize().padding(8.dp).border(4.dp, uiConfig.color, RoundedCornerShape(16.dp)))
                     
                     if (showPassDialog) {
                         MaintenanceDialog(onDismiss = { showPassDialog = false }) {
