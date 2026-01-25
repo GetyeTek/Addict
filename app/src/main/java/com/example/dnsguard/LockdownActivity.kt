@@ -230,12 +230,12 @@ class LockdownActivity : ComponentActivity() {
         var text by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Maintenance Access") },
+            title = { Text("DNS Repair Access") },
             text = { 
                 OutlinedTextField(value = text, onValueChange = { text = it },
                     label = { Text("Admin Password") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
             },
-            confirmButton = { Button(onClick = { if (text == "1234") onCorrect() }) { Text("CONFIRM") } },
+            confirmButton = { Button(onClick = { if (text == "1234") onCorrect() }) { Text("UNLOCK DNS") } },
             dismissButton = { TextButton(onClick = onDismiss) { Text("CANCEL") } }
         )
     }
