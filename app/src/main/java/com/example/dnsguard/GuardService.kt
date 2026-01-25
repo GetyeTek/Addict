@@ -109,12 +109,15 @@ class GuardService : AccessibilityService() {
         }
 
         val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("I'm Watching You")
-            .setContentText("Don't try anything stupid.")
+            .setContentTitle("SECURITY ENGINE")
+            .setContentText("ACTIVE AND MONITORING")
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
-            .setShowWhen(false) // Fixes sorting jitter
+            .setShowWhen(false)
+            .setGroup("guardian_service_group")
+            .setSortKey("2")
+            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_SERVICE)
             .build()
         
         // 1337 is the notification ID
