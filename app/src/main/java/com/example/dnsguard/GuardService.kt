@@ -134,7 +134,9 @@ class GuardService : AccessibilityService() {
  verifiedSafeAppInfoSession = false
 
  val isMaintenance = LockManager.isUnlocked(applicationContext)
- if (!NukeManager.isProtectionDisabled(applicationContext) && !isMaintenance) {
+ val isGraceActive = LockManager.isBootGraceActive()
+
+ if (!NukeManager.isProtectionDisabled(applicationContext) && !isMaintenance && !isGraceActive) {
  val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
  if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
  val i = Intent(applicationContext, LockdownActivity::class.java)
@@ -512,10 +514,12 @@ class GuardService : AccessibilityService() {
                 else if (LockManager.getBreakRemaining(applicationContext) > 0) {
                     showInstantOverlay("BREAK_TIME")
                 }
-                                // 5. CHECK DNS (Honors Maintenance Mode)
+                                // 5. CHECK DNS (Honors Maintenance Mode & Boot Grace)
                 val isSettingsApp = activePackage.contains("settings") || activePackage.contains("accessibility")
                 val isMaintenance = LockManager.isUnlocked(applicationContext)
-                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp && !isMaintenance) {
+                val isGraceActive = LockManager.isBootGraceActive()
+
+                if (!DnsManager.isSecure(applicationContext) && !isSettingsApp && !isMaintenance && !isGraceActive) {
                     try {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
