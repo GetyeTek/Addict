@@ -150,6 +150,7 @@ class GuardService : AccessibilityService() {
         // Update active package and manage heartbeat polling
         if (pkg != activePackage) {
             activePackage = pkg
+            LockManager.updateActivePackage(pkg)
             managePolling(pkg)
         }
 
