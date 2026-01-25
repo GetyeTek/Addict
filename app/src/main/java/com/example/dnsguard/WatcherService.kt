@@ -18,6 +18,10 @@ class WatcherService : Service() {
             while (isActive) {
                 // Respect Master Key / Nuke status
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
+                    // KEEP ALIVE: Check for warnings and auto-lock expiry even if protections are down
+                    NukeManager.checkAutoReEnable(applicationContext)
+                    NukeManager.checkNotifications(applicationContext)
+
                     LockManager.clearRebellion(applicationContext)
                     delay(5000)
                     continue
