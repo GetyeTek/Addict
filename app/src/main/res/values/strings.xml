@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">The Warden</string>
+    <string name="app_name">Guardian</string>
     <string name="admin_desc">Try to delete me, I dare you.</string>
     <string name="accessibility_desc">I see everything you do. Don't act stupid.</string>
 </resources>
