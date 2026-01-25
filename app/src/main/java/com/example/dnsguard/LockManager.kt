@@ -383,6 +383,8 @@ object LockManager {
         
         val pen = getPenaltyRemaining(ctx)
         if (pen > 0) return "Penalty Box: ${pen / 60000}m left"
+
+        if (isUnlocked(ctx)) return "DNS Maintenance: Active"
         
         return "Guardian: System Secured"
     }
