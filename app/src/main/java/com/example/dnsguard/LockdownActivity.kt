@@ -252,18 +252,18 @@ class LockdownActivity : ComponentActivity() {
 
     private fun getUiConfig(type: String): UiConfig {
         return when (type) {
-            "BROWSER_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFFFF3B30), "GET REKT", "No browsing for you.")
-            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Filled.Lock, Color(0xFFFF9500), "TOUCH GRASS", "You're grounded, kiddo.")
-            "NIGHT_LOCK" -> UiConfig(Icons.Filled.NightsStay, Color(0xFF5856D6), "GO TO SLEEP", "It's past your bedtime.")
-            "BREAK_TIME" -> UiConfig(Icons.Filled.Timer, Color(0xFF34C759), "CHILL OUT", "Sit your ass down for a bit.")
-            "USER_LOCKOUT" -> UiConfig(Icons.Filled.Timer, Color(0xFF007AFF), "LOCKED IN", "Do some actual work.")
-            "PENALTY" -> UiConfig(Icons.Filled.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
-            "ROGUE_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFF9333EA), "NICE TRY", "That app is banned. Get lost.")
-            "SECURITY_TRIPWIRE" -> UiConfig(Icons.Filled.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
-            "MANUAL_LOCK" -> UiConfig(Icons.Filled.Timer, Color(0xFF818CF8), "TIME OUT", "You locked this app yourself. Finish your task.")
-            "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "REST IN PEACE", "This app is dead. You killed it permanently.")
-            "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "ZEN MODE", "This app isn't on your whitelist. Stay focused.")
-            else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
+            "BROWSER_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFFFF3B30), "GET ABSOLUTELY REKT", "Your browser is a weapon of self-destruction. Denied.")
+            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Filled.Lock, Color(0xFFFF9500), "TOUCH GRASS, LOSER", "Social media rot is over. Go talk to a real human.")
+            "NIGHT_LOCK" -> UiConfig(Icons.Filled.NightsStay, Color(0xFF5856D6), "BEDTIME, WEAKLING", "Sleep is mandatory for your tiny brain. Eyes closed.")
+            "BREAK_TIME" -> UiConfig(Icons.Filled.Timer, Color(0xFF34C759), "SHUT IT DOWN", "Sit down and breathe. You're too high-strung.")
+            "USER_LOCKOUT" -> UiConfig(Icons.Filled.Timer, Color(0xFF007AFF), "NO ESCAPE", "You asked for this. Now do your actual work.")
+            "PENALTY" -> UiConfig(Icons.Filled.Warning, Color(0xFFFF2D55), "THE DUNGEON", "Stop touching things you don't understand.")
+            "ROGUE_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFF9333EA), "PATHETIC ATTEMPT", "You thought you could sneak that app past me? Adorable.")
+            "SECURITY_TRIPWIRE" -> UiConfig(Icons.Filled.Shield, Color(0xFFDC2626), "STOP RIGHT THERE", "Try to tamper again and see what happens.")
+            "MANUAL_LOCK" -> UiConfig(Icons.Filled.Timer, Color(0xFF818CF8), "YOU DID THIS", "You locked it. Now finish it. No excuses.")
+            "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "EXECUTED", "This app is garbage. I've deleted its purpose from your life.")
+            "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "TUNNEL VISION", "If it's not on the list, it's irrelevant. Focus.")
+            else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
 
