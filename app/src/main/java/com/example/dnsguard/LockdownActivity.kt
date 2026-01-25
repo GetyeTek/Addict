@@ -214,7 +214,11 @@ class LockdownActivity : ComponentActivity() {
         LaunchedEffect(type) {
             while(true) {
                 val ctx = applicationContext
-                val shouldClose = when (type) {
+                // NEW: If the active package is an emergency app, close overlay instantly
+                val currentApp = LockManager.currentActivePackage
+                val isEmergency = LockManager.isEmergencyApp(currentApp)
+                
+                val shouldClose = isEmergency || when (type) {
                     "SYSTEM" -> DnsManager.isSecure(ctx) || LockManager.isUnlocked(ctx)
                     "NIGHT_LOCK" -> !LockManager.isNightLockActive(ctx)
                     "BREAK_TIME" -> LockManager.getBreakRemaining(ctx) <= 0
@@ -226,7 +230,7 @@ class LockdownActivity : ComponentActivity() {
                     else -> false
                 }
                 if (shouldClose) { finishAffinity(); break }
-                delay(1500)
+                delay(500) // Faster check to prevent flickering back to overlay
             }
         }
     }
