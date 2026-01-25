@@ -169,18 +169,18 @@ class LockdownActivity : ComponentActivity() {
                         shape = RoundedCornerShape(12.dp)
                     ) { Text("FIX IT", color = Color.Black, fontWeight = FontWeight.Bold) }
                 }
-            } else if (hasEmergencyBypass) {
+            } else             if (hasEmergencyBypass) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { context.startActivity(Intent(Intent.ACTION_DIAL).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }) },
                         modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))) {
-                        Icon(Icons.Default.Phone, null, tint = config.color)
+                        Icon(Icons.Filled.Phone, null, tint = config.color)
                     }
                     Button(onClick = { 
                         val i = packageManager.getLaunchIntentForPackage("com.sec.android.app.clockpackage") 
                             ?: packageManager.getLaunchIntentForPackage("com.google.android.deskclock")
                         i?.let { it.flags = Intent.FLAG_ACTIVITY_NEW_TASK; startActivity(it) }
                     }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))) {
-                        Icon(Icons.Default.Alarm, null, tint = config.color)
+                        Icon(Icons.Filled.Alarm, null, tint = config.color)
                     }
                 }
             } else {
