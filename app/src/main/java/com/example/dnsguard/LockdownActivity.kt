@@ -45,6 +45,12 @@ class LockdownActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         blockTypeState.value = intent.getStringExtra("BLOCK_TYPE") ?: "SYSTEM"
 
+        // PREVENT SPLIT SCREEN: Force full screen priority
+        window.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 val type = blockTypeState.value
