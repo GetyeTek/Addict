@@ -229,15 +229,15 @@ class LockdownActivity : ComponentActivity() {
 
     private fun getUiConfig(type: String): UiConfig {
         return when (type) {
-            "BROWSER_VIOLATION" -> UiConfig(Icons.Default.Block, Color(0xFFFF3B30), "GET REKT", "No browsing for you.")
-            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Default.Lock, Color(0xFFFF9500), "TOUCH GRASS", "You're grounded, kiddo.")
-            "NIGHT_LOCK" -> UiConfig(Icons.Default.NightsStay, Color(0xFF5856D6), "GO TO SLEEP", "It's past your bedtime.")
-            "BREAK_TIME" -> UiConfig(Icons.Default.Timer, Color(0xFF34C759), "CHILL OUT", "Sit your ass down for a bit.")
-            "USER_LOCKOUT" -> UiConfig(Icons.Default.Timer, Color(0xFF007AFF), "LOCKED IN", "Do some actual work.")
-            "PENALTY" -> UiConfig(Icons.Default.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
-            "ROGUE_VIOLATION" -> UiConfig(Icons.Default.Block, Color(0xFF9333EA), "NICE TRY", "That app is banned. Get lost.")
-            "SECURITY_TRIPWIRE" -> UiConfig(Icons.Default.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
-            else -> UiConfig(Icons.Default.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
+            "BROWSER_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFFFF3B30), "GET REKT", "No browsing for you.")
+            "TELEGRAM_SUSPENDED" -> UiConfig(Icons.Filled.Lock, Color(0xFFFF9500), "TOUCH GRASS", "You're grounded, kiddo.")
+            "NIGHT_LOCK" -> UiConfig(Icons.Filled.NightsStay, Color(0xFF5856D6), "GO TO SLEEP", "It's past your bedtime.")
+            "BREAK_TIME" -> UiConfig(Icons.Filled.Timer, Color(0xFF34C759), "CHILL OUT", "Sit your ass down for a bit.")
+            "USER_LOCKOUT" -> UiConfig(Icons.Filled.Timer, Color(0xFF007AFF), "LOCKED IN", "Do some actual work.")
+            "PENALTY" -> UiConfig(Icons.Filled.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
+            "ROGUE_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFF9333EA), "NICE TRY", "That app is banned. Get lost.")
+            "SECURITY_TRIPWIRE" -> UiConfig(Icons.Filled.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
+            else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
         }
     }
 
