@@ -405,7 +405,14 @@ class MainActivity : ComponentActivity() {
         val ctx = LocalContext.current
         var filter by remember { mutableStateOf("") }
         val appList = AppCache.getCachedApps() ?: listOf()
-        val selectedApps = remember { mutableStateListOf<String>() }
+        
+        // PERSISTENCE: Load existing locks
+        val prefs = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+        val existingPerm = prefs.getStringSet("perm_banned_apps", emptySet()) ?: emptySet()
+        val existingTemp = prefs.getStringSet("temp_locked_apps", emptySet()) ?: emptySet()
+        val initialSelected = (existingPerm + existingTemp.map { it.substringBefore(":") }).toSet()
+
+        val selectedApps = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
         var lockMinutes by remember { mutableStateOf("30") }
         var isPermanent by remember { mutableStateOf(false) }
 
