@@ -27,29 +27,35 @@ object BreakWarningManager {
 
     private fun createView(ctx: Context, message: String) {
         windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val inflater = ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         
-        // Create a simple but elegant banner layout programmatically or via basic view
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(0xEE064E3B.toInt()) // Deep forest green semi-transparent
+            cornerRadius = 100f // Pill shape
+            setStroke(4, 0xFF10B981.toInt()) // Emerald glow border
+        }
+
         val view = TextView(ctx).apply {
             text = message
-            setTextColor(0xFF34D399.toInt())
-            setBackgroundColor(0xDD064E3B.toInt())
-            setPadding(40, 20, 40, 20)
+            setTextColor(0xFF10B981.toInt())
+            setBackground(background)
+            setPadding(60, 20, 60, 20)
             gravity = Gravity.CENTER
-            textSize = 14f
-            elevation = 10f
+            textSize = 15f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            letterSpacing = 0.1f
+            elevation = 20f
         }
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP
-            y = 50 // Margin from top
-            windowAnimations = android.R.style.Animation_Toast
+        }.apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = 120 // Positioned below the status bar area
         }
 
         try {
