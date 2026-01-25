@@ -257,20 +257,31 @@ class MainActivity : ComponentActivity() {
                     } else if (status.otpGenerated) {
                         Text("Code generated. Don't lose it.", color = Color.Gray)
                     } else {
-                         Button(onClick = {
-                             val check = NukeManager.canRequestNuke(ctx)
-                             if (check == "OK") {
-                                 generatedOtp = NukeManager.generateOtp(ctx)
-                                 showOtpDialog = true
-                             } else {
-                                 android.widget.Toast.makeText(ctx, check, android.widget.Toast.LENGTH_LONG).show()
+                         Column {
+                             if (!status.isWindowOpen) {
+                                 Text("Window opens at 06:00", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
                              }
-                         }, 
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF450A0A), contentColor = Color(0xFFF87171)),
-                            border = BorderStroke(1.dp, Color(0xFF7F1D1D)),
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text("I WANT TO QUIT")
-                        }
+                             Button(onClick = {
+                                 val check = NukeManager.canRequestNuke(ctx)
+                                 if (check == "OK") {
+                                     generatedOtp = NukeManager.generateOtp(ctx)
+                                     showOtpDialog = true
+                                 } else {
+                                     android.widget.Toast.makeText(ctx, check, android.widget.Toast.LENGTH_LONG).show()
+                                 }
+                             }, 
+                                enabled = status.isWindowOpen,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF450A0A), 
+                                    contentColor = Color(0xFFF87171),
+                                    disabledContainerColor = Color(0xFF1A1A1A),
+                                    disabledContentColor = Color(0xFF333333)
+                                ),
+                                border = BorderStroke(1.dp, if(status.isWindowOpen) Color(0xFF7F1D1D) else Color(0xFF222222)),
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text("I WANT TO QUIT")
+                             }
+                         }
                     }
                 }
             }
