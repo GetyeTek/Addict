@@ -133,9 +133,9 @@ class MainActivity : ComponentActivity() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Filled.Shield, contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("SETUP OR GET OUT", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("SUBMIT OR UNINSTALL", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Give me powers or delete the app.", color = Color.Gray, fontSize = 14.sp)
+                Text("Give me total control or get lost. Your choice.", color = Color.Gray, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                      Icon(Icons.Filled.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(20.dp))
                      Spacer(modifier = Modifier.width(8.dp))
-                     Text("YOU ARE CURRENTLY COMPLIANT", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                     Text("YOU'RE BEHAVING... FOR NOW", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -270,14 +270,14 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Dangerous, null, tint = Color(0xFFF87171))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("THE COWARD'S EXIT", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
+                    Text("THE LOSER'S EMERGENCY EXIT", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (status.isProtectionDisabled) {
-                    Text("SHIELDS DOWN", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text("You got 1 hour before I lock you up again.", color = Color.Gray, fontSize = 12.sp)
+                    Text("CONGRATS, YOU'RE WEAK", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text("You have 60 minutes of 'freedom' before I cage you again.", color = Color.Gray, fontSize = 12.sp)
                 } 
                 else if (status.isWaiting) {
                     val hours = status.remainingWaitMs / 3600000
@@ -321,7 +321,7 @@ class MainActivity : ComponentActivity() {
                              if (!status.isWindowOpen) {
                                  Text("Window opens at 06:00", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
                              }
-                             Button(onClick = { 
+                                                              Button(onClick = { 
                                  val check = NukeManager.canRequestNuke(ctx)
                                  if (check == "OK") {
                                      showConfirmRequestDialog = true
@@ -338,7 +338,7 @@ class MainActivity : ComponentActivity() {
                                 ),
                                 border = BorderStroke(1.dp, if(status.isWindowOpen) Color(0xFF7F1D1D) else Color(0xFF222222)),
                                 modifier = Modifier.fillMaxWidth()) {
-                                Text("I WANT TO QUIT")
+                                Text("I'M A QUITTER")
                              }
                          }
                     }
