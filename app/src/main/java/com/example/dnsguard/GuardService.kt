@@ -46,8 +46,8 @@ class GuardService : AccessibilityService() {
         }
         val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("YO, CUT IT OUT")
-            .setContentText("Fix it in 1 min or get bricked.")
+            .setContentTitle("LAST WARNING, IDIOT")
+            .setContentText("One minute until I brick your distractions.")
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
             .setVibrate(longArrayOf(0, 500, 200, 500))
             .setAutoCancel(true)
@@ -109,8 +109,8 @@ class GuardService : AccessibilityService() {
         }
 
         val notif = androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("SECURITY ENGINE")
-            .setContentText("ACTIVE AND MONITORING")
+            .setContentTitle("SECURITY DICTATOR")
+            .setContentText("ALWAYS WATCHING, ALWAYS JUDGING")
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
