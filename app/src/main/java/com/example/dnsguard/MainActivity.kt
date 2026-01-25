@@ -212,6 +212,7 @@ class MainActivity : ComponentActivity() {
         val ctx = LocalContext.current
         var status by remember { mutableStateOf(NukeManager.getStatus(ctx)) }
         var showOtpDialog by remember { mutableStateOf(false) }
+        var showConfirmRequestDialog by remember { mutableStateOf(false) }
         var showEntryDialog by remember { mutableStateOf(false) }
         var generatedOtp by remember { mutableStateOf("") }
 
@@ -282,8 +283,7 @@ class MainActivity : ComponentActivity() {
                              Button(onClick = {
                                  val check = NukeManager.canRequestNuke(ctx)
                                  if (check == "OK") {
-                                     generatedOtp = NukeManager.generateOtp(ctx)
-                                     showOtpDialog = true
+                                     showConfirmRequestDialog = true
                                  } else {
                                      android.widget.Toast.makeText(ctx, check, android.widget.Toast.LENGTH_LONG).show()
                                  }
@@ -305,18 +305,38 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (showConfirmRequestDialog) {
+            AlertDialog(
+                onDismissRequest = { showConfirmRequestDialog = false },
+                title = { Text("EXTREME CAUTION") },
+                text = { Text("You are initiating the Nuclear Option.\n\n1. A code will be generated.\n2. You MUST wait 3 hours before using it.\n3. Protection will only drop for 1 hour.\n\nDo not do this unless it is a genuine emergency.", color = Color.White) },
+                confirmButton = { 
+                    Button(onClick = { 
+                        generatedOtp = NukeManager.generateOtp(ctx)
+                        showConfirmRequestDialog = false
+                        showOtpDialog = true
+                    }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                        Text("INITIATE PROTOCOL")
+                    }
+                },
+                dismissButton = { TextButton(onClick = { showConfirmRequestDialog = false }) { Text("CANCEL") } }
+            )
+        }
+
         if (showOtpDialog) {
             AlertDialog(
                 onDismissRequest = { showOtpDialog = false },
-                title = { Text("NO TURNING BACK") },
+                title = { Text("PROTOCOL INITIATED") },
                 text = { 
                     Column {
-                        Text("Write this down. If you lose it, you're screwed for 3 hours.", color = Color.LightGray)
+                        Text("SAVE THIS CODE. If you lose it, you cannot stop protection for 4 hours.", color = Color.LightGray)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(generatedOtp, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFFF87171), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                        SelectionContainer {
+                             Text(generatedOtp, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFFF87171), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                        }
                     }
                 },
-                confirmButton = { Button(onClick = { showOtpDialog = false }) { Text("I WROTE IT DOWN") } }
+                confirmButton = { Button(onClick = { showOtpDialog = false }) { Text("I HAVE SAVED IT") } }
             )
         }
 
