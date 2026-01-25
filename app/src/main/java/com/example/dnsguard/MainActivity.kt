@@ -461,6 +461,7 @@ class MainActivity : ComponentActivity() {
                         TextButton(onClick = onDismiss) { Text("CANCEL") }
                         Button(onClick = { 
                             LockManager.startDeepFocus(ctx, selectedApps.toSet(), duration.toIntOrNull() ?: 60)
+                            android.widget.Toast.makeText(ctx, "Zen Mode Activated!", android.widget.Toast.LENGTH_SHORT).show()
                             onDismiss() 
                         }, enabled = selectedApps.isNotEmpty()) { Text("GO ZEN") }
                     }
@@ -525,11 +526,19 @@ class MainActivity : ComponentActivity() {
         var filter by remember { mutableStateOf("") }
         val appList = AppCache.getCachedApps() ?: listOf()
         
-        // PERSISTENCE: Load existing locks
+        // PERSISTENCE: Load existing locks with CLEANUP
+        // We filter out expired temporary locks so the checkboxes reflect reality
         val prefs = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
         val existingPerm = prefs.getStringSet("perm_banned_apps", emptySet()) ?: emptySet()
-        val existingTemp = prefs.getStringSet("temp_locked_apps", emptySet()) ?: emptySet()
-        val initialSelected = (existingPerm + existingTemp.map { it.substringBefore(":") }).toSet()
+        val rawTemp = prefs.getStringSet("temp_locked_apps", emptySet()) ?: emptySet()
+        
+        val now = System.currentTimeMillis()
+        val activeTemp = rawTemp.filter {
+            val ts = it.substringAfter(":").toLongOrNull() ?: 0L
+            ts > now
+        }
+        
+        val initialSelected = (existingPerm + activeTemp.map { it.substringBefore(":") }).toSet()
 
         val selectedApps = remember { mutableStateListOf<String>().apply { addAll(initialSelected) } }
         var lockMinutes by remember { mutableStateOf("30") }
@@ -578,8 +587,10 @@ class MainActivity : ComponentActivity() {
                             onClick = {
                                 if (isPermanent) {
                                     LockManager.banAppPermanently(ctx, selectedApps.toSet())
+                                    android.widget.Toast.makeText(ctx, "Permanently Banned ${selectedApps.size} apps", android.widget.Toast.LENGTH_SHORT).show()
                                 } else {
                                     LockManager.lockAppsTemporarily(ctx, selectedApps.toSet(), lockMinutes.toIntOrNull() ?: 0)
+                                    android.widget.Toast.makeText(ctx, "Locked ${selectedApps.size} apps for $lockMinutes mins", android.widget.Toast.LENGTH_SHORT).show()
                                 }
                                 onDismiss()
                             },
