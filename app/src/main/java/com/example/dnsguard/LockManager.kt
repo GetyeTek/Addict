@@ -505,6 +505,7 @@ object LockManager {
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
+        if (pkg.isBlank()) return false
         val p = pkg.lowercase()
         return p.contains("dialer") || 
                p.contains("telecom") || 
@@ -512,10 +513,16 @@ object LockManager {
                p.contains("clock") || 
                p.contains("alarm") ||
                p.contains("contacts") ||
-               p == "com.android.phone"
+               p.contains("phone") ||
+               p.contains("emergency") ||
+               p.contains("stk") // SIM Toolkit
     }
 
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
+        // NEUTRALITY GUARD: If package is unknown/empty (during transitions), do not block.
+        // Accessibility will provide the correct package name shortly.
+        if (pkg.isBlank()) return null
+
         // 0. EMERGENCY BYPASS (Highest Priority)
         if (isEmergencyApp(pkg)) return null
 
