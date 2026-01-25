@@ -572,9 +572,12 @@ class GuardService : AccessibilityService() {
     }
 
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
-        val root = rootInActiveWindow ?: return
-
-        // 1. BROWSER LOGIC (Strict Domain Matching)
+        // MULTI-WINDOW SCAN: Check every visible window, not just the focused one
+        val windows = this.windows
+        for (window in windows) {
+            val root = window.root ?: continue
+            
+            // 1. BROWSER LOGIC (Strict Domain Matching)
         if (isBrowser) {
             val spyKeywords = listOf("google", "http")
             for (key in spyKeywords) {
@@ -614,7 +617,8 @@ class GuardService : AccessibilityService() {
                     if (index != -1) {
                         val charBefore = if (index > 0) lowerText[index - 1] else ' '
                         if (!charBefore.isLetterOrDigit()) {
-                            if (LockManager.isNonStandardApp(applicationContext, activePackage)) {
+                            val targetPkg = root.packageName?.toString() ?: activePackage
+                            if (LockManager.isNonStandardApp(applicationContext, targetPkg)) {
                                 LockManager.banNonStandardApp(applicationContext)
                                 val i = Intent(applicationContext, LockdownActivity::class.java)
                                 i.putExtra("BLOCK_TYPE", "ROGUE_VIOLATION")
@@ -674,7 +678,7 @@ class GuardService : AccessibilityService() {
                 }
             }
         }
-    }
+        } // End of windows loop
 
     private fun logSystemState(reason: String) {
         val dns = DnsManager.isSecure(applicationContext)
