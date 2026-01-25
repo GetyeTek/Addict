@@ -41,7 +41,7 @@ object NukeManager {
         editor.apply()
         
         if (!disabled) {
-            showNotification(ctx, "We're Back", "Nuke protocol ended. I own you again.")
+            showNotification(ctx, "SHACKLES ON", "Fun's over. You're back in the cage.")
         }
     }
 
@@ -52,7 +52,7 @@ object NukeManager {
         val otpTs = prefs.getLong(KEY_OTP_TS, 0L)
         if (otpTs > 0 && !prefs.getBoolean(KEY_OTP_NOTIFIED, false)) {
             if (now - otpTs >= WAIT_TIME) {
-                showNotification(ctx, "Do It Now", "The 3-hour wait is over. Push the button or I'm closing it.")
+                showNotification(ctx, "USE IT OR LOSE IT", "The wait is over. Do it now, or I reset the timer.")
                 prefs.edit().putBoolean(KEY_OTP_NOTIFIED, true).apply()
             }
         }
@@ -61,7 +61,7 @@ object NukeManager {
         val isDisabled = prefs.getBoolean(KEY_DISABLED, false)
         if (isDisabled && !prefs.getBoolean(KEY_LOCK_NOTIFIED, false)) {
             if (now - disabledAt >= (50 * 60 * 1000L)) {
-                showNotification(ctx, "Fun's Over", "10 minutes left before I lock the door.")
+                showNotification(ctx, "TIMES UP, LOSER", "10 minutes until I take control again.")
                 prefs.edit().putBoolean(KEY_LOCK_NOTIFIED, true).apply()
             }
         }
