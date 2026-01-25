@@ -122,7 +122,7 @@ class WatcherService : Service() {
         nm.notify(99, createNotification(content))
     }
 
-    private fun createNotification(content: String = "Making sure you behave."): Notification {
+    private fun createNotification(content: String = "Watching you fail."): Notification {
         val channelId = "watcher_channel"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -130,7 +130,7 @@ class WatcherService : Service() {
             nm.createNotificationChannel(chan)
         }
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("GUARDIAN STATUS")
+            .setContentTitle("YOUR OVERSEER")
             .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
