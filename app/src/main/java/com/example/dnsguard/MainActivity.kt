@@ -666,13 +666,78 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun DiagnosticsRow() {
         var showLogs by remember { mutableStateOf(false) }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextButton(onClick = { showLogs = true }) { Text("NERD LOGS", color = Color.Gray, fontSize = 12.sp) }
+        var showStats by remember { mutableStateOf(false) }
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { showStats = true }, border = BorderStroke(1.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
+                Text("SYSTEM STATS", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, fontSize = 10.sp)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            TextButton(onClick = { showLogs = true }) {
+                Text("VIEW LOGS", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+            }
         }
         if (showLogs) {
-            AlertDialog(onDismissRequest = { showLogs = false }, title = { Text("Logs") }, text = {
-                SelectionContainer { Text(DebugLogger.getLogs(), fontSize = 10.sp, color = Color.LightGray) }
-            }, confirmButton = { TextButton(onClick = { showLogs = false }) { Text("CLOSE") } })
+            AlertDialog(onDismissRequest = { showLogs = false }, title = { Text("Debug Logs") }, text = {
+                Box(modifier = Modifier.height(400.dp).verticalScroll(rememberScrollState())) {
+                    SelectionContainer { Text(DebugLogger.getLogs(), fontSize = 10.sp, color = Color.LightGray) }
+                }
+            }, confirmButton = { Button(onClick = { showLogs = false }) { Text("DONE") } })
+        }
+        if (showStats) StatsDialog(onDismiss = { showStats = false })
+    }
+
+    @Composable
+    fun StatsDialog(onDismiss: () -> Unit) {
+        val ctx = LocalContext.current
+        var cpu by remember { mutableStateOf(StatsManager.currentCpu) }
+        var mem by remember { mutableStateOf(StatsManager.currentMem) }
+        var uptime by remember { mutableStateOf(StatsManager.getFormattedUptime()) }
+        
+        LaunchedEffect(Unit) {
+            while(true) {
+                StatsManager.update(ctx)
+                cpu = StatsManager.currentCpu
+                mem = StatsManager.currentMem
+                uptime = StatsManager.getFormattedUptime()
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+
+        Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), color = Color.Black, border = BorderStroke(2.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("GUARDIAN CORE STATS", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 20.sp)
+                    Divider(color = Color(0xFF00FFFF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                    
+                    StatRow("RUNTIME", uptime, Color.White)
+                    StatRow("CPU LOAD", String.format("%.1f%%", cpu), if (cpu > 5) Color.Yellow else Color(0xFF10B981))
+                    StatRow("MEM USAGE", "$mem MB", Color(0xFF00FFFF))
+                    StatRow("BATTERY", StatsManager.getBatteryImpact(), Color.White)
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("SECURITY AUDIT", color = Color(0xFFFF0055), fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Divider(color = Color(0xFFFF0055), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
+                    
+                    val dns = if (DnsManager.isSecure(ctx)) "SECURE" else "HIJACKED"
+                    StatRow("DNS STATUS", dns, if (dns == "SECURE") Color(0xFF10B981) else Color.Red)
+                    
+                    val totalPens = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("total_penalties_served", 0L)
+                    StatRow("TAMPER EVENTS", "$totalPens Detected", if (totalPens > 0) Color.Yellow else Color(0xFF10B981))
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
+                        Text("RETURN TO TERMINAL", color = Color.Black, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun StatRow(label: String, value: String, color: Color) {
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(value, color = color, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
         }
     }
 
