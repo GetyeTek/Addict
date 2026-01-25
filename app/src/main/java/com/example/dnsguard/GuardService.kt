@@ -730,11 +730,14 @@ class GuardService : AccessibilityService() {
         lastBrowserAction = now
 
         browserStrikes.add(now)
-        browserStrikes.removeAll { it < now - 10000 }
+        // FIX: Increased memory window to 60 seconds (was 10s)
+        browserStrikes.removeAll { it < now - 60000 }
 
-        if (browserStrikes.size >= 4) {
+        // FIX: Reduced threshold to 3 strikes (was 4)
+        if (browserStrikes.size >= 3) {
              LockManager.banBrowser(applicationContext)
              showInstantOverlay("BROWSER_VIOLATION")
+             browserStrikes.clear() // Reset counter after penalty
         } else {
              performGlobalAction(GLOBAL_ACTION_BACK)
         }
@@ -746,7 +749,8 @@ class GuardService : AccessibilityService() {
         lastTelegramAction = now
 
         telegramStrikes.add(now)
-        telegramStrikes.removeAll { it < now - 10000 }
+        // FIX: Increased memory window to 60 seconds
+        telegramStrikes.removeAll { it < now - 60000 }
 
         if (telegramStrikes.size >= 3) {
              // 3rd Strike: Activate Ban & Overlay
