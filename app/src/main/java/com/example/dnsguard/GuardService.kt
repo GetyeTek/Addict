@@ -117,7 +117,11 @@ class GuardService : AccessibilityService() {
             .build()
         
         // 1337 is the notification ID
-        startForeground(1337, notif)
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            startForeground(1337, notif, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(1337, notif)
+        }
     }
 
      override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -354,32 +358,32 @@ class GuardService : AccessibilityService() {
  }
  }
  
- if (confirmedDanger) {
- DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
- performGlobalAction(GLOBAL_ACTION_HOME)
- val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
- am.killBackgroundProcesses("com.android.settings")
- am.killBackgroundProcesses("com.samsung.accessibility")
- am.killBackgroundProcesses("com.android.packageinstaller")
- startTripwire()
- } else if (isAppInfoPage) {
- val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
- if (!verifiedSafeAppInfoSession && !hasAnchor) {
- DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
- scope.launch {
- repeat(4) { performGlobalAction(GLOBAL_ACTION_BACK); delay(100) }
- }
- } else if (hasAnchor) {
- verifiedSafeAppInfoSession = true
- }
- } else {
- val root = rootInActiveWindow
- if (root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true) {
- verifiedSafeAppInfoSession = false
- }
- }
- }
- }
+            if (confirmedDanger) {
+                DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
+                performGlobalAction(GLOBAL_ACTION_HOME)
+                val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                am.killBackgroundProcesses("com.android.settings")
+                am.killBackgroundProcesses("com.samsung.accessibility")
+                am.killBackgroundProcesses("com.android.packageinstaller")
+                startTripwire()
+            } else if (isAppInfoPage) {
+                val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
+                if (!verifiedSafeAppInfoSession && !hasAnchor) {
+                    DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
+                    scope.launch {
+                        repeat(4) { performGlobalAction(GLOBAL_ACTION_BACK); delay(100) }
+                    }
+                } else if (hasAnchor) {
+                    verifiedSafeAppInfoSession = true
+                }
+            } else {
+                val root = rootInActiveWindow
+                if (root?.findAccessibilityNodeInfosByText("Settings")?.isNotEmpty() == true) {
+                    verifiedSafeAppInfoSession = false
+                }
+            }
+        }
+    }
 
 
     
