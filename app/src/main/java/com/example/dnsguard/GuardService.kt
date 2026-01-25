@@ -137,9 +137,6 @@ class GuardService : AccessibilityService() {
  val blockType = LockManager.getActiveBlockType(applicationContext, pkg)
  if (blockType != null) {
  showInstantOverlay(blockType)
- if (blockType == "PERMANENT_BAN" || blockType == "ROGUE_VIOLATION") {
- performGlobalAction(GLOBAL_ACTION_HOME)
- }
  return // Stop further processing
  }
  }
