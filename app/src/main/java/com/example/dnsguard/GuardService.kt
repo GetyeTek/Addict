@@ -14,6 +14,9 @@ import kotlinx.coroutines.*
 
 class GuardService : AccessibilityService() {
 
+    // OPTIMIZATION: Throttle content scanning to prevent UI Lag
+    private var lastContentScanTime = 0L
+
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.Default + job)
 
@@ -189,10 +192,14 @@ class GuardService : AccessibilityService() {
  return
  }
 
-        // REAL-TIME TRIGGER: Run check immediately on text/content changes
-        // This acts as the "Keylogger" to catch typing instantly.
+        // REAL-TIME TRIGGER: Run check on text/content changes
+        // OPTIMIZATION: Throttled to prevent CPU spikes/Jank
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || 
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            
+            val now = System.currentTimeMillis()
+            if (now - lastContentScanTime < 400) return // Debounce: Max 2.5 scans per second
+            lastContentScanTime = now
             
         // FIX: Check Whitelist, Blacklist, AND Dynamic List
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
