@@ -55,24 +55,42 @@ class MainActivity : ComponentActivity() {
         }
         
         setContent {
-            MaterialTheme(
-                colorScheme = darkColorScheme(
+            val prefs = getSharedPreferences("ui_prefs", Context.MODE_PRIVATE)
+            var isDark by remember { mutableStateOf(prefs.getBoolean("is_dark", true)) }
+
+            val colorScheme = if (isDark) {
+                darkColorScheme(
                     background = Color.Black,
-                    surface = Color.Black,
-                    primary = Color(0xFF00FFFF), // Neon Cyan
-                    error = Color(0xFFFF0055),   // Neon Pink/Red
-                    onSurface = Color.White
+                    surface = Color(0xFF121212),
+                    primary = Color(0xFF00FFFF),
+                    error = Color(0xFFFF0055),
+                    onSurface = Color.White,
+                    outline = Color(0xFF333333)
                 )
-            ) {
+            } else {
+                lightColorScheme(
+                    background = Color.White,
+                    surface = Color(0xFFF9FAFB),
+                    primary = Color(0xFF4F46E5),
+                    error = Color(0xFFB91C1C),
+                    onSurface = Color.Black,
+                    outline = Color(0xFFE5E7EB)
+                )
+            }
+
+            MaterialTheme(colorScheme = colorScheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    DashboardContent()
+                    DashboardContent(isDark) { 
+                        isDark = it
+                        prefs.edit().putBoolean("is_dark", it).apply()
+                    }
                 }
             }
         }
     }
 
     @Composable
-    fun DashboardContent() {
+    fun DashboardContent(isDark: Boolean, onThemeToggle: (Boolean) -> Unit) {
         val ctx = LocalContext.current
         var setupDone by remember { mutableStateOf(LockManager.isSetupComplete(ctx)) }
         
@@ -87,7 +105,7 @@ class MainActivity : ComponentActivity() {
                     ctx.startService(intent)
                 }
             }
-            DashboardMain()
+            DashboardMain(isDark, onThemeToggle)
         }
     }
 
@@ -136,7 +154,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DashboardMain() {
+    fun DashboardMain(isDark: Boolean, onThemeToggle: (Boolean) -> Unit) {
         val ctx = LocalContext.current
         var missingPerms by remember { mutableStateOf(listOf<PermissionItem>()) }
 
@@ -182,6 +200,24 @@ class MainActivity : ComponentActivity() {
             MaintenanceCard()
             Spacer(modifier = Modifier.height(24.dp))
             DiagnosticsRow()
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = { onThemeToggle(!isDark) },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color.White else Color.Black,
+                    contentColor = if (isDark) Color.Black else Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    if (isDark) "BLIND ME (LIGHT MODE)" else "BACK TO THE SHADOWS",
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 
@@ -210,6 +246,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun EmergencyProtocolCard() {
         val ctx = LocalContext.current
+        val isDark = MaterialTheme.colorScheme.background == Color.Black
         var status by remember { mutableStateOf(NukeManager.getStatus(ctx)) }
         var showOtpDialog by remember { mutableStateOf(false) }
         var showConfirmRequestDialog by remember { mutableStateOf(false) }
@@ -224,7 +261,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF271A1A)), modifier = Modifier.fillMaxWidth()) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF271A1A) else Color(0xFFFEE2E2)),
+            border = BorderStroke(2.dp, Color(0xFFF87171)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Dangerous, null, tint = Color(0xFFF87171))
@@ -505,7 +546,12 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppVaultCard() {
         var showVault by remember { mutableStateOf(false) }
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)), border = BorderStroke(1.dp, Color(0xFF334155)), modifier = Modifier.fillMaxWidth()) {
+        val isDark = MaterialTheme.colorScheme.background == Color.Black
+        Card(
+            colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFE0E7FF)),
+            border = BorderStroke(2.dp, Color(0xFF818CF8)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Lock, null, tint = Color(0xFF818CF8), modifier = Modifier.size(18.dp))
