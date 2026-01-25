@@ -481,10 +481,10 @@ object LockManager {
         // 2. Critical: DNS Insecure
         if (!DnsManager.isSecure(ctx)) return "SYSTEM"
 
-        // 3. Enforcement: Rogue App / Browser Ban
-        if (isNonStandardAppBanned(ctx)) return "ROGUE_VIOLATION"
-        if (isBrowserBanned(ctx)) return "BROWSER_VIOLATION"
-        if (isTelegramBanned(ctx)) return "TELEGRAM_SUSPENDED"
+        // 3. Enforcement: Rogue App / Browser Ban (SCOPED TO APP)
+        if (isNonStandardAppBanned(ctx) && isNonStandardApp(ctx, pkg)) return "ROGUE_VIOLATION"
+        if (isBrowserBanned(ctx) && isBlacklistedBrowser(ctx, pkg)) return "BROWSER_VIOLATION"
+        if (isTelegramBanned(ctx) && (pkg.contains("telegram") || pkg.contains("challegram"))) return "TELEGRAM_SUSPENDED"
 
         // 4. User Requested: Focus Mode
         if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
