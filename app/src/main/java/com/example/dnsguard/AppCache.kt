@@ -11,8 +11,8 @@ object AppCache {
 
     fun getCachedApps(): List<AppItem>? = cachedApps
 
-    suspend fun loadApps(ctx: Context) {
-        if (cachedApps != null || isFetching) return
+    suspend fun loadApps(ctx: Context, force: Boolean = false) {
+        if (!force && (cachedApps != null || isFetching)) return
         isFetching = true
         
         withContext(Dispatchers.IO) {
