@@ -32,6 +32,7 @@ object LockManager {
     private const val KEY_TEMP_LOCKS = "temp_locked_apps"
     private const val KEY_DEEP_FOCUS_END = "deep_focus_end_ts"
     private const val KEY_DEEP_FOCUS_ALLOWED = "deep_focus_allowed_apps"
+    private const val KEY_FIX_WINDOW_TS = "content_fix_ts"
     var currentActivePackage: String = ""
 
     // THRESHOLDS
@@ -497,6 +498,12 @@ object LockManager {
         return (end - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
+    fun startFixWindow(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_FIX_WINDOW_TS, System.currentTimeMillis())
+            .apply()
+    }
+
     fun isEmergencyApp(pkg: String): Boolean {
         val p = pkg.lowercase()
         return p.contains("dialer") || 
@@ -511,6 +518,11 @@ object LockManager {
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
         // 0. EMERGENCY BYPASS (Highest Priority)
         if (isEmergencyApp(pkg)) return null
+
+        // 0.5 CONTENT FIX WINDOW (60s Grace)
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val fixTs = prefs.getLong(KEY_FIX_WINDOW_TS, 0L)
+        if (System.currentTimeMillis() - fixTs < 60000) return null
 
         // 1. HARD BLOCKERS (Never bypassed)
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
