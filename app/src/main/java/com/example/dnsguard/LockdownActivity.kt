@@ -205,6 +205,7 @@ class LockdownActivity : ComponentActivity() {
                     "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
                     "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
                     "TELEGRAM_SUSPENDED" -> !LockManager.isTelegramBanned(ctx)
+                    "DEEP_FOCUS" -> LockManager.getDeepFocusRemaining(ctx) <= 0
                     else -> false
                 }
                 if (shouldClose) { finishAffinity(); break }
@@ -240,6 +241,7 @@ class LockdownActivity : ComponentActivity() {
             "SECURITY_TRIPWIRE" -> UiConfig(Icons.Filled.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
             "MANUAL_LOCK" -> UiConfig(Icons.Filled.Timer, Color(0xFF818CF8), "TIME OUT", "You locked this app yourself. Finish your task.")
             "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "REST IN PEACE", "This app is dead. You killed it permanently.")
+            "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "ZEN MODE", "This app isn't on your whitelist. Stay focused.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
         }
     }
