@@ -426,12 +426,14 @@ class GuardService : AccessibilityService() {
                         LockManager.setPenaltyWarned(applicationContext)
                     }
 
-                    val dialerIntent = Intent(Intent.ACTION_DIAL)
-                    val resolveInfo = packageManager.resolveActivity(dialerIntent, 0)
-                    val dialerPkg = resolveInfo?.activityInfo?.packageName ?: "com.android.dialer"
-                    val clockPkg = "com.sec.android.app.clockpackage"
+                    // EMERGENCY BYPASS (Loose Check)
+                    val isEmergency = activePackage.contains("dialer") || 
+                                      activePackage.contains("telecom") || 
+                                      activePackage.contains("clock") || 
+                                      activePackage.contains("alarm") ||
+                                      activePackage.contains("incallui")
 
-                    if (activePackage != packageName && activePackage != dialerPkg && activePackage != clockPkg) {
+                    if (activePackage != packageName && !isEmergency) {
                         if (!LockManager.isBootGraceActive()) {
                             val i = Intent(applicationContext, LockdownActivity::class.java)
                             i.putExtra("BLOCK_TYPE", "PENALTY")
