@@ -60,17 +60,19 @@ object WordBank {
         prefs.edit().putStringSet(KEY_DYNAMIC_WORDS, newSet).apply()
     }
 
-    fun getViolations(ctx: Context, text: String): List<String> {
-        val cleaned = normalize(text)
+    fun getViolations(ctx: Context, text: String, exact: Boolean = false): List<String> {
         val violations = mutableListOf<String>()
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val dynamicSet = prefs.getStringSet(KEY_DYNAMIC_WORDS, emptySet()) ?: emptySet()
         
+        // Use aggressive normalization or simple lowercase check
+        val contentToCheck = if (exact) text.lowercase(Locale.ROOT) else normalize(text)
+        
         for (word in HARD_WORDS) {
-            if (cleaned.contains(word)) violations.add(word)
+            if (contentToCheck.contains(word.lowercase(Locale.ROOT))) violations.add(word)
         }
         for (word in dynamicSet) {
-            if (cleaned.contains(word)) violations.add(word)
+            if (contentToCheck.contains(word.lowercase(Locale.ROOT))) violations.add(word)
         }
         return violations
     }
