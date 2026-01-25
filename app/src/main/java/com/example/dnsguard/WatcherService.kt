@@ -33,11 +33,10 @@ class WatcherService : Service() {
 
                 val hasAcc = isAccessibilityEnabled(applicationContext)
                 val hasOverlay = android.provider.Settings.canDrawOverlays(applicationContext)
-                val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-                val hasBattery = powerManager.isIgnoringBatteryOptimizations(packageName)
+                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                val hasBattery = pm.isIgnoringBatteryOptimizations(packageName)
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
                 val isMaintenance = LockManager.isUnlocked(applicationContext)
-                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
 
                 if (isSetupDone && !isMaintenance) {
                     val isCompromised = LockManager.isSystemCompromised(applicationContext)
