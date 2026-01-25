@@ -126,7 +126,8 @@ class GuardService : AccessibilityService() {
  // Fix: Reset session verification
  verifiedSafeAppInfoSession = false
 
- if (!NukeManager.isProtectionDisabled(applicationContext)) {
+ val isMaintenance = LockManager.isUnlocked(applicationContext)
+ if (!NukeManager.isProtectionDisabled(applicationContext) && !isMaintenance) {
  val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
  if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
  val i = Intent(applicationContext, LockdownActivity::class.java)
