@@ -503,6 +503,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // CRITICAL: Remote Kill Switch Permissions
+        if (checkSelfPermission(android.Manifest.permission.READ_CALL_LOG) != android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+             list.add(PermissionItem("Call Monitoring") { 
+                 requestPermissions(arrayOf(android.Manifest.permission.READ_CALL_LOG, android.Manifest.permission.READ_PHONE_STATE), 101)
+             })
+        }
+
         return list
     }
 }
