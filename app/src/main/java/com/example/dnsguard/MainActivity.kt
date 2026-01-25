@@ -367,17 +367,17 @@ class MainActivity : ComponentActivity() {
         var pass by remember { mutableStateOf("") }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("GOD MODE", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Text("SYSTEM MAINTENANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                 Button(onClick = { showMainte = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) {
-                    Text("CHEAT CODE")
+                    Text("DNS REPAIR MODE")
                 }
             }
         }
         if (showMainte) {
-            AlertDialog(onDismissRequest = { showMainte = false }, title = { Text("Admin Access") }, text = {
-                OutlinedTextField(value = pass, onValueChange = { pass = it }, visualTransformation = PasswordVisualTransformation())
+            AlertDialog(onDismissRequest = { showMainte = false }, title = { Text("DNS Access (5 Mins)") }, text = {
+                OutlinedTextField(value = pass, onValueChange = { pass = it }, visualTransformation = PasswordVisualTransformation(), placeholder = { Text("Password") })
             }, confirmButton = {
-                Button(onClick = { if (pass == LockManager.ADMIN_PASS) { LockManager.unlock(applicationContext); showMainte = false } }) { Text("UNLOCK") }
+                Button(onClick = { if (pass == LockManager.ADMIN_PASS) { LockManager.unlock(applicationContext); showMainte = false } }) { Text("START WINDOW") }
             })
         }
     }
