@@ -486,7 +486,6 @@ object LockManager {
         }
 
         // 0. PERMANENT BAN (Cannot be bypassed by maintenance mode)
-        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
         if (permBans.contains(pkg)) return "PERMANENT_BAN"
 
