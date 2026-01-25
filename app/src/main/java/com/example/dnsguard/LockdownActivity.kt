@@ -237,6 +237,8 @@ class LockdownActivity : ComponentActivity() {
             "PENALTY" -> UiConfig(Icons.Filled.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
             "ROGUE_VIOLATION" -> UiConfig(Icons.Filled.Block, Color(0xFF9333EA), "NICE TRY", "That app is banned. Get lost.")
             "SECURITY_TRIPWIRE" -> UiConfig(Icons.Filled.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
+            "MANUAL_LOCK" -> UiConfig(Icons.Filled.Timer, Color(0xFF818CF8), "TIME OUT", "You locked this app yourself. Finish your task.")
+            "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "REST IN PEACE", "This app is dead. You killed it permanently.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
         }
     }
