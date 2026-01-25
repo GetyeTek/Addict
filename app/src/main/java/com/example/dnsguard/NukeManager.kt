@@ -28,12 +28,17 @@ object NukeManager {
 
     fun setProtectionDisabled(ctx: Context, disabled: Boolean) {
         val now = if (disabled) System.currentTimeMillis() else 0L
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_DISABLED, disabled)
-            .putLong(KEY_DISABLED_TS, now)
-            .putBoolean(KEY_LOCK_NOTIFIED, false)
-            .apply()
+        val editor = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        
+        editor.putBoolean(KEY_DISABLED, disabled)
+              .putLong(KEY_DISABLED_TS, now)
+              .putBoolean(KEY_LOCK_NOTIFIED, false)
+        
+        if (disabled) {
+            // Round completed successfully, clear OTP for next time
+            editor.remove(KEY_OTP).remove(KEY_OTP_TS).remove(KEY_OTP_NOTIFIED)
+        }
+        editor.apply()
         
         if (!disabled) {
             showNotification(ctx, "We're Back", "Nuke protocol ended. I own you again.")
@@ -138,7 +143,10 @@ object NukeManager {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val windowOpen = hour in 6..17
         
-        return NukeStatus(disabled, isWaiting, isReady, remaining, ts > 0, windowOpen)
+        // An OTP is only 'Generated' if it hasn't expired yet
+        val isActiveRound = isWaiting || isReady
+        
+        return NukeStatus(disabled, isWaiting, isReady, remaining, isActiveRound, windowOpen)
     }
 
     fun generateOtp(ctx: Context): String {
