@@ -169,6 +169,8 @@ class MainActivity : ComponentActivity() {
 
             FocusCard()
             Spacer(modifier = Modifier.height(16.dp))
+            DeepFocusCard()
+            Spacer(modifier = Modifier.height(16.dp))
             AppManagerCard()
             Spacer(modifier = Modifier.height(16.dp))
             AppVaultCard()
@@ -357,6 +359,83 @@ class MainActivity : ComponentActivity() {
             }, confirmButton = {
                 Button(onClick = { if (pass == LockManager.ADMIN_PASS) { LockManager.unlock(applicationContext); showMainte = false } }) { Text("UNLOCK") }
             })
+        }
+    }
+
+    @Composable
+    fun DeepFocusCard() {
+        var showDialog by remember { mutableStateOf(false) }
+        val ctx = LocalContext.current
+        var remaining by remember { mutableStateOf(LockManager.getDeepFocusRemaining(ctx)) }
+
+        LaunchedEffect(Unit) {
+            while(true) {
+                remaining = LockManager.getDeepFocusRemaining(ctx)
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("ZEN MODE", style = MaterialTheme.typography.labelMedium, color = Color(0xFFFACC15))
+                if (remaining > 0) {
+                    val mins = (remaining / 60000) + 1
+                    Text("$mins mins of deep work left", color = Color.White, fontWeight = FontWeight.Bold)
+                } else {
+                    Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCA8A04))) {
+                        Icon(Icons.Filled.CenterFocusStrong, null, modifier = Modifier.size(16.dp))
+                        Text(" START WHITELIST SESSION")
+                    }
+                }
+            }
+        }
+        if (showDialog) DeepFocusDialog(onDismiss = { showDialog = false })
+    }
+
+    @Composable
+    fun DeepFocusDialog(onDismiss: () -> Unit) {
+        val ctx = LocalContext.current
+        var filter by remember { mutableStateOf("") }
+        val appList = AppCache.getCachedApps() ?: listOf()
+        val selectedApps = remember { mutableStateListOf<String>() }
+        var duration by remember { mutableStateOf("60") }
+
+        Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), shape = RoundedCornerShape(28.dp), color = Color(0xFF1E293B)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("Zen Mode Whitelist", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Text("Only these apps will work. Everything else is blocked.", color = Color.Gray, fontSize = 12.sp)
+                    
+                    OutlinedTextField(value = duration, onValueChange = { if (it.all { c -> c.isDigit() }) duration = it },
+                        label = { Text("Duration (Minutes)") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+
+                    OutlinedTextField(value = filter, onValueChange = { filter = it }, placeholder = { Text("Search allowed apps...") },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
+                    
+                    val filtered = appList.filter { it.name.contains(filter, true) || it.pkg.contains(filter, true) }
+                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(filtered.size) { index ->
+                            val app = filtered[index]
+                            val isSelected = selectedApps.contains(app.pkg)
+                            Row(modifier = Modifier.fillMaxWidth().clickable { 
+                                if (isSelected) selectedApps.remove(app.pkg) else selectedApps.add(app.pkg)
+                            }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = isSelected, onCheckedChange = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(app.name, color = Color.White)
+                            }
+                        }
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = onDismiss) { Text("CANCEL") }
+                        Button(onClick = { 
+                            LockManager.startDeepFocus(ctx, selectedApps.toSet(), duration.toIntOrNull() ?: 60)
+                            onDismiss() 
+                        }, enabled = selectedApps.isNotEmpty()) { Text("GO ZEN") }
+                    }
+                }
+            }
         }
     }
 
