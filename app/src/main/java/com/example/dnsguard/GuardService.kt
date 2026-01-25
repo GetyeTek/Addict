@@ -328,12 +328,13 @@ class GuardService : AccessibilityService() {
                         break
                     }
 
-                    // B. DEVICE ADMIN TRAP
+                    // B. DEVICE ADMIN TRAP (Precision Match)
+                    // We check for the 'Deactivate' button and 'Guardian' title simultaneously
                     val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
-                    // Also check for our new aggressive description
-                    val hasDare = root.findAccessibilityNodeInfosByText("Try to delete me")
-
-                    if ((hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) || hasDare.isNotEmpty()) {
+                    val hasGuardianTitle = root.findAccessibilityNodeInfosByText("Guardian Admin")
+                    
+                    // Only trigger if we see the specific Deactivate button for OUR app
+                    if (hasDeactivate.isNotEmpty() && (hasGuardianTitle.isNotEmpty() || hasDnsGuard.isNotEmpty())) {
                          confirmedDanger = true
                          performGlobalAction(GLOBAL_ACTION_BACK)
                          startTripwire()
