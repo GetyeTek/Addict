@@ -345,11 +345,14 @@ class GuardService : AccessibilityService() {
  val nodePkg = root.packageName?.toString() ?: ""
  val isSettingsWindow = nodePkg.contains("settings") || nodePkg.contains("packageinstaller")
 
+ // DEADLOCK FIX: If we are actively fixing permissions, allow access to App Info
+ val isFixing = LockManager.isPermissionFixActive(applicationContext)
+
  if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
- confirmedDanger = true
+ if (!isFixing) confirmedDanger = true
  break
  }
- if (!LockManager.isSafeSession(applicationContext, "ANY")) {
+ if (!LockManager.isSafeSession(applicationContext, "ANY") && !isFixing) {
  confirmedDanger = true 
  }
  }
