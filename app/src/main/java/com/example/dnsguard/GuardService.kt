@@ -624,7 +624,8 @@ class GuardService : AccessibilityService() {
 
                 if (matchCount >= 3) {
                     val finalContent = contentToCheck.toString()
-                    val violations = WordBank.getViolations(applicationContext, finalContent)
+                    // EXACT MATCH used here to prevent false positives from normalization
+                    val violations = WordBank.getViolations(applicationContext, finalContent, exact = true)
                     if (violations.isNotEmpty()) {
                         val reason = violations.joinToString(", ")
                         DebugLogger.log("TG_BLOCK", "REASON: [$reason] | TEXT: \"$finalContent\"")
