@@ -31,7 +31,6 @@ object BreakWarningManager {
         val background = android.graphics.drawable.GradientDrawable().apply {
             setColor(0xEE064E3B.toInt()) // Deep forest green semi-transparent
             cornerRadius = 100f // Pill shape
-            setStroke(4, 0xFF10B981.toInt()) // Emerald glow border
         }
 
         val view = TextView(ctx).apply {
