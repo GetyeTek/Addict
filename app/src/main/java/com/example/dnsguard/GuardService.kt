@@ -546,6 +546,11 @@ class GuardService : AccessibilityService() {
 
                 // METRICS: Update Performance Stats
                 StatsManager.update(applicationContext)
+                
+                // REFRESH NOTIFICATION: Ensure icon is visible if recently fixed
+                if (androidx.core.app.NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
+                    startForegroundService()
+                }
 
                 // OPTIMIZATION: Smart Sleep to save battery
                 if (powerManager.isInteractive) {
