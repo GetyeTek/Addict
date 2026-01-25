@@ -69,10 +69,9 @@ class WatcherService : Service() {
                     
                     // CORRECTED: Use shared state from Accessibility Service via LockManager
                     val topPkg = LockManager.currentActivePackage
-                    val isEmergency = topPkg.contains("dialer") || topPkg.contains("telecom") || topPkg.contains("clock") || topPkg.contains("alarm")
-
                     val blockType = LockManager.getActiveBlockType(applicationContext, topPkg)
-                    if (blockType != null && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked && !isEmergency) {
+                    
+                    if (blockType != null && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", blockType)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
