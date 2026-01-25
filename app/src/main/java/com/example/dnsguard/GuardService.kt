@@ -114,6 +114,7 @@ class GuardService : AccessibilityService() {
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
+            .setShowWhen(false) // Fixes sorting jitter
             .build()
         
         // 1337 is the notification ID
