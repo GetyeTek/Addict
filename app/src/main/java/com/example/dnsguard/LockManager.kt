@@ -514,8 +514,8 @@ object LockManager {
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
         if (permBans.contains(pkg)) return "PERMANENT_BAN"
 
-        // 1. Maintenance Bypass or Permission Fixing
-        if (isUnlocked(ctx) || isPermissionFixActive(ctx)) return null
+        // 1. Permission Fixing Bypass (Internal app logic)
+        if (isPermissionFixActive(ctx)) return null
 
         // 2. MANUAL TEMP LOCK
         val tempLocks = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet()) ?: emptySet()
@@ -528,8 +528,11 @@ object LockManager {
         // 3. Critical: Penalty (System Compromised)
         if (getPenaltyRemaining(ctx) > 0) return "PENALTY"
 
-        // 2. Critical: DNS Insecure
-        if (!DnsManager.isSecure(ctx)) return "SYSTEM"
+        // 2. Critical: DNS Insecure (Respects Maintenance Bypass ONLY here)
+        if (!DnsManager.isSecure(ctx)) {
+            if (isUnlocked(ctx)) return null
+            return "SYSTEM"
+        }
 
         // 3. Enforcement: Rogue App / Browser Ban (SCOPED TO APP)
         if (isNonStandardAppBanned(ctx) && isNonStandardApp(ctx, pkg)) return "ROGUE_VIOLATION"
