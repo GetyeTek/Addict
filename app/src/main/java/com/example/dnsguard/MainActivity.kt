@@ -115,9 +115,9 @@ class MainActivity : ComponentActivity() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Filled.Shield, contentDescription = null, tint = Color(0xFF6366F1), modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("SYSTEM SETUP", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("SETUP OR GET OUT", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Grant permissions to activate protection", color = Color.Gray, fontSize = 14.sp)
+                Text("Give me powers or delete the app.", color = Color.Gray, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                     val list = getMissingPermissions(ctx)
                     list.firstOrNull()?.action?.invoke(ctx)
                 }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))) {
-                    Text("FIX PERMISSIONS")
+                    Text("DO IT")
                 }
             }
         }
@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                      Icon(Icons.Filled.CheckCircle, null, tint = Color(0xFF10B981), modifier = Modifier.size(20.dp))
                      Spacer(modifier = Modifier.width(8.dp))
-                     Text("SYSTEM SECURE", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                     Text("AIN'T NOBODY GETTING IN", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -189,7 +189,7 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Warning, null, tint = Color(0xFFEF4444))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("PROTECTION COMPROMISED", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                    Text("YOU BROKE IT, DUMMY", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 missing.forEach { item ->
@@ -224,26 +224,26 @@ class MainActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Dangerous, null, tint = Color(0xFFF87171))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("EMERGENCY PROTOCOL", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
+                    Text("THE NUCLEAR OPTION", color = Color(0xFFF87171), fontWeight = FontWeight.Bold)
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (status.isProtectionDisabled) {
-                    Text("PROTECTION DISABLED", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text("Auto-lock in 1 hour.", color = Color.Gray, fontSize = 12.sp)
+                    Text("SHIELDS DOWN", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text("You got 1 hour before I lock you up again.", color = Color.Gray, fontSize = 12.sp)
                 } 
                 else if (status.isWaiting) {
                     val hours = status.remainingWaitMs / 3600000
                     val mins = (status.remainingWaitMs % 3600000) / 60000
                     val secs = (status.remainingWaitMs % 60000) / 1000
-                    Text(String.format("WAITING: %02d:%02d:%02d", hours, mins, secs), 
+                    Text(String.format("HOLD YOUR HORSES: %02d:%02d:%02d", hours, mins, secs), 
                         color = Color(0xFFFCD34D), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { }, enabled = false, 
                         colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF451A1A), disabledContentColor = Color.Gray),
                         modifier = Modifier.fillMaxWidth()) {
-                        Text("PROTOCOL LOCKED")
+                        Text("TOO LATE")
                     }
                 } 
                 else {
@@ -252,10 +252,10 @@ class MainActivity : ComponentActivity() {
                          Button(onClick = { showEntryDialog = true }, 
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                             modifier = Modifier.fillMaxWidth()) {
-                            Text("ENTER EMERGENCY CODE")
+                            Text("PROVE IT'S YOU")
                         }
                     } else if (status.otpGenerated) {
-                        Text("OTP Generated. Refresh app if timer missing.", color = Color.Gray)
+                        Text("Code generated. Don't lose it.", color = Color.Gray)
                     } else {
                          Button(onClick = {
                              val check = NukeManager.canRequestNuke(ctx)
@@ -269,7 +269,7 @@ class MainActivity : ComponentActivity() {
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF450A0A), contentColor = Color(0xFFF87171)),
                             border = BorderStroke(1.dp, Color(0xFF7F1D1D)),
                             modifier = Modifier.fillMaxWidth()) {
-                            Text("INITIATE STOP REQUEST")
+                            Text("I WANT TO QUIT")
                         }
                     }
                 }
@@ -279,10 +279,10 @@ class MainActivity : ComponentActivity() {
         if (showOtpDialog) {
             AlertDialog(
                 onDismissRequest = { showOtpDialog = false },
-                title = { Text("PROTOCOL STARTED") },
+                title = { Text("NO TURNING BACK") },
                 text = { 
                     Column {
-                        Text("Write this code down immediately. You will need it in 3 hours.", color = Color.LightGray)
+                        Text("Write this down. If you lose it, you're screwed for 3 hours.", color = Color.LightGray)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(generatedOtp, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFFF87171), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                     }
@@ -318,9 +318,9 @@ class MainActivity : ComponentActivity() {
         var pass by remember { mutableStateOf("") }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("MAINTENANCE", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Text("GOD MODE", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                 Button(onClick = { showMainte = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) {
-                    Text("TEMPORARY UNLOCK")
+                    Text("CHEAT CODE")
                 }
             }
         }
@@ -339,10 +339,10 @@ class MainActivity : ComponentActivity() {
         var mins by remember { mutableStateOf("15") }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("FOCUS MODE", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
+                Text("LOCK IN", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
                 Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))) {
                     Icon(Icons.Filled.Timer, null, modifier = Modifier.size(16.dp))
-                    Text(" START SESSION")
+                    Text(" SHUT UP & WORK")
                 }
             }
         }
@@ -360,9 +360,9 @@ class MainActivity : ComponentActivity() {
         var showList by remember { mutableStateOf(false) }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("EXCEPTIONS", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Text("WEAKNESSES", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
                 Button(onClick = { showList = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))) {
-                    Text("MANAGE SAFE APPS")
+                    Text("WHITELIST CRAP")
                 }
             }
         }
@@ -417,11 +417,11 @@ class MainActivity : ComponentActivity() {
 
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF172554)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("NIGHT PASSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
+                Text("HALL PASSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
                 Button(onClick = { showConfirm = true },
                     enabled = LockManager.isNightPassActivationWindow() && remaining > 0 && !LockManager.isTonightPassed(ctx),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), disabledContainerColor = Color(0xFF1E3A8A))) {
-                    Text("USE PASS ($remaining LEFT)")
+                    Text("SKIP BEDTIME ($remaining LEFT)")
                 }
             }
         }
@@ -450,7 +450,7 @@ class MainActivity : ComponentActivity() {
     fun DiagnosticsRow() {
         var showLogs by remember { mutableStateOf(false) }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextButton(onClick = { showLogs = true }) { Text("SYSTEM LOGS", color = Color.Gray, fontSize = 12.sp) }
+            TextButton(onClick = { showLogs = true }) { Text("NERD LOGS", color = Color.Gray, fontSize = 12.sp) }
         }
         if (showLogs) {
             AlertDialog(onDismissRequest = { showLogs = false }, title = { Text("Logs") }, text = {
