@@ -19,7 +19,7 @@ object AppCache {
             try {
                 val pm = ctx.packageManager
                 // Using 0 instead of GET_META_DATA is significantly faster
-                val apps = pm.getInstalledApplications(0)
+                val apps = pm.getInstalledApplications(android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES)
                     .filter { it.packageName != ctx.packageName }
                     .map { AppItem(it.loadLabel(pm).toString(), it.packageName) }
                     .sortedBy { it.name.lowercase() }
