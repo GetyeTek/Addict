@@ -49,9 +49,10 @@ class WatcherService : Service() {
                     val topPkg = am.getRunningTasks(1).firstOrNull()?.topActivity?.packageName ?: ""
                     val isEmergency = topPkg.contains("dialer") || topPkg.contains("telecom") || topPkg.contains("clock") || topPkg.contains("alarm")
 
-                    if (LockManager.getPenaltyRemaining(applicationContext) > 0 && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked && !isEmergency) {
+                    val blockType = LockManager.getActiveBlockType(applicationContext)
+                    if (blockType != null && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked && !isEmergency) {
                         val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", "PENALTY")
+                        i.putExtra("BLOCK_TYPE", blockType)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
                     } 
