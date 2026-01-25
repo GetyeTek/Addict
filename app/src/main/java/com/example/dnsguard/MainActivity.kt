@@ -57,10 +57,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    background = Color(0xFF0F172A),
-                    surface = Color(0xFF1E293B),
-                    primary = Color(0xFF6366F1),
-                    error = Color(0xFFEF4444),
+                    background = Color.Black,
+                    surface = Color.Black,
+                    primary = Color(0xFF00FFFF), // Neon Cyan
+                    error = Color(0xFFFF0055),   // Neon Pink/Red
                     onSurface = Color.White
                 )
             ) {
@@ -375,16 +375,26 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)), modifier = Modifier.fillMaxWidth()) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.Black), 
+            border = BorderStroke(2.dp, Color(0xFFFACC15)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("ZEN MODE", style = MaterialTheme.typography.labelMedium, color = Color(0xFFFACC15))
+                Text("ZEN MODE (WHITELIST)", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFACC15))
                 if (remaining > 0) {
                     val mins = (remaining / 60000) + 1
-                    Text("$mins mins of deep work left", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("$mins MINS REMAINING", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
                 } else {
-                    Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCA8A04))) {
-                        Icon(Icons.Filled.CenterFocusStrong, null, modifier = Modifier.size(16.dp))
-                        Text(" START WHITELIST SESSION")
+                    Button(
+                        onClick = { showDialog = true }, 
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
+                        shape = RoundedCornerShape(4.dp),
+                        border = BorderStroke(1.dp, Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF854D0E))
+                    ) {
+                        Icon(Icons.Filled.CenterFocusStrong, null, modifier = Modifier.size(20.dp))
+                        Text(" START WHITELIST", fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -443,12 +453,22 @@ class MainActivity : ComponentActivity() {
     fun FocusCard() {
         var showDialog by remember { mutableStateOf(false) }
         var mins by remember { mutableStateOf("15") }
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)), modifier = Modifier.fillMaxWidth()) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.Black), 
+            border = BorderStroke(2.dp, Color(0xFF6366F1)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("LOCK IN", style = MaterialTheme.typography.labelMedium, color = Color(0xFF818CF8))
-                Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))) {
-                    Icon(Icons.Filled.Timer, null, modifier = Modifier.size(16.dp))
-                    Text(" SHUT UP & WORK")
+                Text("FOCUS MODE", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFF6366F1))
+                Button(
+                    onClick = { showDialog = true }, 
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(1.dp, Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4338CA))
+                ) {
+                    Icon(Icons.Filled.Timer, null, modifier = Modifier.size(20.dp))
+                    Text(" ACTIVATE", fontWeight = FontWeight.Black)
                 }
             }
         }
