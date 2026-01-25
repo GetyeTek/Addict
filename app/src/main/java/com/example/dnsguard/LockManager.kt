@@ -497,7 +497,21 @@ object LockManager {
         return (end - System.currentTimeMillis()).coerceAtLeast(0L)
     }
 
+    fun isEmergencyApp(pkg: String): Boolean {
+        val p = pkg.lowercase()
+        return p.contains("dialer") || 
+               p.contains("telecom") || 
+               p.contains("incallui") || 
+               p.contains("clock") || 
+               p.contains("alarm") ||
+               p.contains("contacts") ||
+               p == "com.android.phone"
+    }
+
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
+        // 0. EMERGENCY BYPASS (Highest Priority)
+        if (isEmergencyApp(pkg)) return null
+
         // 1. HARD BLOCKERS (Never bypassed)
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
