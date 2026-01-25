@@ -249,4 +249,19 @@ class LockdownActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() { }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(150, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(150)
+            }
+        } catch (e: Exception) {
+            // Fail silently if vibrator is unavailable
+        }
+    }
 }
