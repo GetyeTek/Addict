@@ -413,15 +413,36 @@ class MainActivity : ComponentActivity() {
     fun NightPassCard() {
         val ctx = LocalContext.current
         var remaining by remember { mutableStateOf(LockManager.getRemainingNightPasses(ctx)) }
+        var showConfirm by remember { mutableStateOf(false) }
+
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF172554)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("NIGHT PASSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
-                Button(onClick = { if (LockManager.useNightPass(ctx)) remaining = LockManager.getRemainingNightPasses(ctx) },
+                Button(onClick = { showConfirm = true },
                     enabled = LockManager.isNightPassActivationWindow() && remaining > 0 && !LockManager.isTonightPassed(ctx),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), disabledContainerColor = Color(0xFF1E3A8A))) {
                     Text("USE PASS ($remaining LEFT)")
                 }
             }
+        }
+
+        if (showConfirm) {
+            AlertDialog(
+                onDismissRequest = { showConfirm = false },
+                title = { Text("Confirm Night Pass") },
+                text = { Text("This will consume 1 of your 3 weekly passes.\n\nIt grants immunity from the Night Lock (11 PM - 5 AM) for tonight only.\n\nAre you sure you have a legitimate need?") },
+                confirmButton = {
+                    Button(onClick = {
+                        if (LockManager.useNightPass(ctx)) {
+                            remaining = LockManager.getRemainingNightPasses(ctx)
+                        }
+                        showConfirm = false
+                    }) { Text("ACTIVATE") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirm = false }) { Text("CANCEL") }
+                }
+            )
         }
     }
 
