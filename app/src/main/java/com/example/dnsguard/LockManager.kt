@@ -365,6 +365,31 @@ object LockManager {
         currentActivePackage = pkg
     }
 
+    fun cleanupExpiredLocks(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val temp = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet())?.toMutableSet() ?: return
+        val now = System.currentTimeMillis()
+        if (temp.removeIf { it.contains(":") && (it.substringAfter(":").toLongOrNull() ?: 0L) < now }) {
+            prefs.edit().putStringSet(KEY_TEMP_LOCKS, temp).apply()
+        }
+    }
+
+    fun getStatusLine(ctx: Context): String {
+        val lockout = getLockoutRemainingMillis(ctx)
+        if (lockout > 0) return "Focus: ${lockout / 60000}m left"
+        
+        val deep = getDeepFocusRemaining(ctx)
+        if (deep > 0) return "Zen Mode: ${deep / 60000}m left"
+        
+        val brk = getBreakRemaining(ctx)
+        if (brk > 0) return "Break: ${brk / 60000}m left"
+        
+        val pen = getPenaltyRemaining(ctx)
+        if (pen > 0) return "Penalty Box: ${pen / 60000}m left"
+        
+        return "Guardian: System Secured"
+    }
+
     fun startPermissionFixSession(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putLong(KEY_FIX_TS, System.currentTimeMillis()).apply()
