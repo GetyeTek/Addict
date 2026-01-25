@@ -20,6 +20,13 @@ class WatcherService : Service() {
         
         scope.launch {
             while (isActive) {
+                // 4th Suggestion: Self-Healing Cleanup
+                LockManager.cleanupExpiredLocks(applicationContext)
+                
+                // 5th Suggestion: Dynamic Notification Update
+                val statusLine = LockManager.getStatusLine(applicationContext)
+                updateNotification(statusLine)
+
                 // Respect Master Key / Nuke status
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
                     // KEEP ALIVE: Check for warnings and auto-lock expiry even if protections are down
@@ -105,16 +112,21 @@ class WatcherService : Service() {
         return enabledServices.contains(expected)
     }
 
-    private fun createNotification(): Notification {
+    private fun updateNotification(content: String) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(99, createNotification(content))
+    }
+
+    private fun createNotification(content: String = "Making sure you behave."): Notification {
         val channelId = "watcher_channel"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, "Guardian Monitor", NotificationManager.IMPORTANCE_HIGH)
+            val chan = NotificationChannel(channelId, "Guardian Monitor", NotificationManager.IMPORTANCE_LOW)
             nm.createNotificationChannel(chan)
         }
         return androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Sheriff is in Town")
-            .setContentText("Making sure you behave.")
+            .setContentTitle("Guardian Protection")
+            .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
             .build()
