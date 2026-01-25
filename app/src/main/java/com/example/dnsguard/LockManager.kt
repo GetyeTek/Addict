@@ -178,11 +178,10 @@ object LockManager {
         return getLockoutRemainingMillis(ctx) > 0
     }
 
-    fun isLadderEnabled(ctx: Context): Boolean = 
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_LADDER_ENABLED, true)
+    // LADDER IS NOW MANDATORY
+    fun isLadderEnabled(ctx: Context): Boolean = true
 
-    fun setLadderEnabled(ctx: Context, enabled: Boolean) = 
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_LADDER_ENABLED, enabled).apply()
+    fun setLadderEnabled(ctx: Context, enabled: Boolean) { /* No-op: Feature is permanent */ }
 
     fun getBreakRemaining(ctx: Context): Long {
         val end = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_BREAK_END, 0L)
