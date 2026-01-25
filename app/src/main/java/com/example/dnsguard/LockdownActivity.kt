@@ -235,6 +235,8 @@ class LockdownActivity : ComponentActivity() {
             "BREAK_TIME" -> UiConfig(Icons.Default.Timer, Color(0xFF34C759), "CHILL OUT", "Sit your ass down for a bit.")
             "USER_LOCKOUT" -> UiConfig(Icons.Default.Timer, Color(0xFF007AFF), "LOCKED IN", "Do some actual work.")
             "PENALTY" -> UiConfig(Icons.Default.Warning, Color(0xFFFF2D55), "PENALTY BOX", "Stop messing with my settings.")
+            "ROGUE_VIOLATION" -> UiConfig(Icons.Default.Block, Color(0xFF9333EA), "NICE TRY", "That app is banned. Get lost.")
+            "SECURITY_TRIPWIRE" -> UiConfig(Icons.Default.Shield, Color(0xFFDC2626), "I SEE YOU", "Stay out of my settings.")
             else -> UiConfig(Icons.Default.Shield, Color(0xFFEF4565), "YOU THOUGHT?", "Fix your DNS or stare at this screen.")
         }
     }
