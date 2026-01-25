@@ -65,15 +65,33 @@ object WordBank {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val dynamicSet = prefs.getStringSet(KEY_DYNAMIC_WORDS, emptySet()) ?: emptySet()
         
-        // Use aggressive normalization or simple lowercase check
-        val contentToCheck = if (exact) text.lowercase(Locale.ROOT) else normalize(text)
+        val allWords = (HARD_WORDS + dynamicSet)
+
+        if (exact) {
+            // TELEGRAM MODE: Use word boundaries to prevent 'i' or 'sex' inside 'essex' matching
+            val lowerText = text.lowercase(Locale.ROOT)
+            for (badWord in allWords) {
+                val cleanBad = badWord.trim().lowercase(Locale.ROOT)
+                if (cleanBad.length < 3) continue // GUARD: Ignore garbage 1-2 char words
+                
+                // Regex \b ensures we only match whole words
+                val pattern = Regex("\\b" + Regex.escape(cleanBad) + "\\b")
+                if (pattern.containsMatchIn(lowerText)) {
+                    violations.add(cleanBad)
+                }
+            }
+        } else {
+            // BROWSER MODE: Use aggressive normalization (strips spaces) for obfuscation
+            val normalizedContent = normalize(text)
+            for (badWord in allWords) {
+                val normalizedBad = normalize(badWord)
+                if (normalizedBad.length < 3) continue
+                if (normalizedContent.contains(normalizedBad)) {
+                    violations.add(normalizedBad)
+                }
+            }
+        }
         
-        for (word in HARD_WORDS) {
-            if (contentToCheck.contains(word.lowercase(Locale.ROOT))) violations.add(word)
-        }
-        for (word in dynamicSet) {
-            if (contentToCheck.contains(word.lowercase(Locale.ROOT))) violations.add(word)
-        }
         return violations
     }
 
@@ -85,6 +103,6 @@ object WordBank {
             .replace("@", "a")
             .replace("$", "s")
             .replace("3", "e")
-            .filter { it.isLetter() } // Strip spaces and symbols to merge words (e.g., "P.o.r.n" -> "porn")
+            .filter { it.isLetter() || it.isDigit() } // Keep digits to support words like '18+' or '4k'
     }
 }
