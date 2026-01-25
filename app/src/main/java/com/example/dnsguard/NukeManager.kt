@@ -121,7 +121,8 @@ object NukeManager {
         val isWaiting: Boolean,
         val isReady: Boolean,
         val remainingWaitMs: Long,
-        val otpGenerated: Boolean
+        val otpGenerated: Boolean,
+        val isWindowOpen: Boolean
     )
 
     fun getStatus(ctx: Context): NukeStatus {
@@ -134,7 +135,10 @@ object NukeManager {
         val isReady = ts > 0 && (now - ts >= WAIT_TIME) && (now - ts <= EXPIRY_TIME)
         val remaining = if (isWaiting) WAIT_TIME - (now - ts) else 0L
         
-        return NukeStatus(disabled, isWaiting, isReady, remaining, ts > 0)
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val windowOpen = hour in 6..17
+        
+        return NukeStatus(disabled, isWaiting, isReady, remaining, ts > 0, windowOpen)
     }
 
     fun generateOtp(ctx: Context): String {
