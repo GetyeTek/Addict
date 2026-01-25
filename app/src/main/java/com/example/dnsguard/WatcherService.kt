@@ -43,9 +43,8 @@ class WatcherService : Service() {
                 val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val hasBattery = pm.isIgnoringBatteryOptimizations(packageName)
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
-                val isMaintenance = LockManager.isUnlocked(applicationContext)
 
-                if (isSetupDone && !isMaintenance) {
+                if (isSetupDone) {
                     val isCompromised = LockManager.isSystemCompromised(applicationContext)
                     val isLocked = LockManager.getPenaltyRemaining(applicationContext) > 0
 
