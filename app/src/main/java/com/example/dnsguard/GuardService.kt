@@ -205,12 +205,8 @@ class GuardService : AccessibilityService() {
             if (now - lastContentScanTime < 400) return // Debounce: Max 2.5 scans per second
             lastContentScanTime = now
             
-        // FIX: Check Whitelist, Blacklist, AND Dynamic List
-        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
-                       pkg == "com.android.chrome" || 
-                       pkg == "com.google.android.googlequicksearchbox" ||
-                       dynamicBrowsers.contains(pkg)
-
+        // SYNCED CHECK: Uses centralized detection logic
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
@@ -554,15 +550,9 @@ class GuardService : AccessibilityService() {
     }
 
     private fun managePolling(pkg: String) {
-        // Stop existing poll to avoid duplicates
         pollingJob?.cancel()
 
-        // FIX: Explicitly include Chrome & Google App for monitoring
-        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
-                       pkg == "com.android.chrome" || 
-                       pkg == "com.google.android.googlequicksearchbox" ||
-                       dynamicBrowsers.contains(pkg)
-
+        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
         if (isBrowser || isTelegram) {
