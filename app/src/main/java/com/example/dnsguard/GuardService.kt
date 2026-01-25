@@ -136,10 +136,11 @@ class GuardService : AccessibilityService() {
  val isMaintenance = LockManager.isUnlocked(applicationContext)
  val isGraceActive = LockManager.isBootGraceActive()
 
- if (!NukeManager.isProtectionDisabled(applicationContext) && !isMaintenance && !isGraceActive) {
- val isSettingsApp = pkg.contains("settings") || pkg.contains("accessibility")
- if (!DnsManager.isSecure(applicationContext) && !isSettingsApp) {
+ if (!NukeManager.isProtectionDisabled(applicationContext)) {
+ val block = LockManager.getActiveBlockType(applicationContext, pkg)
+ if (block != null && !isGraceActive) {
  val i = Intent(applicationContext, LockdownActivity::class.java)
+ i.putExtra("BLOCK_TYPE", block)
  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
  startActivity(i)
  }
