@@ -314,8 +314,9 @@ class GuardService : AccessibilityService() {
                     val hasDnsGuard = root.findAccessibilityNodeInfosByText("Guardian")
                     
                     // A. ACCESSIBILITY TRAP (Targeted)
-                    val trap1 = root.findAccessibilityNodeInfosByText("Monitors system settings")
-                    val trap2 = root.findAccessibilityNodeInfosByText("enforce Private DNS")
+                    // Matches new strings.xml values
+                    val trap1 = root.findAccessibilityNodeInfosByText("I see everything")
+                    val trap2 = root.findAccessibilityNodeInfosByText("Don't act stupid")
                     
                     if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
                         confirmedDanger = true
@@ -326,7 +327,10 @@ class GuardService : AccessibilityService() {
 
                     // B. DEVICE ADMIN TRAP
                     val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
-                    if (hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) {
+                    // Also check for our new aggressive description
+                    val hasDare = root.findAccessibilityNodeInfosByText("Try to delete me")
+
+                    if ((hasDeactivate.isNotEmpty() && hasDnsGuard.isNotEmpty()) || hasDare.isNotEmpty()) {
                          confirmedDanger = true
                          performGlobalAction(GLOBAL_ACTION_BACK)
                          startTripwire()
