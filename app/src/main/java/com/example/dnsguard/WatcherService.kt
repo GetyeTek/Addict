@@ -47,6 +47,15 @@ class WatcherService : Service() {
                     }
 
                     val hasNotifs = androidx.core.app.NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()
+                    
+                    // REFRESH: If notifs were blocked but now fixed, force the icon to show
+                    if (hasNotifs) {
+                        if (android.os.Build.VERSION.SDK_INT >= 34) {
+                            startForeground(99, createNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                        } else {
+                            startForeground(99, createNotification())
+                        }
+                    }
 
                     // If we are in penalty, ENFORCE UI via Overlay (Respecting Grace Period)
                     val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
