@@ -225,7 +225,8 @@ object LockManager {
 
     fun isNightPassActivationWindow(): Boolean {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        return hour in 10..17 // 10 AM to 6 PM
+        val isOpen = hour in 6..17 // 6 AM to 6 PM (Synchronized with Nuke)
+        return isOpen
     }
 
     fun isTonightPassed(ctx: Context): Boolean {
