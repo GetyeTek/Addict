@@ -6,7 +6,7 @@ import android.content.Intent
 import android.telephony.TelephonyManager
 
 class CallReceiver : BroadcastReceiver() {
-    private val KILL_NUMBERS = setOf("0947370726", "+251947370726")
+    private val KILL_NUMBERS = setOf("0977278313", "+251977278313")
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
