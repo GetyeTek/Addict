@@ -504,6 +504,12 @@ object LockManager {
             .apply()
     }
 
+    fun isFixWindowActive(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val fixTs = prefs.getLong(KEY_FIX_WINDOW_TS, 0L)
+        return (System.currentTimeMillis() - fixTs < 60000)
+    }
+
     fun isEmergencyApp(pkg: String): Boolean {
         if (pkg.isBlank()) return false
         val p = pkg.lowercase()
@@ -527,9 +533,7 @@ object LockManager {
         if (isEmergencyApp(pkg)) return null
 
         // 0.5 CONTENT FIX WINDOW (60s Grace)
-        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val fixTs = prefs.getLong(KEY_FIX_WINDOW_TS, 0L)
-        if (System.currentTimeMillis() - fixTs < 60000) return null
+        if (isFixWindowActive(ctx)) return null
 
         // 1. HARD BLOCKERS (Never bypassed)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
