@@ -101,12 +101,18 @@ object NukeManager {
         // 1. Check Auto Time
         val autoTime = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME, 0)
         val autoZone = Settings.Global.getInt(ctx.contentResolver, Settings.Global.AUTO_TIME_ZONE, 0)
-        if (autoTime != 1 || autoZone != 1) return "ERROR: Automatic Time & Zone must be enabled."
+        if (autoTime != 1 || autoZone != 1) {
+            DebugLogger.log("NUKE_FAIL", "Auto-Time: $autoTime, Auto-Zone: $autoZone")
+            return "ERROR: Automatic Time & Zone must be enabled in System Settings."
+        }
 
         // 2. Check Time Window (6 AM - 6 PM)
         val cal = Calendar.getInstance()
         val hour = cal.get(Calendar.HOUR_OF_DAY)
-        if (hour < 6 || hour >= 18) return "ERROR: Protocol only available between 06:00 and 18:00."
+        if (hour < 6 || hour >= 18) {
+            DebugLogger.log("NUKE_FAIL", "Hour $hour is outside 06-18 window")
+            return "ERROR: Protocol only available between 06:00 and 18:00."
+        }
 
         return "OK"
     }
