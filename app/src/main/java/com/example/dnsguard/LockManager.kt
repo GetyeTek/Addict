@@ -89,6 +89,7 @@ object LockManager {
         "com.google.android.apps.translate"
     )
     private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
+    private const val KEY_FIX_USED = "fix_window_consumed"
 
     fun isUnlocked(ctx: Context): Boolean {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -133,7 +134,10 @@ object LockManager {
 
     fun banBrowser(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putLong(KEY_BROWSER_BAN, System.currentTimeMillis()).apply()
+            .edit()
+            .putLong(KEY_BROWSER_BAN, System.currentTimeMillis())
+            .putBoolean(KEY_FIX_USED, false)
+            .apply()
     }
 
     fun isBrowserBanned(ctx: Context): Boolean {
@@ -145,7 +149,10 @@ object LockManager {
 
     fun banNonStandardApp(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putLong(KEY_NON_STD_BAN, System.currentTimeMillis()).apply()
+            .edit()
+            .putLong(KEY_NON_STD_BAN, System.currentTimeMillis())
+            .putBoolean(KEY_FIX_USED, false)
+            .apply()
     }
 
     fun isNonStandardAppBanned(ctx: Context): Boolean {
@@ -501,6 +508,7 @@ object LockManager {
     fun startFixWindow(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putLong(KEY_FIX_WINDOW_TS, System.currentTimeMillis())
+            .putBoolean(KEY_FIX_USED, true)
             .apply()
     }
 
@@ -508,6 +516,12 @@ object LockManager {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val fixTs = prefs.getLong(KEY_FIX_WINDOW_TS, 0L)
         return (System.currentTimeMillis() - fixTs < 60000)
+    }
+
+    fun shouldShowFixButton(ctx: Context, type: String): Boolean {
+        if (type != "BROWSER_VIOLATION" && type != "ROGUE_VIOLATION") return false
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return !prefs.getBoolean(KEY_FIX_USED, false)
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
