@@ -28,33 +28,37 @@ object BreakWarningManager {
     private fun createView(ctx: Context, message: String) {
         windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         
+        val isCountdown = message.contains("LOCKDOWN")
         val background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(0xEE064E3B.toInt()) // Deep forest green semi-transparent
-            cornerRadius = 100f // Pill shape
+            // Red/Orange for countdown, Green for warning
+            setColor(if (isCountdown) 0xEEB91C1C.toInt() else 0xEE064E3B.toInt())
+            cornerRadius = 100f
+            setStroke(2, 0xFFFFFFFF.toInt())
         }
 
         val view = TextView(ctx).apply {
             text = message
-            setTextColor(0xFFFFFFFF.toInt()) // High contrast White
+            setTextColor(0xFFFFFFFF.toInt())
             setBackground(background)
-            setPadding(60, 20, 60, 20)
+            setPadding(80, 25, 80, 25)
             gravity = Gravity.CENTER
-            textSize = 15f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            letterSpacing = 0.1f
-            elevation = 20f
+            textSize = 14f
+            setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+            letterSpacing = 0.05f
         }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE 
+                or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-        }.apply {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 120 // Positioned below the status bar area
+            y = 200 // Pushed lower to clear notches and status bars
+            windowAnimations = android.R.style.Animation_Toast
         }
 
         try {
