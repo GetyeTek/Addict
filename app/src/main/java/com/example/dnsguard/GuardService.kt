@@ -252,11 +252,7 @@ class GuardService : AccessibilityService() {
         // We removed the instant-ban scanner from here. The Strike System in scanForViolations() handles the rest.
         if (pkg.contains("telegram") || pkg.contains("challegram")) {
             if (LockManager.isTelegramBanned(applicationContext)) {
-                val i = Intent(applicationContext, LockdownActivity::class.java)
-                i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(i)
-                
+                showInstantOverlay("TELEGRAM_SUSPENDED")
                 // Block interaction but don't force Home, let the Overlay sit there.
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 return
@@ -375,12 +371,7 @@ class GuardService : AccessibilityService() {
     
     private fun startTripwire() {
         if (LockManager.isBootGraceActive()) return
-
-        val i = Intent(applicationContext, LockdownActivity::class.java)
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        i.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-        i.putExtra("BLOCK_TYPE", "SECURITY_TRIPWIRE")
-        startActivity(i)
+        showInstantOverlay("SECURITY_TRIPWIRE")
     }
 
     // HELPER: Recursive scan for the Dialog Trap
@@ -650,10 +641,11 @@ class GuardService : AccessibilityService() {
  val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
  val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
  
- if (!pm.isInteractive) return
+ // BLOCK: Do not show overlays if screen is off OR keyguard is active
+ if (!pm.isInteractive || km.isKeyguardLocked) return
 
- // Get prioritized type
- val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: return
+ // Get prioritized type, falling back to the requested type if manager is neutral
+ val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: type
 
  // STRICT EMERGENCY BYPASS
  if (LockManager.isEmergencyApp(activePackage)) return
@@ -697,10 +689,7 @@ class GuardService : AccessibilityService() {
         if (telegramStrikes.size >= 3) {
              // 3rd Strike: Activate Ban & Overlay
              LockManager.banTelegram(applicationContext)
-             val i = Intent(applicationContext, LockdownActivity::class.java)
-             i.putExtra("BLOCK_TYPE", "TELEGRAM_SUSPENDED")
-             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-             startActivity(i)
+             showInstantOverlay("TELEGRAM_SUSPENDED")
         } else {
              // 1st & 2nd Strike: Double Back Tap (Clear Search -> Close Keyboard)
              scope.launch {
