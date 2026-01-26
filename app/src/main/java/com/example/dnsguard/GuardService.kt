@@ -551,6 +551,9 @@ class GuardService : AccessibilityService() {
     }
 
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
+        // BYPASS: If the user is in the 60s Fix Window, disable active scanning
+        if (LockManager.isFixWindowActive(applicationContext)) return
+
         val windows = this.windows
         for (window in windows) {
             val root = window.root ?: continue
