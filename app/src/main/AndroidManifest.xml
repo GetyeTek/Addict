@@ -48,8 +48,6 @@
             android:launchMode="singleInstance"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:excludeFromRecents="true"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
             android:screenOrientation="portrait"
             android:taskAffinity="" />
 
