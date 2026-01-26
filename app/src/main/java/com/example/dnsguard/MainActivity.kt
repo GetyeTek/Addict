@@ -206,8 +206,8 @@ class MainActivity : ComponentActivity() {
                 onClick = { onThemeToggle(!isDark) },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDark) Color.White else Color.Black,
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -774,11 +774,11 @@ class MainActivity : ComponentActivity() {
 
         Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { showStats = true }, border = BorderStroke(1.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(4.dp)) {
-                Text("SYSTEM AUTOPSY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                Text("SYSTEM AUTOPSY", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Black, fontSize = 10.sp)
             }
             Spacer(modifier = Modifier.width(16.dp))
             TextButton(onClick = { showLogs = true }) {
-                Text("VIEW LOGS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                Text("VIEW LOGS", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             }
         }
 
@@ -825,6 +825,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun StatsDialog(onDismiss: () -> Unit) {
         val ctx = LocalContext.current
+        val onSurface = MaterialTheme.colorScheme.onSurface
         var cpu by remember { mutableStateOf(StatsManager.currentCpu) }
         var mem by remember { mutableStateOf(StatsManager.currentMem) }
         var uptime by remember { mutableStateOf(StatsManager.getFormattedUptime()) }
@@ -840,15 +841,15 @@ class MainActivity : ComponentActivity() {
         }
 
         Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), color = Color.Black, border = BorderStroke(2.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(16.dp)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(2.dp, Color(0xFF00FFFF)), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text("GUARDIAN CORE STATS", color = Color(0xFF00FFFF), fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 20.sp)
                     HorizontalDivider(color = Color(0xFF00FFFF), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
                     
-                    StatRow("RUNTIME", uptime, Color.White)
+                    StatRow("RUNTIME", uptime, onSurface)
                     StatRow("CPU LOAD", String.format("%.1f%%", cpu), if (cpu > 5) Color.Yellow else Color(0xFF10B981))
                     StatRow("MEM USAGE", "$mem MB", Color(0xFF00FFFF))
-                    StatRow("BATTERY", StatsManager.getBatteryImpact(), Color.White)
+                    StatRow("BATTERY", StatsManager.getBatteryImpact(), onSurface)
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("SECURITY AUDIT", color = Color(0xFFFF0055), fontWeight = FontWeight.Black, letterSpacing = 2.sp)
@@ -861,8 +862,8 @@ class MainActivity : ComponentActivity() {
                     StatRow("TAMPER EVENTS", "$totalPens Detected", if (totalPens > 0) Color.Yellow else Color(0xFF10B981))
                     
                     Spacer(modifier = Modifier.weight(1f))
-                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFFF), contentColor = Color.White), shape = RoundedCornerShape(4.dp)) {
-                        Text("RETURN TO TERMINAL", color = Color.White, fontWeight = FontWeight.Black)
+                    Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFFF), contentColor = Color.Black), shape = RoundedCornerShape(4.dp)) {
+                        Text("RETURN TO TERMINAL", color = Color.Black, fontWeight = FontWeight.Black)
                     }
                 }
             }
