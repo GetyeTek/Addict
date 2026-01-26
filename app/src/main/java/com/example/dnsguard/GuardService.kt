@@ -184,16 +184,20 @@ class GuardService : AccessibilityService() {
  // 0. ROGUE BAN ENFORCEMENT (30 Minutes)
  if (LockManager.isNonStandardAppBanned(applicationContext) && 
  LockManager.isNonStandardApp(applicationContext, pkg)) {
+ if (!LockManager.isFixWindowActive(applicationContext)) {
  showInstantOverlay("ROGUE_VIOLATION")
  performGlobalAction(GLOBAL_ACTION_BACK)
+ }
  return
  }
 
  // 0. BROWSER BAN ENFORCEMENT
  val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
  if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
+ if (!LockManager.isFixWindowActive(applicationContext)) {
  showInstantOverlay("BROWSER_VIOLATION")
  performGlobalAction(GLOBAL_ACTION_BACK)
+ }
  return
  }
 
@@ -647,6 +651,9 @@ class GuardService : AccessibilityService() {
  
  // BLOCK: Do not show overlays if screen is off OR keyguard is active
  if (!pm.isInteractive || km.isKeyguardLocked) return
+
+ // 0.5 CONTENT FIX WINDOW (60s Grace) - Absolute Suppression
+ if (LockManager.isFixWindowActive(applicationContext)) return
 
  // Get prioritized type, falling back to the requested type if manager is neutral
  val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: type
