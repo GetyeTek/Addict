@@ -78,14 +78,14 @@ class WatcherService : Service() {
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
                     } 
-                    else if (!hasNotifs && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext)) {
+                    else if (!hasNotifs && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext) && !km.isKeyguardLocked) {
                         LockManager.startPermissionFixSession(applicationContext)
                         val i = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         i.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         try { startActivity(i) } catch (e: Exception) {}
                     }
-                    else if (!hasOverlay && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext)) {
+                    else if (!hasOverlay && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext) && !km.isKeyguardLocked) {
                         LockManager.startPermissionFixSession(applicationContext)
                         val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                         i.data = Uri.parse("package:$packageName")
