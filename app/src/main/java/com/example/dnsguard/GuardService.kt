@@ -67,10 +67,11 @@ class GuardService : AccessibilityService() {
                 return
             } 
             
-            // 2. THE 1-MINUTE WARNING (Only T3 and T4)
-            if ((t == LockManager.T3 || t == LockManager.T4) && diff in 59000..61000) {
+            // 2. THE 1-MINUTE WARNING (Trigger for ALL thresholds now for better visibility)
+            if (diff in 55000..65000) {
                  if (lastMinuteWarningShown != t) {
-                     BreakWarningManager.showWarning(this, "You're done in 1 minute", false)
+                     DebugLogger.log("BREAK", "Showing 1-minute warning for threshold: $t")
+                     BreakWarningManager.showWarning(this, "Take a break in 1 minute", false)
                      lastMinuteWarningShown = t
                  }
                  return
