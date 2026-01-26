@@ -541,11 +541,12 @@ object LockManager {
 
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
         // NEUTRALITY GUARD: If package is unknown/empty (during transitions), do not block.
-        // Accessibility will provide the correct package name shortly.
         if (pkg.isBlank()) return null
 
         // 0. EMERGENCY BYPASS (Highest Priority)
         if (isEmergencyApp(pkg)) return null
+
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
         // 0.5 CONTENT FIX WINDOW (60s Grace)
         if (isFixWindowActive(ctx)) return null
