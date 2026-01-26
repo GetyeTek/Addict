@@ -110,16 +110,7 @@
             </intent-filter>
         </receiver>
 
-        <service
-            android:name=".DebugTileService"
-            android:exported="true"
-            android:label="Guard Kill"
-            android:icon="@android:drawable/ic_lock_power_off"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
+
 
 
 
