@@ -707,15 +707,41 @@ class MainActivity : ComponentActivity() {
     fun NightPassCard() {
         val ctx = LocalContext.current
         var remaining by remember { mutableStateOf(LockManager.getRemainingNightPasses(ctx)) }
+        var isWindowOpen by remember { mutableStateOf(LockManager.isNightPassActivationWindow()) }
+        var isUsedToday by remember { mutableStateOf(LockManager.isTonightPassed(ctx)) }
         var showConfirm by remember { mutableStateOf(false) }
+
+        // Reactivity Heartbeat
+        LaunchedEffect(Unit) {
+            while(true) {
+                remaining = LockManager.getRemainingNightPasses(ctx)
+                isWindowOpen = LockManager.isNightPassActivationWindow()
+                isUsedToday = LockManager.isTonightPassed(ctx)
+                kotlinx.coroutines.delay(5000)
+            }
+        }
 
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF172554)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("LAME EXCUSES", color = Color(0xFF60A5FA), style = MaterialTheme.typography.labelMedium)
+                
+                val canUse = isWindowOpen && remaining > 0 && !isUsedToday
+                
                 Button(onClick = { showConfirm = true },
-                    enabled = LockManager.isNightPassActivationWindow() && remaining > 0 && !LockManager.isTonightPassed(ctx),
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB), contentColor = Color.White, disabledContainerColor = Color(0xFF1E3A8A))) {
-                    Text("SKIP BEDTIME ($remaining LEFT)")
+                    enabled = canUse,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2563EB), 
+                        contentColor = Color.White, 
+                        disabledContainerColor = Color(0xFF1E3A8A)
+                    )) {
+                    val label = when {
+                        isUsedToday -> "ALREADY ACTIVATED"
+                        !isWindowOpen -> "WINDOW OPENS AT 06:00"
+                        remaining == 0 -> "NO PASSES LEFT"
+                        else -> "SKIP BEDTIME ($remaining LEFT)"
+                    }
+                    Text(label)
                 }
             }
         }
