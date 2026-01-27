@@ -415,9 +415,17 @@ object LockManager {
         return isRecent && inSettings
     }
 
+    fun resetUsage(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_USAGE_ACCUMULATED, 0L)
+            .putInt(KEY_LAST_THRESHOLD, 0)
+            .apply()
+    }
+
     fun updateUsageAndCheckBreak(ctx: Context, deltaMs: Long): Boolean {
         if (!isLadderEnabled(ctx)) return false
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        
         var usage = prefs.getLong(KEY_USAGE_ACCUMULATED, 0L) + deltaMs
         var lastT = prefs.getInt(KEY_LAST_THRESHOLD, 0)
         
