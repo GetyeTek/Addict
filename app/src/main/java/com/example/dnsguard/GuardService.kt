@@ -56,28 +56,34 @@ class GuardService : AccessibilityService() {
 
     private fun checkPreBreakWarnings(usage: Long) {
         val thresholds = listOf(LockManager.T1, LockManager.T2, LockManager.T3, LockManager.T4)
+        var warningActive = false
         
         for (t in thresholds) {
             val diff = t - usage
             
-            // 1. THE 10-SECOND COUNTDOWN (All breaks)
+            // 1. THE 10-SECOND COUNTDOWN
             if (diff in 1..10000) {
                 val secs = (diff / 1000) + 1
                 BreakWarningManager.showWarning(this, "⚠️ LOCKDOWN IN ${secs}s", true)
-                return
+                warningActive = true
+                break
             } 
             
-            // 2. THE 1-MINUTE WARNING (Trigger for ALL thresholds now for better visibility)
+            // 2. THE 1-MINUTE WARNING
             if (diff in 55000..65000) {
                  if (lastMinuteWarningShown != t) {
-                     DebugLogger.log("BREAK", "Showing 1-minute warning for threshold: $t")
+                     DebugLogger.log("BREAK", "Threshold logic matched for 1-minute warning (Diff: $diff)")
                      BreakWarningManager.showWarning(this, "Take a break in 1 minute", false)
                      lastMinuteWarningShown = t
                  }
-                 return
+                 warningActive = true
+                 break
             }
         }
-        BreakWarningManager.hide()
+
+        if (!warningActive) {
+            BreakWarningManager.hide()
+        }
     }
     
     // SYNC: Tracks last time we pulled updates from Supabase
