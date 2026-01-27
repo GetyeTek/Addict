@@ -283,64 +283,85 @@ class MainActivity : ComponentActivity() {
                     val hours = status.remainingWaitMs / 3600000
                     val mins = (status.remainingWaitMs % 3600000) / 60000
                     val secs = (status.remainingWaitMs % 60000) / 1000
-                    Text(String.format("HOLD YOUR HORSES: %02d:%02d:%02d", hours, mins, secs), 
-                        color = Color(0xFFFCD34D), fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { }, enabled = false, 
-                        colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF451A1A), disabledContentColor = Color.Gray),
-                        modifier = Modifier.fillMaxWidth()) {
-                        Text("TOO LATE")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(String.format("%02d:%02d:%02d", hours, mins, secs), 
+                            color = Color(0xFFFCD34D), fontSize = 32.sp, fontWeight = FontWeight.Black, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                        Text("PROTOCOL COOLDOWN", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = { }, enabled = false, 
+                            colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF2A1A1A), disabledContentColor = Color(0xFF555555)),
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text("STILL TOO EARLY")
+                        }
                     }
                 } 
-                else {
-                    // Idle or Ready
-                                        if (status.isReady) {
-                         Button(onClick = { showEntryDialog = true }, 
+                else if (status.isExpired) {
+                    Column {
+                        Text("OTP EXPIRED", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                        Text("You missed the 1-hour window. Try again.", color = Color.Gray, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { showConfirmRequestDialog = true }, 
+                            enabled = status.isWindowOpen,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF450A0A)),
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text("RE-INITIATE")
+                        }
+                    }
+                }
+                else if (status.isReady) {
+                    Column {
+                        Text("READY TO STOP", color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { showEntryDialog = true }, 
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626), contentColor = Color.White),
                             modifier = Modifier.fillMaxWidth()) {
-                            Text("PROVE IT'S YOU")
+                            Text("EXECUTE PROTOCOL")
                         }
-                    } else if (status.otpGenerated) {
-                        Column {
-                            Text("Code generated. Don't lose it.", color = Color.Gray, fontSize = 12.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { 
-                                    val saved = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE).getString("nuke_otp", "????")
-                                    generatedOtp = saved ?: "????"
-                                    showOtpDialog = true 
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("VIEW MY CODE")
+                    }
+                }
+                else if (status.otpGenerated) { 
+                    // This is the 'Viewing' state before the 3-hour wait is over or during ready
+                    Column {
+                        Text("CODE ACTIVE", color = Color.Gray, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { 
+                                val saved = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE).getString("nuke_otp", "????")
+                                generatedOtp = saved ?: "????"
+                                showOtpDialog = true 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("VIEW GENERATED CODE")
+                        }
+                    }
+                }
+                else {
+                    // Completely Idle State
+                    Column {
+                        if (!status.isWindowOpen) {
+                            Text("Window opens at 06:00", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        }
+                        Button(onClick = { 
+                            val check = NukeManager.canRequestNuke(ctx)
+                            if (check == "OK") {
+                                showConfirmRequestDialog = true
+                            } else {
+                                android.widget.Toast.makeText(ctx, check, android.widget.Toast.LENGTH_LONG).show()
                             }
+                        }, 
+                        enabled = status.isWindowOpen,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF450A0A), 
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFF1A1A1A),
+                            disabledContentColor = Color(0xFF333333)
+                        ),
+                        border = BorderStroke(1.dp, if(status.isWindowOpen) Color(0xFF7F1D1D) else Color(0xFF222222)),
+                        modifier = Modifier.fillMaxWidth()) {
+                            Text("I'M A QUITTER")
                         }
-                    } else {
-                         Column {
-                             if (!status.isWindowOpen) {
-                                 Text("Window opens at 06:00", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
-                             }
-                                                              Button(onClick = { 
-                                 val check = NukeManager.canRequestNuke(ctx)
-                                 if (check == "OK") {
-                                     showConfirmRequestDialog = true
-                                 } else {
-                                     android.widget.Toast.makeText(ctx, check, android.widget.Toast.LENGTH_LONG).show()
-                                 }
-                             }, 
-                                enabled = status.isWindowOpen,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF450A0A), 
-                                    contentColor = Color.White,
-                                    disabledContainerColor = Color(0xFF1A1A1A),
-                                    disabledContentColor = Color(0xFF333333)
-                                ),
-                                border = BorderStroke(1.dp, if(status.isWindowOpen) Color(0xFF7F1D1D) else Color(0xFF222222)),
-                                modifier = Modifier.fillMaxWidth()) {
-                                Text("I'M A QUITTER")
-                             }
-                         }
                     }
                 }
             }
