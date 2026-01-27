@@ -131,6 +131,7 @@ object NukeManager {
         val isProtectionDisabled: Boolean,
         val isWaiting: Boolean,
         val isReady: Boolean,
+        val isExpired: Boolean,
         val remainingWaitMs: Long,
         val otpGenerated: Boolean,
         val isWindowOpen: Boolean
@@ -144,6 +145,7 @@ object NukeManager {
         
         val isWaiting = ts > 0 && (now - ts < WAIT_TIME)
         val isReady = ts > 0 && (now - ts >= WAIT_TIME) && (now - ts <= EXPIRY_TIME)
+        val isExpired = ts > 0 && (now - ts > EXPIRY_TIME)
         val remaining = if (isWaiting) WAIT_TIME - (now - ts) else 0L
         
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -152,7 +154,7 @@ object NukeManager {
         // An OTP is only 'Generated' if it hasn't expired yet
         val isActiveRound = isWaiting || isReady
         
-        return NukeStatus(disabled, isWaiting, isReady, remaining, isActiveRound, windowOpen)
+        return NukeStatus(disabled, isWaiting, isReady, isExpired, remaining, isActiveRound, windowOpen)
     }
 
     fun generateOtp(ctx: Context): String {
