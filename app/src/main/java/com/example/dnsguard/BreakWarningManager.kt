@@ -16,8 +16,17 @@ object BreakWarningManager {
     private val handler = Handler(Looper.getMainLooper())
 
     fun showWarning(ctx: Context, message: String, isCountdown: Boolean) {
-        if (warningView != null) updateText(message)
-        else createView(ctx, message)
+        if (!android.provider.Settings.canDrawOverlays(ctx)) {
+            DebugLogger.log("WARNING_ERR", "Cannot show warning: Overlay permission missing")
+            return
+        }
+
+        if (warningView != null) {
+            updateText(message)
+        } else {
+            DebugLogger.log("WARNING", "Creating new warning view: $message")
+            createView(ctx, message)
+        }
 
         if (!isCountdown) {
             handler.removeCallbacksAndMessages(null)
@@ -61,10 +70,13 @@ object BreakWarningManager {
             windowAnimations = android.R.style.Animation_Toast
         }
 
-        try {
+                try {
             windowManager?.addView(view, params)
             warningView = view
-        } catch (e: Exception) {}
+            DebugLogger.log("WARNING", "View added to WindowManager successfully")
+        } catch (e: Exception) {
+            DebugLogger.log("WARNING_ERR", "WindowManager addView failed: ${e.message}")
+        } 
     }
 
     private fun updateText(msg: String) {
