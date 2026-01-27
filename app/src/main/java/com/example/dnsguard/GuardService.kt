@@ -439,10 +439,31 @@ class GuardService : AccessibilityService() {
                 lastUsageTick = nowTick
                 
                 val powerManager = getSystemService(android.os.PowerManager::class.java)
-                if (powerManager.isInteractive) {
-                    val usage = LockManager.getAccumulatedUsage(applicationContext)
-                    checkPreBreakWarnings(usage)
-                    LockManager.updateUsageAndCheckBreak(applicationContext, delta)
+                val isInteractive = powerManager.isInteractive
+                val prefs = getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+
+                if (isInteractive) {
+                    // 1. Check for 15-minute screen-off reset
+                    val offTime = prefs.getLong("last_screen_off_ts", 0L)
+                    if (offTime > 0) {
+                        if (nowTick - offTime > 15 * 60 * 1000L) {
+                            LockManager.resetUsage(applicationContext)
+                            DebugLogger.log("LADDER", "15m Inactivity detected. Cycle Reset.")
+                        }
+                        prefs.edit().remove("last_screen_off_ts").apply()
+                    }
+
+                    // 2. Accumulate usage (only if NOT in a Lockdown/Break screen)
+                    if (activePackage != packageName) {
+                        val usage = LockManager.getAccumulatedUsage(applicationContext)
+                        checkPreBreakWarnings(usage)
+                        LockManager.updateUsageAndCheckBreak(applicationContext, delta)
+                    }
+                } else {
+                    // Screen is OFF: Record the timestamp if not already recording
+                    if (prefs.getLong("last_screen_off_ts", 0L) == 0L) {
+                        prefs.edit().putLong("last_screen_off_ts", nowTick).apply()
+                    }
                 }
 
                 // Global skip removed: Maintenance mode is now targeted to DNS only
