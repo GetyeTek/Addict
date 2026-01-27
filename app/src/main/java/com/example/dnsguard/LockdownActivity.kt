@@ -178,27 +178,30 @@ class LockdownActivity : ComponentActivity() {
                     
                     Button(
                         onClick = {
+                            // 1. Mark session first
                             LockManager.startPermissionFixSession(context)
+                            
                             val dnsIntent = Intent("android.settings.PVT_DNS_SETTINGS").apply { 
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK 
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             }
                             val networkIntent = Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             }
                             
                             try {
-                                // 1. Attempt deep link to Private DNS
                                 context.startActivity(dnsIntent)
                             } catch (e: Exception) {
                                 try {
-                                    // 2. Fallback to Connections/Network menu (Closer than general settings)
                                     context.startActivity(networkIntent)
                                     Toast.makeText(context, "Tap 'More connection settings' for DNS", Toast.LENGTH_LONG).show()
                                 } catch (e2: Exception) {
-                                    // 3. Final resort: General Settings
-                                    context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                                    context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply { 
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP 
+                                    })
                                 }
                             }
+                            // 2. Kill the overlay immediately to yield focus to Settings
+                            finishAffinity()
                         },
                         modifier = Modifier.weight(1f).height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = config.color),
