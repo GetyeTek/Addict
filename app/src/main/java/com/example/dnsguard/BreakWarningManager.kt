@@ -16,21 +16,23 @@ object BreakWarningManager {
     private val handler = Handler(Looper.getMainLooper())
 
     fun showWarning(ctx: Context, message: String, isCountdown: Boolean) {
-        if (!android.provider.Settings.canDrawOverlays(ctx)) {
-            DebugLogger.log("WARNING_ERR", "Cannot show warning: Overlay permission missing")
-            return
-        }
+        handler.post {
+            if (!android.provider.Settings.canDrawOverlays(ctx)) {
+                DebugLogger.log("WARNING_ERR", "Cannot show warning: Overlay permission missing")
+                return@post
+            }
 
-        if (warningView != null) {
-            updateText(message)
-        } else {
-            DebugLogger.log("WARNING", "Creating new warning view: $message")
-            createView(ctx, message)
-        }
+            if (warningView != null) {
+                updateText(message)
+            } else {
+                DebugLogger.log("WARNING", "Creating new warning view: $message")
+                createView(ctx, message)
+            }
 
-        if (!isCountdown) {
-            handler.removeCallbacksAndMessages(null)
-            handler.postDelayed({ hide() }, 5000)
+            if (!isCountdown) {
+                handler.removeCallbacksAndMessages(null)
+                handler.postDelayed({ hide() }, 5000)
+            }
         }
     }
 
@@ -84,9 +86,12 @@ object BreakWarningManager {
     }
 
     fun hide() {
-        warningView?.let {
-            try { windowManager?.removeView(it) } catch (e: Exception) {}
-            warningView = null
+        handler.post {
+            warningView?.let {
+                try { windowManager?.removeView(it) } catch (e: Exception) {}
+                warningView = null
+                DebugLogger.log("WARNING", "Warning view hidden")
+            }
         }
     }
 }
