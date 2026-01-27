@@ -406,13 +406,8 @@ object LockManager {
     fun isPermissionFixActive(ctx: Context): Boolean {
         val lastFix = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_FIX_TS, 0L)
         val now = System.currentTimeMillis()
-        val isRecent = (now - lastFix < 15000) // 15 second window
-        
-        // Only active if we are actually in Settings or the Package Installer
-        val inSettings = currentActivePackage.contains("settings") || 
-                         currentActivePackage.contains("packageinstaller")
-        
-        return isRecent && inSettings
+        // Blind Grace Window: Allow 15 seconds for the system to transition to Settings
+        return (now - lastFix < 15000)
     }
 
     fun resetUsage(ctx: Context) {
