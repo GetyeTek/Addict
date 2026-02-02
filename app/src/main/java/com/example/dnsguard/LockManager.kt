@@ -555,7 +555,9 @@ object LockManager {
         if (isFixWindowActive(ctx)) return null
 
         // 0.6 MAINTENANCE DISCIPLINE: Only Chrome allowed for DNS lookup
-        if (isUnlocked(ctx) && pkg != "com.android.chrome" && isBlacklistedBrowser(ctx, pkg)) {
+        // Even if not a standard browser, Google Search can show explicit images/feeds.
+        val isGoogleSearch = pkg == "com.google.android.googlequicksearchbox"
+        if (isUnlocked(ctx) && pkg != "com.android.chrome" && (isBlacklistedBrowser(ctx, pkg) || isGoogleSearch)) {
             return "MAINTENANCE_BROWSER_ILLEGAL"
         }
 
