@@ -554,6 +554,11 @@ object LockManager {
         // 0.5 CONTENT FIX WINDOW (60s Grace)
         if (isFixWindowActive(ctx)) return null
 
+        // 0.6 MAINTENANCE DISCIPLINE: Only Chrome allowed for DNS lookup
+        if (isUnlocked(ctx) && pkg != "com.android.chrome" && isBlacklistedBrowser(ctx, pkg)) {
+            return "MAINTENANCE_BROWSER_ILLEGAL"
+        }
+
         // 1. HARD BLOCKERS (Never bypassed)
         val permBans = prefs.getStringSet(KEY_PERM_BANS, emptySet()) ?: emptySet()
         if (permBans.contains(pkg)) return "PERMANENT_BAN"
