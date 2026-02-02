@@ -531,7 +531,7 @@ object LockManager {
     fun isEmergencyApp(pkg: String): Boolean {
         if (pkg.isBlank()) return false
         val p = pkg.lowercase()
-        return p.contains("dialer") || 
+        val match = p.contains("dialer") || 
                p.contains("telecom") || 
                p.contains("incallui") || 
                p.contains("clock") || 
@@ -539,7 +539,11 @@ object LockManager {
                p.contains("contacts") ||
                p.contains("phone") ||
                p.contains("emergency") ||
-               p.contains("stk") // SIM Toolkit
+               p.contains("messaging") || // Added for SMS emergency coord
+               p.contains("stk")
+        
+        if (match) DebugLogger.log("EMERGENCY_MATCH", "Package $pkg validated as Emergency Bypass")
+        return match
     }
 
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
