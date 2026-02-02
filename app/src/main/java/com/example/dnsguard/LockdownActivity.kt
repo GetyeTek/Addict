@@ -284,6 +284,7 @@ class LockdownActivity : ComponentActivity() {
             "MANUAL_LOCK" -> UiConfig(Icons.Filled.Timer, Color(0xFF818CF8), "YOU DID THIS", "You locked it. Now finish it. No excuses.")
             "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "EXECUTED", "This app is garbage. I've deleted its purpose from your life.")
             "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "TUNNEL VISION", "If it's not on the list, it's irrelevant. Focus.")
+            "MAINTENANCE_BROWSER_ILLEGAL" -> UiConfig(Icons.Filled.Dangerous, Color(0xFFFB923C), "STICK TO THE PLAN", "You're here to fix the DNS, not browse with this garbage. Use Chrome or stay locked out.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
