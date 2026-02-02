@@ -73,7 +73,15 @@ class WatcherService : Service() {
                     val isFixing = LockManager.isFixWindowActive(applicationContext)
                     
                     // DO NOT launch if we are in an emergency app OR if the package is empty
-                    if (blockType != null && !isFixing && topPkg.isNotBlank() && !LockManager.isEmergencyApp(topPkg) && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked) {
+                    val isEmergency = LockManager.isEmergencyApp(topPkg)
+                    
+                    // DIAGNOSTIC LOG: Only log if we are about to block something that looks like an emergency app
+                    if (blockType != null && (topPkg.contains("dialer") || topPkg.contains("clock") || topPkg.contains("telecom") || topPkg.contains("alarm"))) {
+                        DebugLogger.log("YANK_CHECK", "Pkg: $topPkg | Block: $blockType | isEmergency: $isEmergency")
+                    }
+
+                    if (blockType != null && !isFixing && topPkg.isNotBlank() && !isEmergency && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked) {
+                        DebugLogger.log("YANK_ENFORCE", "Yanking back from $topPkg because of $blockType")
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", blockType)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
