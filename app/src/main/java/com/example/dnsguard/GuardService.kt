@@ -219,15 +219,16 @@ class GuardService : AccessibilityService() {
             event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             
             val now = System.currentTimeMillis()
-            if (now - lastContentScanTime < 400) return // Debounce: Max 2.5 scans per second
+            if (now - lastContentScanTime < 400) return // Debounce
             lastContentScanTime = now
             
-        // SYNCED CHECK: Uses centralized detection logic
-        val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
-        val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
+            // EXEMPTION: Hardcoded safe apps (ChatGPT) are never scanned for violations
+            if (LockManager.isAppApproved(applicationContext, pkg)) return
+
+            val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
+            val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
             
             if (isBrowser || isTelegram) {
-                // Launch immediate check (Bypassing the 1.5s Polling delay)
                 scope.launch { scanForViolations(isBrowser, isTelegram) }
             }
         }
@@ -586,8 +587,10 @@ class GuardService : AccessibilityService() {
 
     private fun managePolling(pkg: String) {
         pollingJob?.cancel()
-        // Scanners (Browser/Telegram) still need polling for content, 
-        // but App-Blocking is now handled instantly via onAccessibilityEvent
+        
+        // EXEMPTION: Hardcoded safe apps (ChatGPT) are never polled for violations
+        if (LockManager.isAppApproved(applicationContext, pkg)) return
+
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
 
