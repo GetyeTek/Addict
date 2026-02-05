@@ -62,9 +62,11 @@ class WatcherService : Service(), SensorEventListener {
                         shakeTimestamps.removeFirst()
                     }
 
+                    DebugLogger.log("EXORCIST", "Distinct Shake Detected (${shakeTimestamps.size}/3)")
                     if (shakeTimestamps.size >= 3) {
                         shakeTimestamps.clear()
                         if (!LockManager.isWhisperMode(ctx)) {
+                            DebugLogger.log("EXORCIST", "TRIGGER: Conditions met. Launching Protocol.")
                             LockManager.startWhisperMode(ctx, isReflex = true)
                             val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
                             vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
@@ -97,26 +99,37 @@ class WatcherService : Service(), SensorEventListener {
     private fun startPenaltyAudio() {
         if (mediaPlayer != null && mediaPlayer?.isPlaying == true) return
         
-        // Bypass DND if permission granted
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        // Diagnostic State Check
+        val dndState = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) nm.currentInterruptionFilter else -1
+        val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+        DebugLogger.log("AUDIO_DIAG", "Attempting start. DND: $dndState, MaxVol: $maxVol")
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             if (nm.isNotificationPolicyAccessGranted) {
                 nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                DebugLogger.log("AUDIO_DIAG", "DND Bypassed successfully.")
+            } else {
+                DebugLogger.log("AUDIO_WARN", "DND Access NOT granted. Audio might be suppressed.")
             }
         }
 
-        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
+        am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
 
         try {
-            // DIRECT REFERENCE: Prevents R8/Proguard from stripping the resource
             mediaPlayer = MediaPlayer.create(this, R.raw.bad_song)
+            if (mediaPlayer == null) {
+                DebugLogger.log("AUDIO_ERR", "MediaPlayer.create returned NULL. Is bad_song.mp3 in res/raw?")
+                return
+            }
             mediaPlayer?.setAudioStreamType(AudioManager.STREAM_ALARM)
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
-            DebugLogger.log("AUDIO", "Penalty music initiated.")
+            DebugLogger.log("AUDIO_OK", "Playback started successfully.")
         } catch (e: Exception) { 
-            DebugLogger.log("AUDIO_ERR", "Playback failed: ${e.message}")
+            DebugLogger.log("AUDIO_CRASH", "Engine Error: ${e.message}")
         }
     }
 
@@ -146,13 +159,17 @@ class WatcherService : Service(), SensorEventListener {
                 if (LockManager.isWhisperMode(applicationContext)) {
                     val elapsed = LockManager.getWhisperElapsed(applicationContext)
                     val steps = LockManager.getWhisperSteps(applicationContext)
+                    
                     if (elapsed > 60000 && steps < 30) {
+                        val isPlaying = mediaPlayer?.isPlaying == true
+                        DebugLogger.log("EXORCIST_STATE", "Penalty Active. Time: ${elapsed/1000}s, Steps: $steps, Playing: $isPlaying")
                         startPenaltyAudio()
                     } else {
+                        if (elapsed <= 60000) DebugLogger.log("EXORCIST_STATE", "Grace Period: ${60 - (elapsed/1000)}s left")
                         stopPenaltyAudio()
                     }
                 } else {
-                    stopPenaltyAudio()
+                    if (mediaPlayer != null) stopPenaltyAudio()
                 }
 
                 // Respect Master Key / Nuke status
