@@ -33,6 +33,9 @@ object LockManager {
     private const val KEY_DEEP_FOCUS_END = "deep_focus_end_ts"
     private const val KEY_DEEP_FOCUS_ALLOWED = "deep_focus_allowed_apps"
     private const val KEY_FIX_WINDOW_TS = "content_fix_ts"
+    private const val KEY_WHISPER_ACTIVE = "whisper_mode_active"
+    private const val KEY_WHISPER_START = "whisper_start_ts"
+    private const val KEY_WHISPER_STEPS = "whisper_steps_count"
     private const val KEY_LEARNED_APPS = "learned_apps_map"
     private const val KEY_APPROVED_APPS = "approved_apps_set"
     var currentActivePackage: String = ""
@@ -592,6 +595,35 @@ object LockManager {
         return match
     }
 
+    fun startWhisperMode(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_WHISPER_ACTIVE, true)
+            .putLong(KEY_WHISPER_START, System.currentTimeMillis())
+            .putInt(KEY_WHISPER_STEPS, 0)
+            .apply()
+    }
+
+    fun stopWhisperMode(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_WHISPER_ACTIVE, false)
+            .apply()
+    }
+
+    fun isWhisperMode(ctx: Context): Boolean = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_WHISPER_ACTIVE, false)
+    
+    fun getWhisperSteps(ctx: Context): Int = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_WHISPER_STEPS, 0)
+    
+    fun addWhisperStep(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val current = prefs.getInt(KEY_WHISPER_STEPS, 0)
+        prefs.edit().putInt(KEY_WHISPER_STEPS, current + 1).apply()
+    }
+
+    fun getWhisperElapsed(ctx: Context): Long {
+        val start = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_WHISPER_START, 0L)
+        return System.currentTimeMillis() - start
+    }
+
     fun getActiveBlockType(ctx: Context, pkg: String = ""): String? {
         // NEUTRALITY GUARD: If package is unknown/empty (during transitions), do not block.
         if (pkg.isBlank()) return null
@@ -642,6 +674,7 @@ object LockManager {
         // 6. FOCUS / LADDER / NIGHT LOCK
         if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
         if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
+        if (isWhisperMode(ctx)) return "WHISPER_PROTOCOL"
         if (isNightLockActive(ctx)) return "NIGHT_LOCK"
 
         // QUARANTINE LOGIC
