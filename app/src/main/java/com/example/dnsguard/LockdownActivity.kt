@@ -144,6 +144,13 @@ class LockdownActivity : ComponentActivity() {
                         color = Color(0xFF10B981)
                     )
                     Text("$steps / 30 STEPS", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    
+                    val dist = LockManager.currentDisplacement
+                    val flux = LockManager.magneticFluxTotal
+                    Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
+                    if (dist < 20f && flux > 10f) {
+                        Text("Magnetic Flux: ${flux.toInt()}/150", color = Color.Gray, fontSize = 10.sp)
+                    }
                 }
 
                 // SOCIAL FAIL-SAFE: 10s Cancel Button (Reflex Only)
