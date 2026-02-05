@@ -605,8 +605,10 @@ class GuardService : AccessibilityService() {
     }
 
     private fun scanForViolations(isBrowser: Boolean, isTelegram: Boolean) {
-        // BYPASS: If the user is in the 60s Fix Window, disable active scanning
         if (LockManager.isFixWindowActive(applicationContext)) return
+
+        val isLearnedApp = LockManager.getLearnedApps(applicationContext).containsKey(activePackage)
+        val surveillanceLog = if (isLearnedApp) StringBuilder() else null
 
         val windows = this.windows
         for (window in windows) {
@@ -638,11 +640,20 @@ class GuardService : AccessibilityService() {
 
                         val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                         val lowerText = rawText.lowercase()
-                        val index = lowerText.indexOf(site)
 
+                        // SURVEILLANCE: Log what we see in Learned Apps
+                        if (isLearnedApp && rawText.isNotBlank()) {
+                            surveillanceLog?.append("[").append(rawText.trim()).append("] ")
+                        }
+
+                        val index = lowerText.indexOf(site)
                         if (index != -1) {
                             val charBefore = if (index > 0) lowerText[index - 1] else ' '
                             if (!charBefore.isLetterOrDigit()) {
+                                if (isLearnedApp) {
+                                    DebugLogger.log("SURVEILLANCE_MATCH", "Domain [$site] found in Learned App [$activePackage]")
+                                }
+                                
                                 val targetPkg = root.packageName?.toString() ?: activePackage
                                 if (LockManager.isNonStandardApp(applicationContext, targetPkg)) {
                                     LockManager.banNonStandardApp(applicationContext)
@@ -655,6 +666,11 @@ class GuardService : AccessibilityService() {
                         }
                     }
                 }
+            }
+            
+            // Finalize Surveillance Log for this cycle
+            if (isLearnedApp && surveillanceLog != null && surveillanceLog.isNotEmpty()) {
+                DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: ${surveillanceLog.take(200)}...")
             }
 
             if (isTelegram) {
