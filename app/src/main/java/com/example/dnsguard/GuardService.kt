@@ -222,8 +222,8 @@ class GuardService : AccessibilityService() {
             if (now - lastContentScanTime < 400) return // Debounce
             lastContentScanTime = now
             
-            // EXEMPTION: Hardcoded safe apps (ChatGPT) are never scanned for violations
-            if (LockManager.isAppApproved(applicationContext, pkg)) return
+            // EXEMPTION: Only hardcoded system apps (ChatGPT) bypass the scanner
+            if (LockManager.isHardcodedSafe(pkg)) return
 
             val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
             val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
@@ -588,8 +588,8 @@ class GuardService : AccessibilityService() {
     private fun managePolling(pkg: String) {
         pollingJob?.cancel()
         
-        // EXEMPTION: Hardcoded safe apps (ChatGPT) are never polled for violations
-        if (LockManager.isAppApproved(applicationContext, pkg)) return
+        // EXEMPTION: Only hardcoded system apps (ChatGPT) bypass the polling scanner
+        if (LockManager.isHardcodedSafe(pkg)) return
 
         val isBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || dynamicBrowsers.contains(pkg)
         val isTelegram = pkg.contains("telegram") || pkg.contains("challegram")
@@ -629,12 +629,12 @@ class GuardService : AccessibilityService() {
                         val resId = node.viewIdResourceName?.lowercase() ?: ""
                         val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox")
                         
-                        // AGGRESSIVE SCAN: If approved learned app, we scan EVERY node regardless of type
-                        val isApproved = LockManager.isAppApproved(applicationContext, activePackage)
-                        if (!isApproved) {
-                            val isWebContent = node.className.toString().contains("WebView") || resId.contains("content")
-                            if (!isUrlBar && isWebContent) continue
-                        }
+                        // SCAN STRATEGY:
+                        // If it's a standard browser, focus on the URL bar to prevent over-triggering.
+                        // If it's a 'Learned' app (even if approved), scan EVERYTHING (WebViews/Content) 
+                        // because they often hide URLs in non-standard nodes.
+                        val isStandard = LockManager.STANDARD_BROWSERS.contains(activePackage)
+                        if (isStandard && !isUrlBar) continue
 
                         val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                         val lowerText = rawText.lowercase()
