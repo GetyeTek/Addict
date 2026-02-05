@@ -193,6 +193,8 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
             AppVaultCard()
             Spacer(modifier = Modifier.height(16.dp))
+            BrowserApprovalCard()
+            Spacer(modifier = Modifier.height(16.dp))
             NightPassCard()
             Spacer(modifier = Modifier.height(16.dp))
             EmergencyProtocolCard()
@@ -561,6 +563,84 @@ class MainActivity : ComponentActivity() {
             }, confirmButton = {
                 Button(onClick = { LockManager.setUserLockout(applicationContext, mins.toIntOrNull() ?: 0); showDialog = false }) { Text("BEGIN") }
             })
+        }
+    }
+
+    @Composable
+    fun BrowserApprovalCard() {
+        var showDialog by remember { mutableStateOf(false) }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)), border = BorderStroke(2.dp, Color(0xFF10B981)), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, null, tint = Color(0xFF10B981))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("BROWSER APPROVAL", color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                }
+                Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF065F46))) {
+                    Text("MANAGE LEARNED APPS")
+                }
+            }
+        }
+        if (showDialog) BrowserApprovalDialog(onDismiss = { showDialog = false })
+    }
+
+    @Composable
+    fun BrowserApprovalDialog(onDismiss: () -> Unit) {
+        val ctx = LocalContext.current
+        var learnedApps by remember { mutableStateOf(LockManager.getLearnedApps(ctx)) }
+        
+        LaunchedEffect(Unit) {
+            while(true) {
+                learnedApps = LockManager.getLearnedApps(ctx)
+                delay(1000)
+            }
+        }
+
+        Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.fillMaxSize().padding(16.dp), shape = RoundedCornerShape(28.dp), color = Color(0xFF0F172A)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text("Learned Web Apps", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Text("Apps caught using WebViews. 1-hour quarantine required.", color = Color.Gray, fontSize = 12.sp)
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
+                        val list = learnedApps.toList()
+                        items(list.size) { index ->
+                            val (pkg, _) = list[index]
+                            val isApproved = LockManager.isAppApproved(ctx, pkg)
+                            val remaining = LockManager.getQuarantineRemaining(ctx, pkg)
+                            
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(pkg.substringAfterLast("."), color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text(pkg, color = Color.Gray, fontSize = 10.sp)
+                                }
+                                
+                                when {
+                                    isApproved -> {
+                                        Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF1E293B))) {
+                                            Text("APPROVED", color = Color.Gray)
+                                        }
+                                    }
+                                    remaining > 0 -> {
+                                        val m = remaining / 60000
+                                        val s = (remaining % 60000) / 1000
+                                        Text(String.format("%02d:%02d", m, s), color = Color(0xFFF87171), fontWeight = FontWeight.Black)
+                                    }
+                                    else -> {
+                                        Button(onClick = { LockManager.approveApp(ctx, pkg); learnedApps = LockManager.getLearnedApps(ctx) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))) {
+                                            Text("APPROVE", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = Color(0xFF1E293B))
+                        }
+                    }
+                    TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("CLOSE") }
+                }
+            }
         }
     }
 
