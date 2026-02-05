@@ -1056,6 +1056,20 @@ class MainActivity : ComponentActivity() {
                  it.startActivity(i)
             })
         }
+
+        if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            list.add(PermissionItem("Location (Fine)") { 
+                (it as MainActivity).requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 103)
+            })
+        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q && 
+                   ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            list.add(PermissionItem("Background Location") { 
+                val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                i.data = Uri.parse("package:$packageName")
+                it.startActivity(i)
+                android.widget.Toast.makeText(it, "Set Location to 'Allow all the time'", android.widget.Toast.LENGTH_LONG).show()
+            })
+        }
         
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
