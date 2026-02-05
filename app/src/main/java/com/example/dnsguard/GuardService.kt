@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.content.Context
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.KeyEvent
 import kotlinx.coroutines.*
 
 class GuardService : AccessibilityService() {
@@ -383,8 +384,18 @@ class GuardService : AccessibilityService() {
         }
     }
 
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        val action = event.action
 
-    
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            LockManager.isVolumeUpHeld = (action == KeyEvent.ACTION_DOWN)
+            // We return false so the system still processes volume changes
+            return false
+        }
+        return super.onKeyEvent(event)
+    }
+
     private fun startTripwire() {
         if (LockManager.isBootGraceActive()) return
         showInstantOverlay("SECURITY_TRIPWIRE")
