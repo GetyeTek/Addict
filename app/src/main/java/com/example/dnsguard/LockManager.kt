@@ -314,7 +314,17 @@ object LockManager {
         val enabledServices = android.provider.Settings.Secure.getString(ctx.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
         val hasAccessibility = enabledServices.contains(expected)
 
-        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay || !areGlobalNotifsEnabled || !areChannelsEnabled
+        // EXORCIST DEFENSE: Activity Recognition (Android 10+)
+        val hasActivity = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            ctx.checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else true
+
+        // EXORCIST DEFENSE: DND Access (Android 6.0+)
+        val hasDndAccess = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            nm.isNotificationPolicyAccessGranted
+        } else true
+
+        return !hasBattery || !hasAdmin || !hasAccessibility || !hasOverlay || !areGlobalNotifsEnabled || !areChannelsEnabled || !hasActivity || !hasDndAccess
     }
 
     fun setPenaltyWarned(ctx: Context) {
