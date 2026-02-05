@@ -124,10 +124,23 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
     override fun onLocationChanged(location: android.location.Location) {
         if (LockManager.isWhisperMode(applicationContext)) {
+            // 1. ANTI-SPOOFING: Check if location is fake
+            val isMock = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                location.isMock
+            } else {
+                @Suppress("DEPRECATION")
+                location.isFromMockProvider
+            }
+
+            if (isMock) {
+                DebugLogger.log("TAMPER_GPS", "Nice try. Mock location ignored.")
+                return
+            }
+
             val start = LockManager.startLocation
             if (start == null) {
                 LockManager.startLocation = location
-                DebugLogger.log("EXORCIST_GPS", "Anchor Locked: ${location.latitude}, ${location.longitude} (Acc: ${location.accuracy}m)")
+                DebugLogger.log("EXORCIST_GPS", "Anchor Locked (Acc: ${location.accuracy}m)")
             } else {
                 val distance = start.distanceTo(location)
                 LockManager.currentDisplacement = distance
@@ -217,6 +230,18 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
                 // WHISPER PENALTY CHECK
                 if (LockManager.isWhisperMode(applicationContext)) {
+                    // 2. LOCATION-OFF ENFORCEMENT
+                    val isGpsOn = locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true
+                    val isNetOn = locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
+                    
+                    if (!isGpsOn && !isNetOn) {
+                        DebugLogger.log("EXORCIST_EVASION", "Location turned off during protocol!")
+                        val i = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        }
+                        startActivity(i)
+                    }
+
                     val elapsed = LockManager.getWhisperElapsed(applicationContext)
                     val steps = LockManager.getWhisperSteps(applicationContext)
                     
