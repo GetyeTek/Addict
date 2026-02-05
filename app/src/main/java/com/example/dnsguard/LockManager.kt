@@ -103,6 +103,9 @@ object LockManager {
     // BREAK IMMUNITY: Apps that won't be interrupted by usage breaks
     private val MEDIA_WHITELIST = setOf("video.player.videoplayer")
 
+    // HARDCODED SAFE: Apps that use WebViews but are trusted (e.g. AI tools)
+    private val HARDCODED_SAFE_APPS = setOf("com.openai.chatgpt")
+
     fun isUnlocked(ctx: Context): Boolean {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val unlockTime = prefs.getLong(KEY_UNLOCK_TIME, 0L)
@@ -583,6 +586,7 @@ object LockManager {
     }
 
     fun isAppApproved(ctx: Context, pkg: String): Boolean {
+        if (HARDCODED_SAFE_APPS.contains(pkg)) return true
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getStringSet(KEY_APPROVED_APPS, emptySet())?.contains(pkg) == true
     }
