@@ -130,6 +130,18 @@ class LockdownActivity : ComponentActivity() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            if (type == "QUARANTINE") {
+                 val remaining = LockManager.getQuarantineRemaining(context, blockTypeState.value) // Note: This uses the pkg if we passed it, but better logic below
+                 // We need the active package name. For now, GuardService passes the TYPE, but LockdownActivity can query LockManager.currentActivePackage
+                 val pkg = LockManager.currentActivePackage
+                 val rem = LockManager.getQuarantineRemaining(context, pkg)
+                 val mins = (rem / 60000)
+                 val secs = (rem % 60000) / 1000
+                 
+                 Text(String.format("%02d:%02d REMAINING", mins, secs), color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                 Spacer(modifier = Modifier.height(24.dp))
+            }
+
             if (type == "SYSTEM") {
                 Text("PICK ONE, GENIUS", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
                 DnsManager.ALLOWED_HOSTNAMES.forEach { host ->
@@ -285,6 +297,8 @@ class LockdownActivity : ComponentActivity() {
             "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "EXECUTED", "This app is garbage. I've deleted its purpose from your life.")
             "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "TUNNEL VISION", "If it's not on the list, it's irrelevant. Focus.")
             "MAINTENANCE_BROWSER_ILLEGAL" -> UiConfig(Icons.Filled.Dangerous, Color(0xFFFB923C), "STICK TO THE PLAN", "You're here to fix the DNS, not browse with this garbage. Use Chrome or stay locked out.")
+            "QUARANTINE" -> UiConfig(Icons.Filled.HourglassEmpty, Color(0xFFF87171), "MANDATORY QUARANTINE", "I've detected a web-viewer in this app. It is locked for 1 hour while I prepare surveillance.")
+            "PENDING_APPROVAL" -> UiConfig(Icons.Filled.FactCheck, Color(0xFFFBBF24), "PENDING APPROVAL", "The quarantine has ended. You must manually approve this app in the Guardian Dashboard to use it.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
