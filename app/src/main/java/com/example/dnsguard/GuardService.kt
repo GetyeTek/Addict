@@ -168,12 +168,17 @@ class GuardService : AccessibilityService() {
             managePolling(pkg)
         }
 
-        // LEARN: If this app displays a WebView, mark it as a browser for the session
-        if (event.className == "android.webkit.WebView") {
-            if (dynamicBrowsers.add(pkg)) {
-                DebugLogger.log("LEARN", "Detected hidden WebView in $pkg. Marked as browser.")
-                // Restart polling immediately for this new threat
-                managePolling(pkg)
+        // LEARN: Detect Web-capable views and initiate Quarantine
+        val className = event.className?.toString() ?: ""
+        if (className.contains("WebView", ignoreCase = true) || 
+            className.contains("ChromeCustomTab", ignoreCase = true) ||
+            className.contains("WebSettings", ignoreCase = true)) {
+            
+            if (!LockManager.STANDARD_BROWSERS.contains(pkg) && pkg != packageName) {
+                LockManager.registerLearnedApp(applicationContext, pkg)
+                if (dynamicBrowsers.add(pkg)) {
+                    managePolling(pkg)
+                }
             }
         }
 
@@ -606,8 +611,13 @@ class GuardService : AccessibilityService() {
                     for (node in candidates) {
                         val resId = node.viewIdResourceName?.lowercase() ?: ""
                         val isUrlBar = node.isEditable || resId.contains("url") || resId.contains("address") || resId.contains("omnibox")
-                        val isWebContent = node.className == "android.webkit.WebView" || resId.contains("content")
-                        if (!isUrlBar && isWebContent) continue
+                        
+                        // AGGRESSIVE SCAN: If approved learned app, we scan EVERY node regardless of type
+                        val isApproved = LockManager.isAppApproved(applicationContext, activePackage)
+                        if (!isApproved) {
+                            val isWebContent = node.className.toString().contains("WebView") || resId.contains("content")
+                            if (!isUrlBar && isWebContent) continue
+                        }
 
                         val rawText = (node.text?.toString() ?: "") + " " + (node.contentDescription?.toString() ?: "")
                         val lowerText = rawText.lowercase()
