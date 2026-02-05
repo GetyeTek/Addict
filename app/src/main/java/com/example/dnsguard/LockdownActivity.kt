@@ -147,9 +147,18 @@ class LockdownActivity : ComponentActivity() {
                     
                     val dist = LockManager.currentDisplacement
                     val flux = LockManager.magneticFluxTotal
-                    Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
-                    if (dist < 20f && flux > 10f) {
-                        Text("Magnetic Flux: ${flux.toInt()}/150", color = Color.Gray, fontSize = 10.sp)
+                    
+                    val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+                    val locDisabled = !lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) && 
+                                      !lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
+
+                    if (locDisabled) {
+                        Text("ENABLE LOCATION TO CONTINUE", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    } else {
+                        Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
+                        if (dist < 20f && flux > 10f) {
+                            Text("Magnetic Flux: ${flux.toInt()}/150", color = Color.Gray, fontSize = 10.sp)
+                        }
                     }
                 }
 
