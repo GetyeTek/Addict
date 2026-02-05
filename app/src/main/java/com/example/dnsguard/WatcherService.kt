@@ -13,10 +13,11 @@ import android.media.MediaPlayer
 import android.media.AudioManager
 import kotlinx.coroutines.*
 
-class WatcherService : Service(), SensorEventListener {
+class WatcherService : Service(), SensorEventListener, android.location.LocationListener {
     private val job = SupervisorJob()
     private var mediaPlayer: MediaPlayer? = null
     private var sensorManager: SensorManager? = null
+    private var locationManager: android.location.LocationManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
     private val shakeThreshold = 30.0f // Requires ~3G of force
@@ -33,10 +34,25 @@ class WatcherService : Service(), SensorEventListener {
 
         val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         sensorManager?.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+
+        val magSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        sensorManager?.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_UI)
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         val ctx = applicationContext
+
+        // 0. MAGNETIC FLUX (Movement detection fallback)
+        if (event?.sensor?.type == Sensor.TYPE_MAGNETIC_FIELD && LockManager.isWhisperMode(ctx)) {
+            val vals = event.values
+            LockManager.lastMagVector?.let {
+                val delta = Math.abs(vals[0]-it[0]) + Math.abs(vals[1]-it[1]) + Math.abs(vals[2]-it[2])
+                LockManager.magneticFluxTotal += delta
+            }
+            LockManager.lastMagVector = vals.clone()
+        }
         
         // 1. SHAKE DETECTION (Requires holding Volume Up)
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
@@ -71,11 +87,12 @@ class WatcherService : Service(), SensorEventListener {
                             val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
                             vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
                             
-                            val intent = Intent(ctx, LockdownActivity::class.java).apply {
-                                putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                            }
-                            startActivity(intent)
+                                                    val intent = Intent(ctx, LockdownActivity::class.java).apply {
+                            putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        startLocationTracking()
+                        startActivity(intent)
                         }
                     }
                 }
@@ -86,12 +103,55 @@ class WatcherService : Service(), SensorEventListener {
         if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
             if (LockManager.isWhisperMode(ctx)) {
                 LockManager.addWhisperStep(ctx)
-                if (LockManager.getWhisperSteps(ctx) >= 30) {
+                val steps = LockManager.getWhisperSteps(ctx)
+                val dist = LockManager.currentDisplacement
+                val flux = LockManager.magneticFluxTotal
+                
+                // LOGIC: End only if Steps met AND (Moved 20m OR high magnetic variance)
+                val hasMovedEnough = dist >= 20f || flux > 150f
+                
+                if (steps >= 30 && hasMovedEnough) {
+                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${dist}m, Flux: $flux")
                     LockManager.stopWhisperMode(ctx)
+                    stopLocationTracking()
                     stopPenaltyAudio()
+                } else if (steps >= 30) {
+                    DebugLogger.log("EXORCIST_STALL", "Steps done, but displacement failed. Dist: ${dist}m, Flux: $flux")
                 }
             }
         }
+    }
+
+    override fun onLocationChanged(location: android.location.Location) {
+        if (LockManager.isWhisperMode(applicationContext)) {
+            val start = LockManager.startLocation
+            if (start == null) {
+                LockManager.startLocation = location
+                DebugLogger.log("EXORCIST_GPS", "Anchor Locked: ${location.latitude}, ${location.longitude} (Acc: ${location.accuracy}m)")
+            } else {
+                val distance = start.distanceTo(location)
+                LockManager.currentDisplacement = distance
+                DebugLogger.log("EXORCIST_GPS", "Displacement: ${distance}m (Acc: ${location.accuracy}m)")
+            }
+        }
+    }
+
+    private fun startLocationTracking() {
+        try {
+            val provider = if (locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true) 
+                android.location.LocationManager.GPS_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
+            locationManager?.requestLocationUpdates(provider, 1000L, 1f, this)
+            DebugLogger.log("EXORCIST_GPS", "Tracker started using $provider")
+        } catch (e: SecurityException) {
+            DebugLogger.log("EXORCIST_ERR", "GPS Permission Denied")
+        }
+    }
+
+    private fun stopLocationTracking() {
+        locationManager?.removeUpdates(this)
+        LockManager.startLocation = null
+        LockManager.currentDisplacement = 0f
+        LockManager.magneticFluxTotal = 0f
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
