@@ -36,6 +36,7 @@ object LockManager {
     private const val KEY_WHISPER_ACTIVE = "whisper_mode_active"
     private const val KEY_WHISPER_START = "whisper_start_ts"
     private const val KEY_WHISPER_STEPS = "whisper_steps_count"
+    private const val KEY_WHISPER_REFLEX = "whisper_is_reflex"
     private const val KEY_LEARNED_APPS = "learned_apps_map"
     private const val KEY_APPROVED_APPS = "approved_apps_set"
     var currentActivePackage: String = ""
@@ -605,13 +606,16 @@ object LockManager {
         return match
     }
 
-    fun startWhisperMode(ctx: Context) {
+    fun startWhisperMode(ctx: Context, isReflex: Boolean = false) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean(KEY_WHISPER_ACTIVE, true)
             .putLong(KEY_WHISPER_START, System.currentTimeMillis())
             .putInt(KEY_WHISPER_STEPS, 0)
+            .putBoolean(KEY_WHISPER_REFLEX, isReflex)
             .apply()
     }
+
+    fun isWhisperReflex(ctx: Context): Boolean = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_WHISPER_REFLEX, false)
 
     fun stopWhisperMode(ctx: Context) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
