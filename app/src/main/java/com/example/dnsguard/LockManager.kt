@@ -586,9 +586,13 @@ object LockManager {
     }
 
     fun isAppApproved(ctx: Context, pkg: String): Boolean {
-        if (HARDCODED_SAFE_APPS.contains(pkg)) return true
+        if (isHardcodedSafe(pkg)) return true
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getStringSet(KEY_APPROVED_APPS, emptySet())?.contains(pkg) == true
+    }
+
+    fun isHardcodedSafe(pkg: String): Boolean {
+        return HARDCODED_SAFE_APPS.contains(pkg)
     }
 
     fun getQuarantineRemaining(ctx: Context, pkg: String): Long {
