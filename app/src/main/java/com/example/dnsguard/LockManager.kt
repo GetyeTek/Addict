@@ -33,6 +33,8 @@ object LockManager {
     private const val KEY_DEEP_FOCUS_END = "deep_focus_end_ts"
     private const val KEY_DEEP_FOCUS_ALLOWED = "deep_focus_allowed_apps"
     private const val KEY_FIX_WINDOW_TS = "content_fix_ts"
+    private const val KEY_LEARNED_APPS = "learned_apps_map"
+    private const val KEY_APPROVED_APPS = "approved_apps_set"
     var currentActivePackage: String = ""
 
     // THRESHOLDS
@@ -528,6 +530,50 @@ object LockManager {
         return !prefs.getBoolean(KEY_FIX_USED, false)
     }
 
+    fun registerLearnedApp(ctx: Context, pkg: String) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val learnedRaw = prefs.getString(KEY_LEARNED_APPS, "{}") ?: "{}"
+        val learnedMap = org.json.JSONObject(learnedRaw)
+        
+        if (!learnedMap.has(pkg)) {
+            learnedMap.put(pkg, System.currentTimeMillis())
+            prefs.edit().putString(KEY_LEARNED_APPS, learnedMap.toString()).apply()
+            DebugLogger.log("QUARANTINE", "New Web App Detected: $pkg. Initiating 1h isolation.")
+        }
+    }
+
+    fun getLearnedApps(ctx: Context): Map<String, Long> {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val learnedRaw = prefs.getString(KEY_LEARNED_APPS, "{}") ?: "{}"
+        val learnedMap = org.json.JSONObject(learnedRaw)
+        val result = mutableMapOf<String, Long>()
+        val keys = learnedMap.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            result[k] = learnedMap.getLong(k)
+        }
+        return result
+    }
+
+    fun approveApp(ctx: Context, pkg: String) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val approved = prefs.getStringSet(KEY_APPROVED_APPS, emptySet())?.toMutableSet() ?: mutableSetOf()
+        approved.add(pkg)
+        prefs.edit().putStringSet(KEY_APPROVED_APPS, approved).apply()
+    }
+
+    fun isAppApproved(ctx: Context, pkg: String): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getStringSet(KEY_APPROVED_APPS, emptySet())?.contains(pkg) == true
+    }
+
+    fun getQuarantineRemaining(ctx: Context, pkg: String): Long {
+        val learned = getLearnedApps(ctx)
+        val detectTime = learned[pkg] ?: return 0L
+        val hour = 60 * 60 * 1000L
+        return (detectTime + hour - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
     fun isEmergencyApp(pkg: String): Boolean {
         if (pkg.isBlank()) return false
         val p = pkg.lowercase()
@@ -597,6 +643,14 @@ object LockManager {
         if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
         if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
         if (isNightLockActive(ctx)) return "NIGHT_LOCK"
+
+        // QUARANTINE LOGIC
+        val learnedApps = getLearnedApps(ctx)
+        if (learnedApps.containsKey(pkg)) {
+            if (!isAppApproved(ctx, pkg)) {
+                return if (getQuarantineRemaining(ctx, pkg) > 0) "QUARANTINE" else "PENDING_APPROVAL"
+            }
+        }
 
         val tempLocks = prefs.getStringSet(KEY_TEMP_LOCKS, emptySet()) ?: emptySet()
         val entry = tempLocks.find { it.startsWith("$pkg:") }
