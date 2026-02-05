@@ -203,6 +203,35 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(24.dp))
             DiagnosticsRow()
             
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            var showWhisperConfirm by remember { mutableStateOf(false) }
+            Button(
+                onClick = { showWhisperConfirm = true },
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7F1D1D)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Warning, null)
+                Spacer(Modifier.width(12.dp))
+                Text("THE DEVIL IS WHISPERING", fontWeight = FontWeight.Black)
+            }
+
+            if (showWhisperConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showWhisperConfirm = false },
+                    title = { Text("Initiate Exorcism?") },
+                    text = { Text("This will lock your phone and start a 60-second timer. If you don't take 30 steps, the penalty music will play at max volume.") },
+                    confirmButton = { 
+                        Button(onClick = { 
+                            LockManager.startWhisperMode(ctx)
+                            showWhisperConfirm = false
+                        }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("I'M READY") } 
+                    },
+                    dismissButton = { TextButton(onClick = { showWhisperConfirm = false }) { Text("CANCEL") } }
+                )
+            }
+            
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = { onThemeToggle(!isDark) },
@@ -1002,6 +1031,23 @@ class MainActivity : ComponentActivity() {
             list.add(PermissionItem("Accessibility") { it.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
         }
         
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (ctx.checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                list.add(PermissionItem("Physical Activity") { 
+                    (it as MainActivity).requestPermissions(arrayOf(android.Manifest.permission.ACTIVITY_RECOGNITION), 102)
+                })
+            }
+        }
+
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if (!nm.isNotificationPolicyAccessGranted) {
+                list.add(PermissionItem("Do Not Disturb Access") { 
+                    it.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                })
+            }
+        }
+
         if (!(ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager).isAdminActive(ComponentName(ctx, AdminReceiver::class.java))) {
             list.add(PermissionItem("Device Admin") { 
                  val comp = ComponentName(it, AdminReceiver::class.java)
