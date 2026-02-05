@@ -130,6 +130,24 @@ class LockdownActivity : ComponentActivity() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            if (type == "WHISPER_PROTOCOL") {
+                val elapsed = LockManager.getWhisperElapsed(context)
+                val remaining = (60000 - elapsed).coerceAtLeast(0L)
+                val steps = LockManager.getWhisperSteps(context)
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(if (remaining > 0) "${remaining/1000}s" else "PENALTY ACTIVE", color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LinearProgressIndicator(
+                        progress = (steps / 30f).coerceIn(0f, 1f),
+                        modifier = Modifier.fillMaxWidth().height(24.dp).background(Color.Gray, RoundedCornerShape(12.dp)),
+                        color = Color(0xFF10B981)
+                    )
+                    Text("$steps / 30 STEPS", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+            
             if (type == "QUARANTINE") {
                  val remaining = LockManager.getQuarantineRemaining(context, blockTypeState.value) // Note: This uses the pkg if we passed it, but better logic below
                  // We need the active package name. For now, GuardService passes the TYPE, but LockdownActivity can query LockManager.currentActivePackage
@@ -256,6 +274,7 @@ class LockdownActivity : ComponentActivity() {
                     "NIGHT_LOCK" -> !LockManager.isNightLockActive(ctx)
                     "BREAK_TIME" -> LockManager.getBreakRemaining(ctx) <= 0
                     "USER_LOCKOUT" -> !LockManager.isUserLockedOut(ctx)
+                    "WHISPER_PROTOCOL" -> !LockManager.isWhisperMode(ctx)
                     "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
                     "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
                     "TELEGRAM_SUSPENDED" -> !LockManager.isTelegramBanned(ctx)
@@ -297,6 +316,7 @@ class LockdownActivity : ComponentActivity() {
             "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "EXECUTED", "This app is garbage. I've deleted its purpose from your life.")
             "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "TUNNEL VISION", "If it's not on the list, it's irrelevant. Focus.")
             "MAINTENANCE_BROWSER_ILLEGAL" -> UiConfig(Icons.Filled.Dangerous, Color(0xFFFB923C), "STICK TO THE PLAN", "You're here to fix the DNS, not browse with this garbage. Use Chrome or stay locked out.")
+            "WHISPER_PROTOCOL" -> UiConfig(Icons.Filled.DirectionsRun, Color(0xFFEF4444), "THE DEVIL IS WHISPERING", "MOVE. Change your environment now. 30 steps or the music starts.")
             "QUARANTINE" -> UiConfig(Icons.Filled.HourglassEmpty, Color(0xFFF87171), "MANDATORY QUARANTINE", "I've detected a web-viewer in this app. It is locked for 1 hour while I prepare surveillance.")
             "PENDING_APPROVAL" -> UiConfig(Icons.Filled.FactCheck, Color(0xFFFBBF24), "PENDING APPROVAL", "The quarantine has ended. You must manually approve this app in the Guardian Dashboard to use it.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
