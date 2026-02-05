@@ -19,8 +19,9 @@ class WatcherService : Service(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
-    private val shakeThreshold = 16.5f
-    private val shakeWindow = 1500L
+    private val shakeThreshold = 30.0f // Requires ~3G of force
+    private val shakeWindow = 1000L
+    private var lastShakeTimestamp = 0L
     private val shakeTimestamps = java.util.LinkedList<Long>()
 
     override fun onCreate() {
@@ -37,8 +38,13 @@ class WatcherService : Service(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         val ctx = applicationContext
         
-        // 1. TRIPLE SHAKE DETECTION (REFLEX)
+        // 1. SHAKE DETECTION (Requires holding Volume Up)
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            if (!LockManager.isVolumeUpHeld) {
+                shakeTimestamps.clear()
+                return
+            }
+
             val x = event.values[0]
             val y = event.values[1]
             val z = event.values[2]
@@ -46,24 +52,29 @@ class WatcherService : Service(), SensorEventListener {
 
             if (magnitude > shakeThreshold) {
                 val now = System.currentTimeMillis()
-                shakeTimestamps.addLast(now)
-                // Remove old timestamps
-                while (shakeTimestamps.isNotEmpty() && now - shakeTimestamps.first > shakeWindow) {
-                    shakeTimestamps.removeFirst()
-                }
+                
+                // Debounce: Only count one shake every 150ms to ensure directional change
+                if (now - lastShakeTimestamp > 150) {
+                    shakeTimestamps.addLast(now)
+                    lastShakeTimestamp = now
+                    
+                    while (shakeTimestamps.isNotEmpty() && now - shakeTimestamps.first > shakeWindow) {
+                        shakeTimestamps.removeFirst()
+                    }
 
-                if (shakeTimestamps.size >= 3) {
-                    shakeTimestamps.clear()
-                    if (!LockManager.isWhisperMode(ctx)) {
-                        LockManager.startWhisperMode(ctx, isReflex = true)
-                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-                        vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
-                        
-                        val intent = Intent(ctx, LockdownActivity::class.java).apply {
-                            putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    if (shakeTimestamps.size >= 3) {
+                        shakeTimestamps.clear()
+                        if (!LockManager.isWhisperMode(ctx)) {
+                            LockManager.startWhisperMode(ctx, isReflex = true)
+                            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                            vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
+                            
+                            val intent = Intent(ctx, LockdownActivity::class.java).apply {
+                                putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            }
+                            startActivity(intent)
                         }
-                        startActivity(intent)
                     }
                 }
             }
@@ -98,15 +109,14 @@ class WatcherService : Service(), SensorEventListener {
         am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
 
         try {
-            val resId = resources.getIdentifier("bad_song", "raw", packageName)
-            if (resId != 0) {
-                mediaPlayer = MediaPlayer.create(this, resId)
-                mediaPlayer?.setAudioStreamType(AudioManager.STREAM_ALARM)
-                mediaPlayer?.isLooping = true
-                mediaPlayer?.start()
-            }
+            // DIRECT REFERENCE: Prevents R8/Proguard from stripping the resource
+            mediaPlayer = MediaPlayer.create(this, R.raw.bad_song)
+            mediaPlayer?.setAudioStreamType(AudioManager.STREAM_ALARM)
+            mediaPlayer?.isLooping = true
+            mediaPlayer?.start()
+            DebugLogger.log("AUDIO", "Penalty music initiated.")
         } catch (e: Exception) { 
-            DebugLogger.log("AUDIO_ERR", e.message ?: "Unknown")
+            DebugLogger.log("AUDIO_ERR", "Playback failed: ${e.message}")
         }
     }
 
