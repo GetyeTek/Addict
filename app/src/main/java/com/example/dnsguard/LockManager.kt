@@ -100,6 +100,9 @@ object LockManager {
     private val BROWSER_CACHE = mutableMapOf<String, Boolean>()
     private const val KEY_FIX_USED = "fix_window_consumed"
 
+    // BREAK IMMUNITY: Apps that won't be interrupted by usage breaks
+    private val MEDIA_WHITELIST = setOf("video.player.videoplayer")
+
     fun isUnlocked(ctx: Context): Boolean {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val unlockTime = prefs.getLong(KEY_UNLOCK_TIME, 0L)
@@ -690,7 +693,10 @@ object LockManager {
 
         // 6. FOCUS / LADDER / NIGHT LOCK
         if (isUserLockedOut(ctx)) return "USER_LOCKOUT"
-        if (getBreakRemaining(ctx) > 0) return "BREAK_TIME"
+        if (getBreakRemaining(ctx) > 0) {
+            if (MEDIA_WHITELIST.contains(pkg)) return null
+            return "BREAK_TIME"
+        }
         if (isWhisperMode(ctx)) return "WHISPER_PROTOCOL"
         if (isNightLockActive(ctx)) return "NIGHT_LOCK"
 
