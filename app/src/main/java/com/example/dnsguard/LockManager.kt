@@ -47,6 +47,9 @@ object LockManager {
     val T3 = 60 * 60 * 1000L
     val T4 = 90 * 60 * 1000L
 
+    @Volatile
+    var isVolumeUpHeld: Boolean = false
+
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
 
