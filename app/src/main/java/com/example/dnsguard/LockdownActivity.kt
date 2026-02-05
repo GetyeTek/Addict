@@ -145,6 +145,21 @@ class LockdownActivity : ComponentActivity() {
                     )
                     Text("$steps / 30 STEPS", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
                 }
+
+                // SOCIAL FAIL-SAFE: 10s Cancel Button (Reflex Only)
+                val isReflex = LockManager.isWhisperReflex(context)
+                if (isReflex && elapsed < 10000) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(
+                        onClick = { LockManager.stopWhisperMode(context); finishAffinity() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    ) {
+                        Text("MISTAKE / CANCEL", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Text("Aborting in ${10 - (elapsed / 1000)}s...", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
             
