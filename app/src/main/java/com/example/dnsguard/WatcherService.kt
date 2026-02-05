@@ -5,11 +5,73 @@ import android.content.*
 import android.net.Uri
 import android.provider.Settings
 import android.os.IBinder
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.media.MediaPlayer
+import android.media.AudioManager
 import kotlinx.coroutines.*
 
-class WatcherService : Service() {
+class WatcherService : Service(), SensorEventListener {
     private val job = SupervisorJob()
+    private var mediaPlayer: MediaPlayer? = null
+    private var sensorManager: SensorManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
+
+    override fun onCreate() {
+        super.onCreate()
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val stepSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST)
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
+            if (LockManager.isWhisperMode(applicationContext)) {
+                LockManager.addWhisperStep(applicationContext)
+                if (LockManager.getWhisperSteps(applicationContext) >= 30) {
+                    LockManager.stopWhisperMode(applicationContext)
+                    stopPenaltyAudio()
+                }
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private fun startPenaltyAudio() {
+        if (mediaPlayer != null && mediaPlayer?.isPlaying == true) return
+        
+        // Bypass DND if permission granted
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if (nm.isNotificationPolicyAccessGranted) {
+                nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+            }
+        }
+
+        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
+
+        try {
+            val resId = resources.getIdentifier("bad_song", "raw", packageName)
+            if (resId != 0) {
+                mediaPlayer = MediaPlayer.create(this, resId)
+                mediaPlayer?.setAudioStreamType(AudioManager.STREAM_ALARM)
+                mediaPlayer?.isLooping = true
+                mediaPlayer?.start()
+            }
+        } catch (e: Exception) { 
+            DebugLogger.log("AUDIO_ERR", e.message ?: "Unknown")
+        }
+    }
+
+    private fun stopPenaltyAudio() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (android.os.Build.VERSION.SDK_INT >= 34) {
@@ -26,6 +88,19 @@ class WatcherService : Service() {
                 // 5th Suggestion: Dynamic Notification Update
                 val statusLine = LockManager.getStatusLine(applicationContext)
                 updateNotification(statusLine)
+
+                // WHISPER PENALTY CHECK
+                if (LockManager.isWhisperMode(applicationContext)) {
+                    val elapsed = LockManager.getWhisperElapsed(applicationContext)
+                    val steps = LockManager.getWhisperSteps(applicationContext)
+                    if (elapsed > 60000 && steps < 30) {
+                        startPenaltyAudio()
+                    } else {
+                        stopPenaltyAudio()
+                    }
+                } else {
+                    stopPenaltyAudio()
+                }
 
                 // Respect Master Key / Nuke status
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
