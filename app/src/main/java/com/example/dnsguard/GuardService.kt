@@ -389,8 +389,11 @@ class GuardService : AccessibilityService() {
         val action = event.action
 
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            LockManager.isVolumeUpHeld = (action == KeyEvent.ACTION_DOWN)
-            // We return false so the system still processes volume changes
+            val isDown = action == KeyEvent.ACTION_DOWN
+            if (isDown != LockManager.isVolumeUpHeld) {
+                DebugLogger.log("EXORCIST", "VolUp ${if(isDown) "HELD" else "RELEASED"}")
+            }
+            LockManager.isVolumeUpHeld = isDown
             return false
         }
         return super.onKeyEvent(event)
