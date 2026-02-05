@@ -175,7 +175,7 @@ class GuardService : AccessibilityService() {
             className.contains("ChromeCustomTab", ignoreCase = true) ||
             className.contains("WebSettings", ignoreCase = true)) {
             
-            if (!LockManager.STANDARD_BROWSERS.contains(pkg) && pkg != packageName) {
+            if (!LockManager.STANDARD_BROWSERS.contains(pkg) && pkg != packageName && !LockManager.isAppApproved(applicationContext, pkg)) {
                 LockManager.registerLearnedApp(applicationContext, pkg)
                 if (dynamicBrowsers.add(pkg)) {
                     managePolling(pkg)
