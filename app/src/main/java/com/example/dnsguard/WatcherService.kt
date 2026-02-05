@@ -19,19 +19,62 @@ class WatcherService : Service(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
+    private val shakeThreshold = 16.5f
+    private val shakeWindow = 1500L
+    private val shakeTimestamps = java.util.LinkedList<Long>()
+
     override fun onCreate() {
         super.onCreate()
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        
         val stepSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         sensorManager?.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST)
+
+        val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        sensorManager?.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
+        val ctx = applicationContext
+        
+        // 1. TRIPLE SHAKE DETECTION (REFLEX)
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val magnitude = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
+
+            if (magnitude > shakeThreshold) {
+                val now = System.currentTimeMillis()
+                shakeTimestamps.addLast(now)
+                // Remove old timestamps
+                while (shakeTimestamps.isNotEmpty() && now - shakeTimestamps.first > shakeWindow) {
+                    shakeTimestamps.removeFirst()
+                }
+
+                if (shakeTimestamps.size >= 3) {
+                    shakeTimestamps.clear()
+                    if (!LockManager.isWhisperMode(ctx)) {
+                        LockManager.startWhisperMode(ctx, isReflex = true)
+                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                        vibrator.vibrate(longArrayOf(0, 500, 200, 500), -1)
+                        
+                        val intent = Intent(ctx, LockdownActivity::class.java).apply {
+                            putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        startActivity(intent)
+                    }
+                }
+            }
+        }
+
+        // 2. STEP DETECTION (ENFORCEMENT)
         if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
-            if (LockManager.isWhisperMode(applicationContext)) {
-                LockManager.addWhisperStep(applicationContext)
-                if (LockManager.getWhisperSteps(applicationContext) >= 30) {
-                    LockManager.stopWhisperMode(applicationContext)
+            if (LockManager.isWhisperMode(ctx)) {
+                LockManager.addWhisperStep(ctx)
+                if (LockManager.getWhisperSteps(ctx) >= 30) {
+                    LockManager.stopWhisperMode(ctx)
                     stopPenaltyAudio()
                 }
             }
