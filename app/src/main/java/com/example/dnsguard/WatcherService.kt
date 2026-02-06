@@ -19,6 +19,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     private var sensorManager: SensorManager? = null
     private var locationManager: android.location.LocationManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
+    private var locationSettlementCount = 0
 
     private val shakeThreshold = 30.0f // Requires ~3G of force
     private val shakeWindow = 1000L
@@ -138,13 +139,20 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
             val start = LockManager.startLocation
             
             // 3. ANCHOR STABILIZATION
-            // Don't set the starting point until we have a high-confidence lock (< 15m)
             if (start == null) {
-                if (location.accuracy <= 15f) {
+                // Ignore first 3 updates to allow GPS to settle/discard cached data
+                if (locationSettlementCount < 3) {
+                    locationSettlementCount++
+                    DebugLogger.log("EXORCIST_GPS", "Settling GPS ($locationSettlementCount/3)...")
+                    return
+                }
+
+                if (location.accuracy <= 12f) {
                     LockManager.startLocation = location
+                    LockManager.currentDisplacement = 0f
                     DebugLogger.log("EXORCIST_GPS", "Stable Anchor Set (Acc: ${location.accuracy}m)")
                 } else {
-                    DebugLogger.log("EXORCIST_GPS", "Waiting for stable lock... (Current: ${location.accuracy}m)")
+                    DebugLogger.log("EXORCIST_GPS", "Waiting for high accuracy lock... (Current: ${location.accuracy}m)")
                 }
             } else {
                 val distance = start.distanceTo(location)
@@ -178,6 +186,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         LockManager.startLocation = null
         LockManager.currentDisplacement = 0f
         LockManager.magneticFluxTotal = 0f
+        locationSettlementCount = 0
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
