@@ -183,46 +183,91 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun startPenaltyAudio() {
-        if (mediaPlayer != null && mediaPlayer?.isPlaying == true) return
-        
+        // 1. Check if already playing robustly
+        try {
+            if (mediaPlayer != null && mediaPlayer?.isPlaying == true) return
+        } catch (e: Exception) {
+            stopPenaltyAudio()
+        }
+
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         // Diagnostic State Check
+        val ringerMode = am.ringerMode
         val dndState = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) nm.currentInterruptionFilter else -1
         val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-        DebugLogger.log("AUDIO_DIAG", "Attempting start. DND: $dndState, MaxVol: $maxVol")
+        
+        DebugLogger.log("AUDIO_SYS", "Ringer: $ringerMode, DND: $dndState, MaxVol: $maxVol")
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             if (nm.isNotificationPolicyAccessGranted) {
                 nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-                DebugLogger.log("AUDIO_DIAG", "DND Bypassed successfully.")
             } else {
-                DebugLogger.log("AUDIO_WARN", "DND Access NOT granted. Audio might be suppressed.")
+                DebugLogger.log("AUDIO_WARN", "DND access missing - audio may be muted by system")
             }
         }
 
         am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
 
         try {
-            mediaPlayer = MediaPlayer.create(this, R.raw.bad_song)
-            if (mediaPlayer == null) {
-                DebugLogger.log("AUDIO_ERR", "MediaPlayer.create returned NULL. Is bad_song.mp3 in res/raw?")
-                return
+            mediaPlayer = MediaPlayer().apply {
+                // Must set attributes BEFORE prepare()
+                val attr = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+                setAudioAttributes(attr)
+
+                val afd = resources.openRawResourceFd(R.raw.bad_song)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+
+                setOnErrorListener { _, what, extra ->
+                    val err = when(what) {
+                        MediaPlayer.MEDIA_ERROR_UNKNOWN -> "UNKNOWN"
+                        MediaPlayer.MEDIA_ERROR_SERVER_DIED -> "SERVER_DIED"
+                        else -> "WHAT_$what"
+                    }
+                    val det = when(extra) {
+                        -1004 -> "IO_ERROR"
+                        -1007 -> "MALFORMED"
+                        -1010 -> "UNSUPPORTED"
+                        -110 -> "TIMEOUT"
+                        else -> "EXTRA_$extra"
+                    }
+                    DebugLogger.log("MEDIA_CRASH", "Type: $err, Detail: $det")
+                    stopPenaltyAudio()
+                    true
+                }
+
+                setOnInfoListener { _, what, extra ->
+                    DebugLogger.log("MEDIA_INFO", "Code: $what, Extra: $extra")
+                    false
+                }
+
+                isLooping = true
+                prepare()
+                start()
             }
-            mediaPlayer?.setAudioStreamType(AudioManager.STREAM_ALARM)
-            mediaPlayer?.isLooping = true
-            mediaPlayer?.start()
-            DebugLogger.log("AUDIO_OK", "Playback started successfully.")
-        } catch (e: Exception) { 
-            DebugLogger.log("AUDIO_CRASH", "Engine Error: ${e.message}")
+            DebugLogger.log("AUDIO_OK", "Engine started successfully")
+        } catch (e: Exception) {
+            DebugLogger.log("AUDIO_INIT_FAIL", "${e.message}")
+            stopPenaltyAudio()
         }
     }
 
     private fun stopPenaltyAudio() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
+        } catch (e: Exception) {
+            // Already inactive
+        } finally {
+            mediaPlayer = null
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
