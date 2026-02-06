@@ -25,6 +25,10 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     private val shakeWindow = 1000L
     private var lastShakeTimestamp = 0L
     private val shakeTimestamps = java.util.LinkedList<Long>()
+    
+    // SENSOR INTERLOCK STATE
+    private var lastVerifiedDistForStep = 0f
+    private var lastVerifiedStepForDist = 0
 
     private val volumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -123,19 +127,23 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         // 2. STEP DETECTION (ENFORCEMENT)
         if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
             if (LockManager.isWhisperMode(ctx)) {
-                LockManager.addWhisperStep(ctx)
-                val steps = LockManager.getWhisperSteps(ctx)
-                val dist = LockManager.currentDisplacement
+                val currentDist = LockManager.currentDisplacement
                 
-                // LOGIC: End only if Steps met AND Moved 20m
-                val hasMovedEnough = dist >= 20f
-                
-                if (steps >= 30 && hasMovedEnough) {
-                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${dist}m")
-                    LockManager.stopWhisperMode(ctx)
-                    stopLocationTracking()
-                } else if (steps >= 30) {
-                    DebugLogger.log("EXORCIST_STALL", "Steps done, but displacement failed (Needs 20m). Current: ${dist.toInt()}m")
+                // INTERLOCK 1: Step requires GPS progress
+                // We allow the first 2 steps to count without GPS to break the 'zero-zero' deadlock
+                val totalSteps = LockManager.getWhisperSteps(ctx)
+                if (currentDist > (lastVerifiedDistForStep + 0.4f) || totalSteps < 2) {
+                    LockManager.addWhisperStep(ctx)
+                    lastVerifiedDistForStep = currentDist
+                    
+                    val steps = LockManager.getWhisperSteps(ctx)
+                    if (steps >= 30 && currentDist >= 20f) {
+                        DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${currentDist}m")
+                        LockManager.stopWhisperMode(ctx)
+                        stopLocationTracking()
+                    }
+                } else {
+                    DebugLogger.log("EXORCIST_SYNC", "Step ignored: No GPS displacement detected.")
                 }
             }
         }
@@ -173,17 +181,21 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     DebugLogger.log("EXORCIST_GPS", "Waiting for high accuracy lock... (Current: ${location.accuracy}m)")
                 }
             } else {
-                val distance = start.distanceTo(location)
+                val rawDistance = start.distanceTo(location)
                 
                 // 4. TELEPORT PROTECTION
-                // If distance delta is impossible for a human (e.g. > 100m jump in seconds), ignore it.
-                if (distance > 500f) {
-                    DebugLogger.log("GPS_JUMP", "Ignoring 500m+ teleport")
-                    return
-                }
+                if (rawDistance > 500f) return
 
-                LockManager.currentDisplacement = distance
-                DebugLogger.log("EXORCIST_GPS", "Actual Displacement: ${distance.toInt()}m (Acc: ${location.accuracy}m)")
+                // INTERLOCK 2: GPS requires Step progress
+                val currentSteps = LockManager.getWhisperSteps(applicationContext)
+                if (currentSteps > lastVerifiedStepForDist || rawDistance < 1f) {
+                    // Accept the distance update only if user is actively stepping
+                    LockManager.currentDisplacement = rawDistance
+                    lastVerifiedStepForDist = currentSteps
+                    DebugLogger.log("EXORCIST_GPS", "Displacement Updated: ${rawDistance.toInt()}m")
+                } else {
+                    DebugLogger.log("EXORCIST_SYNC", "GPS Drift Ignored: User is stationary (Steps: $currentSteps)")
+                }
             }
         }
     }
@@ -203,6 +215,8 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         locationManager?.removeUpdates(this)
         LockManager.startLocation = null
         LockManager.currentDisplacement = 0f
+        lastVerifiedDistForStep = 0f
+        lastVerifiedStepForDist = 0
         locationSettlementCount = 0
     }
 
