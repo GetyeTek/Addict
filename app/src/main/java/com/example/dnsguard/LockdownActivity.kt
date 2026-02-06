@@ -80,6 +80,7 @@ class LockdownActivity : ComponentActivity() {
     @Composable
     fun LockdownContent(config: UiConfig, type: String, onUnlockClick: () -> Unit) {
         val context = LocalContext.current
+        val elapsed = LockManager.getWhisperElapsed(context)
         val infiniteTransition = rememberInfiniteTransition(label = "")
         val alpha by infiniteTransition.animateFloat(
             initialValue = 0.3f, targetValue = 0.9f,
@@ -131,7 +132,6 @@ class LockdownActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(32.dp))
 
             if (type == "EXORCISM_COUNTDOWN") {
-                val elapsed = LockManager.getWhisperElapsed(context)
                 val remaining = ((60000 - elapsed) / 1000).coerceAtLeast(0)
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
