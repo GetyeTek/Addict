@@ -155,7 +155,13 @@ class LockdownActivity : ComponentActivity() {
                     if (locDisabled) {
                         Text("ENABLE LOCATION TO CONTINUE", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
                     } else {
+                        val steps = LockManager.getWhisperSteps(context)
+                        val isStalled = (steps > 0 && dist < 1f) || (dist > 2f && steps < 2)
+                        
                         Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
+                        if (isStalled) {
+                            Text("SENSOR SYNCING... MOVE YOUR LEGS", color = Color.Yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
