@@ -328,12 +328,10 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
                 // WHISPER PENALTY CHECK
                 if (LockManager.isWhisperMode(applicationContext)) {
-                    // 2. LOCATION-OFF ENFORCEMENT
                     val isGpsOn = locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true
                     val isNetOn = locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
                     
                     if (!isGpsOn && !isNetOn) {
-                        DebugLogger.log("EXORCIST_EVASION", "Location turned off during protocol!")
                         val i = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         }
@@ -345,16 +343,21 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     val dist = LockManager.currentDisplacement
                     val hasMovedEnough = dist >= 20f
                     
-                    // Penalty starts if: (Time > 60s) AND (Steps < 30 OR not moved enough)
                     if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
-                        DebugLogger.log("EXORCIST_STATE", "Penalty Active. Steps: $steps, Dist: ${dist.toInt()}m")
-                        startPenaltyAudio()
-                        enforceMaxVolume() // Proactive enforcement in the loop
+                        // RESURRECTION LOGIC: 
+                        // If it should be playing but isn't (crashed/killed), start it again.
+                        if (mediaPlayer == null || !mediaPlayer!!.isPlaying) {
+                             DebugLogger.log("EXORCIST_RECOVER", "Penalty audio died. Restarting...")
+                             startPenaltyAudio()
+                        }
+                        enforceMaxVolume()
                     } else {
-                        stopPenaltyAudio()
+                        // User finished the task or is still in grace period
+                        if (steps >= 30 && hasMovedEnough) stopPenaltyAudio()
                     }
                 } else {
-                    if (mediaPlayer != null) stopPenaltyAudio()
+                    // Not in whisper mode at all
+                    stopPenaltyAudio()
                 }
 
                 // Respect Master Key / Nuke status
