@@ -43,29 +43,34 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
-        // Guard against null/invalid state during transitions
-        val context = applicationContext ?: return
-        if (LockManager.isWhisperMode(context)) {
-            val elapsed = LockManager.getWhisperElapsed(context)
-            val steps = LockManager.getWhisperSteps(context)
+        if (LockManager.isWhisperMode(applicationContext)) {
+            val elapsed = LockManager.getWhisperElapsed(applicationContext)
+            val steps = LockManager.getWhisperSteps(applicationContext)
             val dist = LockManager.currentDisplacement
             val hasMovedEnough = dist >= 20f
 
             if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
+                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                val currentVol = am.getStreamVolume(AudioManager.STREAM_ALARM)
+
                 // 1. Force DND Off
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                     if (nm.isNotificationPolicyAccessGranted) {
                         nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                     }
                 }
-                // 2. Force Volume Max (ONLY if not already max to prevent feedback loops)
-                // 2. Force Volume Max (ONLY if it's not already at max)
-                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-                val currentVol = am.getStreamVolume(AudioManager.STREAM_ALARM)
+                
+                // 2. Force Volume Max with Logic Logging
                 if (currentVol < maxVol) {
+                    DebugLogger.log("AUDIO_ENFORCE", "RESTRICTED: $currentVol/$maxVol. Snapping to MAX.")
                     am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+                } else {
+                    // This log proves the recursion guard is working
+                    DebugLogger.log("AUDIO_GUARD", "PASSED: $currentVol/$maxVol. No change needed.")
                 }
             }
+        }
+    }
         }
     }
 
