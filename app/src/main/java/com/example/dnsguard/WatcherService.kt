@@ -108,13 +108,13 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 val flux = LockManager.magneticFluxTotal
                 
                 // LOGIC: End only if Steps met AND (Moved 20m OR high magnetic variance)
-                val hasMovedEnough = dist >= 20f || flux > 150f
+                // Calibrated: 5000 flux is roughly 15-20 meters of walking movement
+                val hasMovedEnough = dist >= 20f || flux > 5000f
                 
                 if (steps >= 30 && hasMovedEnough) {
                     DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${dist}m, Flux: $flux")
                     LockManager.stopWhisperMode(ctx)
                     stopLocationTracking()
-                    stopPenaltyAudio()
                 } else if (steps >= 30) {
                     DebugLogger.log("EXORCIST_STALL", "Steps done, but displacement failed. Dist: ${dist}m, Flux: $flux")
                 }
@@ -244,13 +244,15 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
                     val elapsed = LockManager.getWhisperElapsed(applicationContext)
                     val steps = LockManager.getWhisperSteps(applicationContext)
+                    val dist = LockManager.currentDisplacement
+                    val flux = LockManager.magneticFluxTotal
+                    val hasMovedEnough = dist >= 20f || flux > 5000f
                     
-                    if (elapsed > 60000 && steps < 30) {
-                        val isPlaying = mediaPlayer?.isPlaying == true
-                        DebugLogger.log("EXORCIST_STATE", "Penalty Active. Time: ${elapsed/1000}s, Steps: $steps, Playing: $isPlaying")
+                    // Penalty starts if: (Time > 60s) AND (Steps < 30 OR not moved enough)
+                    if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
+                        DebugLogger.log("EXORCIST_STATE", "Penalty Active. Steps: $steps, Dist: ${dist.toInt()}m")
                         startPenaltyAudio()
                     } else {
-                        if (elapsed <= 60000) DebugLogger.log("EXORCIST_STATE", "Grace Period: ${60 - (elapsed/1000)}s left")
                         stopPenaltyAudio()
                     }
                 } else {
@@ -303,7 +305,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     val isFixing = LockManager.isFixWindowActive(applicationContext)
                     
                     // DO NOT launch if we are in an emergency app OR if the package is empty
-                    val isEmergency = LockManager.isEmergencyApp(topPkg)
+                    val isEmergency = LockManager.isEmergencyApp(topPkg) || topPkg.contains("systemui")
                     
                     // DIAGNOSTIC LOG: Only log if we are about to block something that looks like an emergency app
                     if (blockType != null && (topPkg.contains("dialer") || topPkg.contains("clock") || topPkg.contains("telecom") || topPkg.contains("alarm"))) {
