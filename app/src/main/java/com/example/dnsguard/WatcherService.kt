@@ -43,9 +43,11 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
-        if (LockManager.isWhisperMode(applicationContext)) {
-            val elapsed = LockManager.getWhisperElapsed(applicationContext)
-            val steps = LockManager.getWhisperSteps(applicationContext)
+        // Guard against null/invalid state during transitions
+        val context = applicationContext ?: return
+        if (LockManager.isWhisperMode(context)) {
+            val elapsed = LockManager.getWhisperElapsed(context)
+            val steps = LockManager.getWhisperSteps(context)
             val dist = LockManager.currentDisplacement
             val hasMovedEnough = dist >= 20f
 
@@ -56,9 +58,12 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                         nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                     }
                 }
-                // 2. Force Volume Max
+                // 2. Force Volume Max (ONLY if not already max to prevent feedback loops)
                 val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-                am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+                val currentVol = am.getStreamVolume(AudioManager.STREAM_ALARM)
+                if (currentVol < maxVol) {
+                    am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+                }
             }
         }
     }
