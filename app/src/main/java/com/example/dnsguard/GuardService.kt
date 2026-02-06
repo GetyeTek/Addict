@@ -643,7 +643,11 @@ class GuardService : AccessibilityService() {
 
                         // SURVEILLANCE: Log what we see in Learned Apps
                         if (isLearnedApp && rawText.isNotBlank()) {
-                            surveillanceLog?.append("[").append(rawText.trim()).append("] ")
+                            surveillanceLog?.apply {
+                                append("[")
+                                append(rawText.trim())
+                                append("] ")
+                            }
                         }
 
                         val index = lowerText.indexOf(site)
@@ -669,9 +673,11 @@ class GuardService : AccessibilityService() {
             }
             
             // Finalize Surveillance Log for this cycle
-            if (isLearnedApp && surveillanceLog?.isNotEmpty() == true) {
-                val preview = surveillanceLog?.toString()?.take(200) ?: ""
-                DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: $preview...")
+            surveillanceLog?.let { log ->
+                if (isLearnedApp && log.isNotEmpty()) {
+                    val preview = log.toString().take(200)
+                    DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: $preview...")
+                }
             }
 
             if (isTelegram) {
