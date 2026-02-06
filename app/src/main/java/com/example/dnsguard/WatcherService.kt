@@ -124,27 +124,40 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
     override fun onLocationChanged(location: android.location.Location) {
         if (LockManager.isWhisperMode(applicationContext)) {
-            // 1. ANTI-SPOOFING: Check if location is fake
-            val isMock = if (android.os.Build.VERSION.SDK_INT >= 31) {
-                location.isMock
-            } else {
-                @Suppress("DEPRECATION")
-                location.isFromMockProvider
-            }
+            // 1. ANTI-SPOOFING
+            val isMock = if (android.os.Build.VERSION.SDK_INT >= 31) location.isMock else @Suppress("DEPRECATION") location.isFromMockProvider
+            if (isMock) return
 
-            if (isMock) {
-                DebugLogger.log("TAMPER_GPS", "Nice try. Mock location ignored.")
+            // 2. ACCURACY FILTER: Ignore garbage data (Drift)
+            // Anything worse than 25m is usually a bounce off a wall.
+            if (location.accuracy > 25f) {
+                DebugLogger.log("GPS_DRIFT", "Ignored low accuracy: ${location.accuracy}m")
                 return
             }
 
             val start = LockManager.startLocation
+            
+            // 3. ANCHOR STABILIZATION
+            // Don't set the starting point until we have a high-confidence lock (< 15m)
             if (start == null) {
-                LockManager.startLocation = location
-                DebugLogger.log("EXORCIST_GPS", "Anchor Locked (Acc: ${location.accuracy}m)")
+                if (location.accuracy <= 15f) {
+                    LockManager.startLocation = location
+                    DebugLogger.log("EXORCIST_GPS", "Stable Anchor Set (Acc: ${location.accuracy}m)")
+                } else {
+                    DebugLogger.log("EXORCIST_GPS", "Waiting for stable lock... (Current: ${location.accuracy}m)")
+                }
             } else {
                 val distance = start.distanceTo(location)
+                
+                // 4. TELEPORT PROTECTION
+                // If distance delta is impossible for a human (e.g. > 100m jump in seconds), ignore it.
+                if (distance > 500f) {
+                    DebugLogger.log("GPS_JUMP", "Ignoring 500m+ teleport")
+                    return
+                }
+
                 LockManager.currentDisplacement = distance
-                DebugLogger.log("EXORCIST_GPS", "Displacement: ${distance}m (Acc: ${location.accuracy}m)")
+                DebugLogger.log("EXORCIST_GPS", "Actual Displacement: ${distance.toInt()}m (Acc: ${location.accuracy}m)")
             }
         }
     }
