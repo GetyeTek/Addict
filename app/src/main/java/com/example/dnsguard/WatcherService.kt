@@ -26,6 +26,39 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     private var lastShakeTimestamp = 0L
     private val shakeTimestamps = java.util.LinkedList<Long>()
 
+    private val volumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == "android.media.VOLUME_CHANGED_ACTION") {
+                enforceMaxVolume()
+            }
+        }
+    }
+
+    private fun enforceMaxVolume() {
+        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        
+        if (LockManager.isWhisperMode(applicationContext)) {
+            val elapsed = LockManager.getWhisperElapsed(applicationContext)
+            val steps = LockManager.getWhisperSteps(applicationContext)
+            val dist = LockManager.currentDisplacement
+            val flux = LockManager.magneticFluxTotal
+            val hasMovedEnough = dist >= 20f || flux > 5000f
+
+            if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
+                // 1. Force DND Off
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    if (nm.isNotificationPolicyAccessGranted) {
+                        nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                    }
+                }
+                // 2. Force Volume Max
+                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                am.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -40,6 +73,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         sensorManager?.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_UI)
 
         locationManager = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+        registerReceiver(volumeReceiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -319,6 +353,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
                         DebugLogger.log("EXORCIST_STATE", "Penalty Active. Steps: $steps, Dist: ${dist.toInt()}m")
                         startPenaltyAudio()
+                        enforceMaxVolume() // Proactive enforcement in the loop
                     } else {
                         stopPenaltyAudio()
                     }
@@ -454,6 +489,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     
     override fun onDestroy() {
         super.onDestroy()
+        try { unregisterReceiver(volumeReceiver) } catch (e: Exception) {}
         job.cancel()
     }
 }
