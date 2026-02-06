@@ -71,8 +71,6 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
             }
         }
     }
-        }
-    }
 
     override fun onCreate() {
         super.onCreate()
