@@ -156,9 +156,6 @@ class LockdownActivity : ComponentActivity() {
                         Text("ENABLE LOCATION TO CONTINUE", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
                     } else {
                         Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
-                        if (dist < 20f && flux > 10f) {
-                            Text("Magnetic Flux: ${flux.toInt()}/150", color = Color.Gray, fontSize = 10.sp)
-                        }
                     }
                 }
 
