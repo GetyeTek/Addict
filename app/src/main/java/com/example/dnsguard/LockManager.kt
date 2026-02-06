@@ -709,7 +709,10 @@ object LockManager {
             if (MEDIA_WHITELIST.contains(pkg)) return null
             return "BREAK_TIME"
         }
-        if (isWhisperMode(ctx)) return "WHISPER_PROTOCOL"
+        if (isWhisperMode(ctx)) {
+            val elapsed = getWhisperElapsed(ctx)
+            return if (elapsed > 60000) "WHISPER_PROTOCOL" else "EXORCISM_COUNTDOWN"
+        }
         if (isNightLockActive(ctx)) return "NIGHT_LOCK"
 
         // QUARANTINE LOGIC
