@@ -59,6 +59,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     }
                 }
                 // 2. Force Volume Max (ONLY if not already max to prevent feedback loops)
+                // 2. Force Volume Max (ONLY if it's not already at max)
                 val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
                 val currentVol = am.getStreamVolume(AudioManager.STREAM_ALARM)
                 if (currentVol < maxVol) {
