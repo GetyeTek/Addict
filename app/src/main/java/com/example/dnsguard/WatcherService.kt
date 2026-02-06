@@ -29,6 +29,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     // SENSOR INTERLOCK STATE
     private var lastVerifiedDistForStep = 0f
     private var lastVerifiedStepForDist = 0
+    private var lastLocation: android.location.Location? = null
 
     private val volumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -181,21 +182,26 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     DebugLogger.log("EXORCIST_GPS", "Waiting for high accuracy lock... (Current: ${location.accuracy}m)")
                 }
             } else {
-                val rawDistance = start.distanceTo(location)
+                // 1. Calculate delta from the PREVIOUS update, not the start
+                val prev = lastLocation ?: start
+                val deltaDist = prev.distanceTo(location)
+                val totalFromStart = start.distanceTo(location)
                 
-                // 4. TELEPORT PROTECTION
-                if (rawDistance > 500f) return
+                // 2. ANTI-SPOOF: Discard impossible jumps (> 15m in 1 sec = 54km/h)
+                if (deltaDist > 15f || totalFromStart > 1000f) return
 
-                // INTERLOCK 2: GPS requires Step progress
+                // 3. INTERLOCK: Only accumulate distance if the user stepped
                 val currentSteps = LockManager.getWhisperSteps(applicationContext)
-                if (currentSteps > lastVerifiedStepForDist || rawDistance < 1f) {
-                    // Accept the distance update only if user is actively stepping
-                    LockManager.currentDisplacement = rawDistance
+                if (currentSteps > lastVerifiedStepForDist) {
+                    // User moved their legs! We can trust this delta.
+                    LockManager.currentDisplacement += deltaDist
                     lastVerifiedStepForDist = currentSteps
-                    DebugLogger.log("EXORCIST_GPS", "Displacement Updated: ${rawDistance.toInt()}m")
+                    DebugLogger.log("EXORCIST_GPS", "Accumulated +${deltaDist.toInt()}m. Total: ${LockManager.currentDisplacement.toInt()}m")
                 } else {
-                    DebugLogger.log("EXORCIST_SYNC", "GPS Drift Ignored: User is stationary (Steps: $currentSteps)")
+                    // Distance changed but steps didn't. This is jitter.
+                    DebugLogger.log("EXORCIST_SYNC", "Ignoring GPS Jitter (${deltaDist.toInt()}m) - No steps detected.")
                 }
+                lastLocation = location
             }
         }
     }
@@ -214,6 +220,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     private fun stopLocationTracking() {
         locationManager?.removeUpdates(this)
         LockManager.startLocation = null
+        lastLocation = null
         LockManager.currentDisplacement = 0f
         lastVerifiedDistForStep = 0f
         lastVerifiedStepForDist = 0
