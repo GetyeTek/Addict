@@ -670,7 +670,7 @@ class GuardService : AccessibilityService() {
             
             // Finalize Surveillance Log for this cycle
             if (isLearnedApp && surveillanceLog?.isNotEmpty() == true) {
-                val preview = surveillanceLog.toString().take(200)
+                val preview = surveillanceLog?.toString()?.take(200) ?: ""
                 DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: $preview...")
             }
 
