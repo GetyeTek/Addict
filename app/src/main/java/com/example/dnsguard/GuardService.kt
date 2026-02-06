@@ -669,8 +669,9 @@ class GuardService : AccessibilityService() {
             }
             
             // Finalize Surveillance Log for this cycle
-            if (isLearnedApp && surveillanceLog != null && surveillanceLog.isNotEmpty()) {
-                DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: ${surveillanceLog.take(200)}...")
+            if (isLearnedApp && surveillanceLog?.isNotEmpty() == true) {
+                val preview = surveillanceLog.toString().take(200)
+                DebugLogger.log("QUARANTINE_SIGHT", "Pkg: $activePackage | Content: $preview...")
             }
 
             if (isTelegram) {
