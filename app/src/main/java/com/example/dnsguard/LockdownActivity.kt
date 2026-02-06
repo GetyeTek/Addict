@@ -130,37 +130,73 @@ class LockdownActivity : ComponentActivity() {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (type == "WHISPER_PROTOCOL") {
+            if (type == "EXORCISM_COUNTDOWN") {
                 val elapsed = LockManager.getWhisperElapsed(context)
-                val remaining = (60000 - elapsed).coerceAtLeast(0L)
-                val steps = LockManager.getWhisperSteps(context)
+                val remaining = ((60000 - elapsed) / 1000).coerceAtLeast(0)
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(if (remaining > 0) "${remaining/1000}s" else "PENALTY ACTIVE", color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Black)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("GRACE PERIOD", color = config.color, fontSize = 14.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Text("$remaining", color = Color.White, fontSize = 120.sp, fontWeight = FontWeight.Black)
+                    Text("SECONDS UNTIL NOISE", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text("Change your environment NOW.\nWalk 20 meters and take 30 steps.", 
+                        color = Color.White, textAlign = TextAlign.Center, lineHeight = 20.sp)
+                }
+
+                val isReflex = LockManager.isWhisperReflex(context)
+                if (isReflex && elapsed < 10000) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(
+                        onClick = { LockManager.stopWhisperMode(context); finishAffinity() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    ) {
+                        Text("MISTAKE / CANCEL", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Text("Aborting in ${10 - (elapsed / 1000)}s...", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+
+            if (type == "WHISPER_PROTOCOL") {
+                val steps = LockManager.getWhisperSteps(context)
+                val dist = LockManager.currentDisplacement
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("PENALTY ACTIVE", color = Color.Red, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Step Progress
                     LinearProgressIndicator(
                         progress = (steps / 30f).coerceIn(0f, 1f),
-                        modifier = Modifier.fillMaxWidth().height(24.dp).background(Color.Gray, RoundedCornerShape(12.dp)),
-                        color = Color(0xFF10B981)
+                        modifier = Modifier.fillMaxWidth().height(16.dp).background(Color(0xFF331111), RoundedCornerShape(8.dp)),
+                        color = Color.Red
                     )
-                    Text("$steps / 30 STEPS", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    Text("STEPS: $steps / 30", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
                     
-                    val dist = LockManager.currentDisplacement
-                    val flux = LockManager.magneticFluxTotal
-                    
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Distance Progress
+                    LinearProgressIndicator(
+                        progress = (dist / 20f).coerceIn(0f, 1f),
+                        modifier = Modifier.fillMaxWidth().height(16.dp).background(Color(0xFF331111), RoundedCornerShape(8.dp)),
+                        color = Color(0xFFEF4444)
+                    )
+                    Text("DISTANCE: ${dist.toInt()}m / 20m", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+
                     val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
                     val locDisabled = !lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) && 
                                       !lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
 
+                    Spacer(modifier = Modifier.height(24.dp))
                     if (locDisabled) {
-                        Text("ENABLE LOCATION TO CONTINUE", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                        Text("ENABLE LOCATION TO STOP MUSIC", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
                     } else {
-                        val steps = LockManager.getWhisperSteps(context)
                         val isStalled = (steps > 0 && dist < 1f) || (dist > 2f && steps < 2)
-                        
-                        Text("Moved: ${dist.toInt()}m / 20m", color = if (dist >= 20f) Color.Green else Color.Gray, fontSize = 12.sp)
                         if (isStalled) {
-                            Text("SENSOR SYNCING... MOVE YOUR LEGS", color = Color.Yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("SENSOR SYNCING... MOVE YOUR LEGS", color = Color.Yellow, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        } else {
+                            Text("MUSIC STOPS WHEN TASKS COMPLETE", color = Color.Gray, fontSize = 11.sp)
                         }
                     }
                 }
@@ -308,6 +344,7 @@ class LockdownActivity : ComponentActivity() {
                     "NIGHT_LOCK" -> !LockManager.isNightLockActive(ctx)
                     "BREAK_TIME" -> LockManager.getBreakRemaining(ctx) <= 0
                     "USER_LOCKOUT" -> !LockManager.isUserLockedOut(ctx)
+                    "EXORCISM_COUNTDOWN" -> !LockManager.isWhisperMode(ctx) || LockManager.getWhisperElapsed(ctx) > 60000
                     "WHISPER_PROTOCOL" -> !LockManager.isWhisperMode(ctx)
                     "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
                     "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
@@ -350,7 +387,8 @@ class LockdownActivity : ComponentActivity() {
             "PERMANENT_BAN" -> UiConfig(Icons.Filled.Dangerous, Color(0xFF000000), "EXECUTED", "This app is garbage. I've deleted its purpose from your life.")
             "DEEP_FOCUS" -> UiConfig(Icons.Filled.CenterFocusStrong, Color(0xFFFACC15), "TUNNEL VISION", "If it's not on the list, it's irrelevant. Focus.")
             "MAINTENANCE_BROWSER_ILLEGAL" -> UiConfig(Icons.Filled.Dangerous, Color(0xFFFB923C), "STICK TO THE PLAN", "You're here to fix the DNS, not browse with this garbage. Use Chrome or stay locked out.")
-            "WHISPER_PROTOCOL" -> UiConfig(Icons.Filled.DirectionsRun, Color(0xFFEF4444), "THE DEVIL IS WHISPERING", "MOVE. Change your environment now. 30 steps or the music starts.")
+            "EXORCISM_COUNTDOWN" -> UiConfig(Icons.Filled.Warning, Color(0xFFFBBF24), "THE DEVIL IS WHISPERING", "You have 60 seconds to move before the penalty music begins.")
+            "WHISPER_PROTOCOL" -> UiConfig(Icons.Filled.DirectionsRun, Color(0xFFEF4444), "MOVE OR SUFFER", "The noise will not stop until you finish the task.")
             "QUARANTINE" -> UiConfig(Icons.Filled.HourglassEmpty, Color(0xFFF87171), "MANDATORY QUARANTINE", "I've detected a web-viewer in this app. It is locked for 1 hour while I prepare surveillance.")
             "PENDING_APPROVAL" -> UiConfig(Icons.Filled.FactCheck, Color(0xFFFBBF24), "PENDING APPROVAL", "The quarantine has ended. You must manually approve this app in the Guardian Dashboard to use it.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
