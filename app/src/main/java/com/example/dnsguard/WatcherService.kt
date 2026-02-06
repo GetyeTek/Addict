@@ -42,8 +42,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
             val elapsed = LockManager.getWhisperElapsed(applicationContext)
             val steps = LockManager.getWhisperSteps(applicationContext)
             val dist = LockManager.currentDisplacement
-            val flux = LockManager.magneticFluxTotal
-            val hasMovedEnough = dist >= 20f || flux > 5000f
+            val hasMovedEnough = dist >= 20f
 
             if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
                 // 1. Force DND Off
@@ -69,25 +68,12 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         sensorManager?.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
 
-        val magSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-        sensorManager?.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_UI)
-
         locationManager = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
         registerReceiver(volumeReceiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         val ctx = applicationContext
-
-        // 0. MAGNETIC FLUX (Movement detection fallback)
-        if (event?.sensor?.type == Sensor.TYPE_MAGNETIC_FIELD && LockManager.isWhisperMode(ctx)) {
-            val vals = event.values
-            LockManager.lastMagVector?.let {
-                val delta = Math.abs(vals[0]-it[0]) + Math.abs(vals[1]-it[1]) + Math.abs(vals[2]-it[2])
-                LockManager.magneticFluxTotal += delta
-            }
-            LockManager.lastMagVector = vals.clone()
-        }
         
         // 1. SHAKE DETECTION (Requires holding Volume Up)
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
@@ -140,18 +126,16 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 LockManager.addWhisperStep(ctx)
                 val steps = LockManager.getWhisperSteps(ctx)
                 val dist = LockManager.currentDisplacement
-                val flux = LockManager.magneticFluxTotal
                 
-                // LOGIC: End only if Steps met AND (Moved 20m OR high magnetic variance)
-                // Calibrated: 5000 flux is roughly 15-20 meters of walking movement
-                val hasMovedEnough = dist >= 20f || flux > 5000f
+                // LOGIC: End only if Steps met AND Moved 20m
+                val hasMovedEnough = dist >= 20f
                 
                 if (steps >= 30 && hasMovedEnough) {
-                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${dist}m, Flux: $flux")
+                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${dist}m")
                     LockManager.stopWhisperMode(ctx)
                     stopLocationTracking()
                 } else if (steps >= 30) {
-                    DebugLogger.log("EXORCIST_STALL", "Steps done, but displacement failed. Dist: ${dist}m, Flux: $flux")
+                    DebugLogger.log("EXORCIST_STALL", "Steps done, but displacement failed (Needs 20m). Current: ${dist.toInt()}m")
                 }
             }
         }
@@ -219,7 +203,6 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         locationManager?.removeUpdates(this)
         LockManager.startLocation = null
         LockManager.currentDisplacement = 0f
-        LockManager.magneticFluxTotal = 0f
         locationSettlementCount = 0
     }
 
@@ -346,8 +329,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     val elapsed = LockManager.getWhisperElapsed(applicationContext)
                     val steps = LockManager.getWhisperSteps(applicationContext)
                     val dist = LockManager.currentDisplacement
-                    val flux = LockManager.magneticFluxTotal
-                    val hasMovedEnough = dist >= 20f || flux > 5000f
+                    val hasMovedEnough = dist >= 20f
                     
                     // Penalty starts if: (Time > 60s) AND (Steps < 30 OR not moved enough)
                     if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
