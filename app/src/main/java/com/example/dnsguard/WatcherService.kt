@@ -125,7 +125,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     override fun onLocationChanged(location: android.location.Location) {
         if (LockManager.isWhisperMode(applicationContext)) {
             // 1. ANTI-SPOOFING: Check if location is fake
-            val isMock = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val isMock = if (android.os.Build.VERSION.SDK_INT >= 31) {
                 location.isMock
             } else {
                 @Suppress("DEPRECATION")
