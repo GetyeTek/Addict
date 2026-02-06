@@ -53,8 +53,6 @@ object LockManager {
     // EXORCIST SPATIAL DATA
     var startLocation: android.location.Location? = null
     var currentDisplacement: Float = 0f
-    var magneticFluxTotal: Float = 0f
-    var lastMagVector: FloatArray? = null
 
     // PASSWORD (Hardcoded for now)
     const val ADMIN_PASS = "1234"
