@@ -45,11 +45,12 @@ object LockManager {
     private const val KEY_EXP_NO_PERM_SCAN = "exp_no_perm_scan"
     var currentActivePackage: String = ""
 
-    // THRESHOLDS
+    // THRESHOLDS (Linear 20-120-20 Rule)
     val T1 = 20 * 60 * 1000L
     val T2 = 40 * 60 * 1000L
     val T3 = 60 * 60 * 1000L
-    val T4 = 90 * 60 * 1000L
+    val T4 = 80 * 60 * 1000L
+    val T_RESET = 90 * 60 * 1000L
 
     @Volatile
     var isVolumeUpHeld: Boolean = false
@@ -460,10 +461,16 @@ object LockManager {
         var newT = 0
 
         when {
-            usage >= 90 * 60 * 1000L -> { breakMs = 10 * 60 * 1000L; usage = 0; newT = 0 }
-            usage >= 60 * 60 * 1000L && lastT < 60 -> { breakMs = 5 * 60 * 1000L; newT = 60 }
-            usage >= 40 * 60 * 1000L && lastT < 40 -> { breakMs = 3 * 60 * 1000L; newT = 40 }
-            usage >= 20 * 60 * 1000L && lastT < 20 -> { breakMs = 30 * 1000L; newT = 20 }
+            // 90 Minute Cycle Reset (5 Minute Break)
+            usage >= T_RESET -> { breakMs = 5 * 60 * 1000L; usage = 0; newT = 0 }
+            // 80 Minute Interval (2 Minute Break)
+            usage >= T4 && lastT < 80 -> { breakMs = 2 * 60 * 1000L; newT = 80 }
+            // 60 Minute Interval (2 Minute Break)
+            usage >= T3 && lastT < 60 -> { breakMs = 2 * 60 * 1000L; newT = 60 }
+            // 40 Minute Interval (2 Minute Break)
+            usage >= T2 && lastT < 40 -> { breakMs = 2 * 60 * 1000L; newT = 40 }
+            // 20 Minute Interval (2 Minute Break)
+            usage >= T1 && lastT < 20 -> { breakMs = 2 * 60 * 1000L; newT = 20 }
         }
 
         val editor = prefs.edit().putLong(KEY_USAGE_ACCUMULATED, usage)
