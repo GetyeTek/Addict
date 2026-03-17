@@ -39,6 +39,10 @@ object LockManager {
     private const val KEY_WHISPER_REFLEX = "whisper_is_reflex"
     private const val KEY_LEARNED_APPS = "learned_apps_map"
     private const val KEY_APPROVED_APPS = "approved_apps_set"
+    private const val KEY_EXP_RESURRECT = "exp_resurrect"
+    private const val KEY_EXP_NO_DNS_OVERLAY = "exp_no_dns_overlay"
+    private const val KEY_EXP_NO_APP_INFO_KICK = "exp_no_app_info_kick"
+    private const val KEY_EXP_NO_PERM_SCAN = "exp_no_perm_scan"
     var currentActivePackage: String = ""
 
     // THRESHOLDS
@@ -604,6 +608,29 @@ object LockManager {
         val detectTime = learned[pkg] ?: return 0L
         val hour = 60 * 60 * 1000L
         return (detectTime + hour - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    fun isExpEnabled(ctx: Context, key: String): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return when(key) {
+            "resurrect" -> prefs.getBoolean(KEY_EXP_RESURRECT, false)
+            "no_dns" -> prefs.getBoolean(KEY_EXP_NO_DNS_OVERLAY, false)
+            "no_app_info" -> prefs.getBoolean(KEY_EXP_NO_APP_INFO_KICK, false)
+            "no_perm_scan" -> prefs.getBoolean(KEY_EXP_NO_PERM_SCAN, false)
+            else -> false
+        }
+    }
+
+    fun setExpEnabled(ctx: Context, key: String, enabled: Boolean) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val k = when(key) {
+            "resurrect" -> KEY_EXP_RESURRECT
+            "no_dns" -> KEY_EXP_NO_DNS_OVERLAY
+            "no_app_info" -> KEY_EXP_NO_APP_INFO_KICK
+            "no_perm_scan" -> KEY_EXP_NO_PERM_SCAN
+            else -> return
+        }
+        prefs.edit().putBoolean(k, enabled).apply()
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
