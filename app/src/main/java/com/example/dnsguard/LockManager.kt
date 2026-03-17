@@ -115,8 +115,17 @@ object LockManager {
     // BREAK IMMUNITY: Apps that won't be interrupted by usage breaks
     private val MEDIA_WHITELIST = setOf("video.player.videoplayer")
 
-    // HARDCODED SAFE: Apps that use WebViews but are trusted (e.g. AI tools)
-    private val HARDCODED_SAFE_APPS = setOf("com.openai.chatgpt")
+    // HARDCODED SAFE: Apps that bypass all WebView/Quarantine checks
+    private val HARDCODED_SAFE_APPS = setOf(
+        "com.openai.chatgpt",
+        "com.google.android.apps.bard",
+        "com.google.android.apps.googleassistant",
+        "cn.tydic.ethiopay",
+        "com.osp.app.signin",
+        "com.trm.tunnel",
+        "io.spck",
+        "com.imo.android.imoim"
+    )
 
     fun isUnlocked(ctx: Context): Boolean {
         // TOGGLE 2: Silence DNS Warnings (Experimental)
