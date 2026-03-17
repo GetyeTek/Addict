@@ -128,12 +128,6 @@ object LockManager {
             return false
         }
 
-        // Check 2: VPN Tripwire (If VPN is on, we force lock immediately)
-        if (isVpnActive(ctx)) {
-            lock(ctx)
-            return false
-        }
-
         return true
     }
 
@@ -764,14 +758,4 @@ object LockManager {
         return null
     }
 
-    private fun isVpnActive(ctx: Context): Boolean {
-        try {
-            val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val activeNetwork = cm.activeNetwork ?: return false
-            val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false
-            return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-        } catch (e: Exception) {
-            return false
-        }
-    }
 }
