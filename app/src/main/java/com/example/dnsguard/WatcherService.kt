@@ -378,13 +378,18 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
                 // Respect Master Key / Nuke status
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
-                    // KEEP ALIVE: Check for warnings and auto-lock expiry even if protections are down
-                    NukeManager.checkAutoReEnable(applicationContext)
-                    NukeManager.checkNotifications(applicationContext)
-
-                    LockManager.clearRebellion(applicationContext)
-                    delay(5000)
-                    continue
+                    // TOGGLE 1: RESURRECTION
+                    if (LockManager.isExpEnabled(applicationContext, "resurrect")) {
+                        DebugLogger.log("RESURRECTION", "Nuke Detected. Re-arming systems immediately.")
+                        NukeManager.setProtectionDisabled(applicationContext, false)
+                    } else {
+                        // Standard behavior: Respect the Nuke
+                        NukeManager.checkAutoReEnable(applicationContext)
+                        NukeManager.checkNotifications(applicationContext)
+                        LockManager.clearRebellion(applicationContext)
+                        delay(5000)
+                        continue
+                    }
                 }
 
                 val hasAcc = isAccessibilityEnabled(applicationContext)
