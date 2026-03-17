@@ -348,10 +348,11 @@ class GuardService : AccessibilityService() {
  val isFixing = LockManager.isPermissionFixActive(applicationContext)
 
  if (isSettingsWindow && hasDnsGuard.isNotEmpty()) {
- if (!isFixing) confirmedDanger = true
+ // Toggle 3: App Info Freedom check
+ if (!isFixing && !LockManager.isExpEnabled(applicationContext, "no_app_info")) confirmedDanger = true
  break
  }
- if (!LockManager.isSafeSession(applicationContext, "ANY") && !isFixing) {
+ if (!LockManager.isSafeSession(applicationContext, "ANY") && !isFixing && !LockManager.isExpEnabled(applicationContext, "no_app_info")) {
  confirmedDanger = true 
  }
  }
@@ -366,7 +367,7 @@ class GuardService : AccessibilityService() {
                 am.killBackgroundProcesses("com.samsung.accessibility")
                 am.killBackgroundProcesses("com.android.packageinstaller")
                 startTripwire()
-            } else if (isAppInfoPage) {
+            } else if (isAppInfoPage && !LockManager.isExpEnabled(applicationContext, "no_app_info")) {
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
                 if (!verifiedSafeAppInfoSession && !hasAnchor) {
                     DebugLogger.log("BLOCK", "KICK OUT! Anchor missing.")
