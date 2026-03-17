@@ -218,6 +218,16 @@ class LockdownActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(24.dp))
             }
             
+            if (type == "YT_WAITING") {
+                val prefs = context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+                val reqTs = prefs.getLong("yt_request_ts", 0L)
+                val remaining = ((reqTs + 30 * 60 * 1000L) - System.currentTimeMillis()).coerceAtLeast(0)
+                val mins = (remaining / 60000)
+                val secs = (remaining % 60000) / 1000
+                Text(String.format("%02d:%02d", mins, secs), color = Color.White, fontSize = 48.sp, fontWeight = FontWeight.Black)
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             if (type == "QUARANTINE") {
                  val remaining = LockManager.getQuarantineRemaining(context, blockTypeState.value) // Note: This uses the pkg if we passed it, but better logic below
                  // We need the active package name. For now, GuardService passes the TYPE, but LockdownActivity can query LockManager.currentActivePackage
@@ -394,6 +404,8 @@ class LockdownActivity : ComponentActivity() {
             "QUARANTINE" -> UiConfig(Icons.Filled.HourglassEmpty, Color(0xFFF87171), "MANDATORY QUARANTINE", "I've detected a web-viewer in this app. It is locked for 1 hour while I prepare surveillance.")
             "PENDING_APPROVAL" -> UiConfig(Icons.Filled.FactCheck, Color(0xFFFBBF24), "PENDING APPROVAL", "The quarantine has ended. You must manually approve this app in the Guardian Dashboard to use it.")
             "DAILY_LIMIT_EXCEEDED" -> UiConfig(Icons.Default.Bedtime, Color(0xFF4B5563), "DAWN OF THE DEAD", "9 HOURS. You've spent more time with this screen than your own thoughts. Go to sleep before you forget how to blink.")
+            "YT_REQUEST_REQUIRED" -> UiConfig(Icons.Default.VideoSettings, Color(0xFFEF4444), "PERMISSION DENIED", "YouTube is off-limits. Go to Experimental UI to request a viewing session.")
+            "YT_WAITING" -> UiConfig(Icons.Default.HourglassTop, Color(0xFFFBBF24), "PATIENCE, GRASSHOPPER", "The 30-minute delay is active. Go contemplate your existence or read a book.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
