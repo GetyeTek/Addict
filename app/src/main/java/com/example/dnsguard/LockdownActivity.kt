@@ -393,6 +393,7 @@ class LockdownActivity : ComponentActivity() {
             "WHISPER_PROTOCOL" -> UiConfig(Icons.Filled.DirectionsRun, Color(0xFFEF4444), "MOVE OR SUFFER", "The noise will not stop until you finish the task.")
             "QUARANTINE" -> UiConfig(Icons.Filled.HourglassEmpty, Color(0xFFF87171), "MANDATORY QUARANTINE", "I've detected a web-viewer in this app. It is locked for 1 hour while I prepare surveillance.")
             "PENDING_APPROVAL" -> UiConfig(Icons.Filled.FactCheck, Color(0xFFFBBF24), "PENDING APPROVAL", "The quarantine has ended. You must manually approve this app in the Guardian Dashboard to use it.")
+            "DAILY_LIMIT_EXCEEDED" -> UiConfig(Icons.Default.Bedtime, Color(0xFF4B5563), "DAWN OF THE DEAD", "9 HOURS. You've spent more time with this screen than your own thoughts. Go to sleep before you forget how to blink.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
