@@ -200,6 +200,8 @@ class MainActivity : ComponentActivity() {
             EmergencyProtocolCard()
             Spacer(modifier = Modifier.height(16.dp))
             MaintenanceCard()
+            Spacer(modifier = Modifier.height(16.dp))
+            ExperimentalFeaturesCard()
             Spacer(modifier = Modifier.height(24.dp))
             DiagnosticsRow()
             
@@ -451,6 +453,38 @@ class MainActivity : ComponentActivity() {
                     }) { Text("CONFIRM") } 
                 }
             )
+        }
+    }
+
+    @Composable
+    fun ExperimentalFeaturesCard() {
+        val ctx = LocalContext.current
+        var resurrect by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "resurrect")) }
+        var noDns by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_dns")) }
+        var noAppInfo by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_app_info")) }
+        var noPermScan by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_perm_scan")) }
+
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF111827)), border = BorderStroke(1.dp, Color(0xFF374151)), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("EXPERIMENTAL PROTOCOLS", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color.Gray, letterSpacing = 2.sp)
+                Spacer(Modifier.height(12.dp))
+                
+                ExpToggle("Resurrection Protocol", "App fights back against Nuke/Kill signals.", resurrect) { resurrect = it; LockManager.setExpEnabled(ctx, "resurrect", it) }
+                ExpToggle("Silence DNS Warnings", "Disables the fix-it overlay for DNS.", noDns) { noDns = it; LockManager.setExpEnabled(ctx, "no_dns", it) }
+                ExpToggle("App Info Freedom", "Stops the kickback when opening App Info.", noAppInfo) { noAppInfo = it; LockManager.setExpEnabled(ctx, "no_app_info", it) }
+                ExpToggle("Stealth Mode", "Disables permission section scanning.", noPermScan) { noPermScan = it; LockManager.setExpEnabled(ctx, "no_perm_scan", it) }
+            }
+        }
+    }
+
+    @Composable
+    fun ExpToggle(title: String, desc: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(desc, color = Color.Gray, fontSize = 11.sp)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF00FFFF)))
         }
     }
 
