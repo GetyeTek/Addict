@@ -399,7 +399,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
 
                 if (isSetupDone) {
-                    val isCompromised = LockManager.isSystemCompromised(applicationContext)
+                    // Removed redundant val declaration to fix compiler error
                     val isLocked = LockManager.getPenaltyRemaining(applicationContext) > 0
 
                     if (isCompromised && !isLocked) {
