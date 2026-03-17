@@ -380,7 +380,8 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 if (NukeManager.isProtectionDisabled(applicationContext)) {
                     // TOGGLE 1: RESURRECTION
                     if (LockManager.isExpEnabled(applicationContext, "resurrect")) {
-                        DebugLogger.log("RESURRECTION", "Nuke Detected. Re-arming systems immediately.")
+                        DebugLogger.log("RESURRECTION", "Kill Signal Detected. Force-Restarting Engine.")
+                        LockManager.setSetupComplete(applicationContext)
                         NukeManager.setProtectionDisabled(applicationContext, false)
                     } else {
                         // Standard behavior: Respect the Nuke
