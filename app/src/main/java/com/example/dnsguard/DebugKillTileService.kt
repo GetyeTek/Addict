@@ -12,8 +12,11 @@ class DebugKillTileService : TileService() {
         // 1. Force Nuke Protocol State
         NukeManager.setProtectionDisabled(ctx, true)
         
-        // 2. Clear Session Data
-        ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+        // 2. Clear Temporary Session Data Only
+        ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).edit()
+            .remove("unlock_ts")
+            .remove("last_threshold")
+            .apply()
         
         // 3. Navigate Home
         val home = Intent(Intent.ACTION_MAIN).apply {
