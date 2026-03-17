@@ -115,6 +115,10 @@ object LockManager {
     private val HARDCODED_SAFE_APPS = setOf("com.openai.chatgpt")
 
     fun isUnlocked(ctx: Context): Boolean {
+        // TOGGLE 2: Silence DNS Warnings (Experimental)
+        // If this toggle is on, we treat the app as perpetually "Unlocked"
+        if (isExpEnabled(ctx, "no_dns")) return true
+
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val unlockTime = prefs.getLong(KEY_UNLOCK_TIME, 0L)
         val now = System.currentTimeMillis()
