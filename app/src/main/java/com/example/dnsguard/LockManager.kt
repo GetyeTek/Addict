@@ -52,6 +52,7 @@ object LockManager {
     val T4 = 80 * 60 * 1000L
     val T_RESET = 90 * 60 * 1000L
     const val DAILY_LIMIT_MS = 9 * 60 * 60 * 1000L
+    const val DAILY_WARN_MS = 8 * 60 * 60 * 1000L
 
     @Volatile
     var isVolumeUpHeld: Boolean = false
