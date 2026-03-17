@@ -1093,6 +1093,20 @@ class MainActivity : ComponentActivity() {
             })
         }
 
+        val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        }
+        if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
+            list.add(PermissionItem("Usage Access (Wellbeing)") { 
+                it.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                android.widget.Toast.makeText(it, "Find Guardian and allow Usage Access", android.widget.Toast.LENGTH_LONG).show()
+            })
+        }
+
         if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             list.add(PermissionItem("Location (Fine)") { 
                 (it as MainActivity).requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 103)
