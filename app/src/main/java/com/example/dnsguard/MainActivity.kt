@@ -475,6 +475,12 @@ class MainActivity : ComponentActivity() {
                 
                 ExpToggle("Resurrection Protocol", "App fights back against Nuke/Kill signals.", resurrect) { resurrect = it; LockManager.setExpEnabled(ctx, "resurrect", it) }
                 ExpToggle("Silence DNS Warnings", "Disables the fix-it overlay for DNS.", noDns) { noDns = it; LockManager.setExpEnabled(ctx, "no_dns", it) }
+                
+                var ytEnabled by remember { mutableStateOf(ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getBoolean("yt_guard_enabled", false)) }
+                ExpToggle("YouTube Viewing Request", "Wait 30m to watch for 60m.", ytEnabled) { 
+                    ytEnabled = it
+                    LockManager.setYouTubeGuard(ctx, it)
+                }
             }
         }
     }
