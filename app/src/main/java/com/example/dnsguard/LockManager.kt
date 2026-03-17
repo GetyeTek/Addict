@@ -607,6 +607,11 @@ object LockManager {
         return prefs.getStringSet(KEY_APPROVED_APPS, emptySet())?.contains(pkg) == true
     }
 
+    fun isAppPermanentlyBanned(ctx: Context, pkg: String): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getStringSet(KEY_PERM_BANS, emptySet())?.contains(pkg) == true
+    }
+
     fun isHardcodedSafe(pkg: String): Boolean {
         return HARDCODED_SAFE_APPS.contains(pkg)
     }
