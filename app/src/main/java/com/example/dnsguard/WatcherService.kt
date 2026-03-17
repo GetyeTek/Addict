@@ -323,6 +323,19 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 val statusLine = LockManager.getStatusLine(applicationContext)
                 updateNotification(statusLine)
 
+                // DAILY LIMIT & WARNING CHECK
+                val dailyUsage = LockManager.getDailyUsage(applicationContext)
+                val prefs = getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+                val today = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR).toString()
+                val lastWarnDay = prefs.getString("last_daily_warn_day", "")
+
+                if (dailyUsage >= LockManager.DAILY_WARN_MS && dailyUsage < LockManager.DAILY_LIMIT_MS) {
+                    if (lastWarnDay != today) {
+                        sendDailyWarningNotification()
+                        prefs.edit().putString("last_daily_warn_day", today).apply()
+                    }
+                }
+
                 // WHISPER PENALTY CHECK
                 if (LockManager.isWhisperMode(applicationContext)) {
                     val isGpsOn = locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true
@@ -469,6 +482,23 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(99, createNotification(content))
+    }
+
+    private fun sendDailyWarningNotification() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "daily_limit_alerts"
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val chan = NotificationChannel(channelId, "Usage Warnings", NotificationManager.IMPORTANCE_HIGH)
+            nm.createNotificationChannel(chan)
+        }
+        val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("FINAL HOUR")
+            .setContentText("8 HOURS GONE. You have 60 minutes of life left before I brick this slab.")
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setVibrate(longArrayOf(0, 250, 250, 250))
+            .setAutoCancel(true)
+        nm.notify(888, builder.build())
     }
 
     private fun createNotification(content: String = "Watching you fail."): Notification {
