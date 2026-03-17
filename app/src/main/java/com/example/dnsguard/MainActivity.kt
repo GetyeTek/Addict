@@ -674,6 +674,7 @@ class MainActivity : ComponentActivity() {
                         items(list.size) { index ->
                             val (pkg, _) = list[index]
                             val isApproved = LockManager.isAppApproved(ctx, pkg)
+                            val isBanned = LockManager.isAppPermanentlyBanned(ctx, pkg)
                             val remaining = LockManager.getQuarantineRemaining(ctx, pkg)
                             
                             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -684,9 +685,10 @@ class MainActivity : ComponentActivity() {
                                 
                                 when {
                                     isApproved -> {
-                                        Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF1E293B))) {
-                                            Text("APPROVED", color = Color.Gray)
-                                        }
+                                        Text("APPROVED", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                    isBanned -> {
+                                        Text("PERM-BANNED", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
                                     remaining > 0 -> {
                                         val m = remaining / 60000
@@ -694,8 +696,21 @@ class MainActivity : ComponentActivity() {
                                         Text(String.format("%02d:%02d", m, s), color = Color(0xFFF87171), fontWeight = FontWeight.Black)
                                     }
                                     else -> {
-                                        Button(onClick = { LockManager.approveApp(ctx, pkg); learnedApps = LockManager.getLearnedApps(ctx) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))) {
-                                            Text("APPROVE", color = Color.Black, fontWeight = FontWeight.Bold)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Button(
+                                                onClick = { LockManager.banAppPermanently(ctx, setOf(pkg)); learnedApps = LockManager.getLearnedApps(ctx) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7F1D1D)),
+                                                contentPadding = PaddingValues(horizontal = 12.dp)
+                                            ) {
+                                                Text("DENY", color = Color.White, fontSize = 10.sp)
+                                            }
+                                            Button(
+                                                onClick = { LockManager.approveApp(ctx, pkg); learnedApps = LockManager.getLearnedApps(ctx) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                contentPadding = PaddingValues(horizontal = 12.dp)
+                                            ) {
+                                                Text("APPROVE", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                            }
                                         }
                                     }
                                 }
