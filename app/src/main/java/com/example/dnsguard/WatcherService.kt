@@ -399,7 +399,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
 
                 if (isSetupDone) {
-                    // Removed redundant val declaration to fix compiler error
+                    val isCompromised = LockManager.isSystemCompromised(applicationContext)
                     val isLocked = LockManager.getPenaltyRemaining(applicationContext) > 0
 
                     if (isCompromised && !isLocked) {
@@ -423,7 +423,6 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     
                     // CORRECTED: Use shared state from Accessibility Service via LockManager
                     val topPkg = LockManager.currentActivePackage
-                    val isCompromised = LockManager.isSystemCompromised(applicationContext)
                     val penaltyActive = LockManager.getPenaltyRemaining(applicationContext) > 0
                     
                     // DETERMINISTIC BLOCK: If the system is compromised or in penalty, we ignore the package check.
