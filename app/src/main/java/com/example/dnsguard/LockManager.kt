@@ -51,6 +51,7 @@ object LockManager {
     val T3 = 60 * 60 * 1000L
     val T4 = 80 * 60 * 1000L
     val T_RESET = 90 * 60 * 1000L
+    const val DAILY_LIMIT_MS = 9 * 60 * 60 * 1000L
 
     @Volatile
     var isVolumeUpHeld: Boolean = false
@@ -639,6 +640,26 @@ object LockManager {
         prefs.edit().putBoolean(k, enabled).apply()
     }
 
+    fun getDailyUsage(ctx: Context): Long {
+        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        val startTime = calendar.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val stats = usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+        var totalTime = 0L
+        for (usageStat in stats) {
+            // Only count other apps, not ourselves, to avoid feedback loops
+            if (usageStat.packageName != ctx.packageName) {
+                totalTime += usageStat.totalTimeInForeground
+            }
+        }
+        return totalTime
+    }
+
     fun isEmergencyApp(pkg: String): Boolean {
         if (pkg.isBlank()) return false
         val p = pkg.lowercase()
@@ -695,6 +716,9 @@ object LockManager {
 
         // 0. EMERGENCY BYPASS (Highest Priority)
         if (isEmergencyApp(pkg)) return null
+
+        // 0.1 DAILY QUOTA (The 9-Hour Executioner)
+        if (getDailyUsage(ctx) > DAILY_LIMIT_MS) return "DAILY_LIMIT_EXCEEDED"
 
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
