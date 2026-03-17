@@ -16,10 +16,10 @@ object NukeManager {
     private const val KEY_DISABLED_TS = "protection_disabled_ts"
     private const val AUTO_RE_ENABLE_MS = 60 * 60 * 1000L // 1 Hour
 
-    // 3 Hours in MS
-    private const val WAIT_TIME = 3 * 60 * 60 * 1000L
-    // 4 Hours in MS (Expiry window)
-    private const val EXPIRY_TIME = 4 * 60 * 60 * 1000L
+    // 2 Hours in MS
+    private const val WAIT_TIME = 2 * 60 * 60 * 1000L
+    // 3 Hours in MS (Expiry window)
+    private const val EXPIRY_TIME = 3 * 60 * 60 * 1000L
 
     fun isProtectionDisabled(ctx: Context): Boolean {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
