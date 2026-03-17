@@ -278,29 +278,31 @@ class LockdownActivity : ComponentActivity() {
                     
                     Button(
                         onClick = {
-                            // 1. Mark session first
                             LockManager.startPermissionFixSession(context)
                             
-                            val dnsIntent = Intent("android.settings.PVT_DNS_SETTINGS").apply { 
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            }
-                            val networkIntent = Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            }
-                            
-                            try {
-                                context.startActivity(dnsIntent)
-                            } catch (e: Exception) {
+                            // Smart Redirect: What are we actually missing?
+                            val expected = "${context.packageName}/${GuardService::class.java.canonicalName}"
+                            val enabledServices = android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                            val hasAccessibility = enabledServices.contains(expected)
+
+                            if (!hasAccessibility) {
+                                // Priority 1: Get the spy back online
+                                context.startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                })
+                            } else {
+                                // Priority 2: Fix DNS
+                                val dnsIntent = Intent("android.settings.PVT_DNS_SETTINGS").apply { 
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                }
                                 try {
-                                    context.startActivity(networkIntent)
-                                    Toast.makeText(context, "Tap 'More connection settings' for DNS", Toast.LENGTH_LONG).show()
-                                } catch (e2: Exception) {
+                                    context.startActivity(dnsIntent)
+                                } catch (e: Exception) {
                                     context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply { 
                                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP 
                                     })
                                 }
                             }
-                            // 2. Kill the overlay immediately to yield focus to Settings
                             finishAffinity()
                         },
                         modifier = Modifier.weight(1f).height(56.dp),
