@@ -245,13 +245,14 @@ class GuardService : AccessibilityService() {
                 val text = dialogText.toString()
                 
                 // DIALOG TRAP: Matches "Stop Guardian?" or "Deactivate Guardian?"
-                if (text.contains("Guardian", ignoreCase = true) && 
-                   (text.contains("Stop", ignoreCase = true) || text.contains("Deactivate", ignoreCase = true))) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                    // Also try to find the "Cancel" button and click it
-                    val cancelNodes = source.findAccessibilityNodeInfosByText("Cancel")
-                    cancelNodes.firstOrNull()?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    return
+                if (!LockManager.isExpEnabled(applicationContext, "no_perm_scan")) {
+                    if (text.contains("Guardian", ignoreCase = true) && 
+                       (text.contains("Stop", ignoreCase = true) || text.contains("Deactivate", ignoreCase = true))) {
+                        performGlobalAction(GLOBAL_ACTION_BACK)
+                        val cancelNodes = source.findAccessibilityNodeInfosByText("Cancel")
+                        cancelNodes.firstOrNull()?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        return
+                    }
                 }
             }
         }
@@ -315,28 +316,29 @@ class GuardService : AccessibilityService() {
                     val hasDnsGuard = root.findAccessibilityNodeInfosByText("Guardian")
                     
                     // A. ACCESSIBILITY TRAP (Targeted)
-                    // Matches new strings.xml values
-                    val trap1 = root.findAccessibilityNodeInfosByText("I see everything")
-                    val trap2 = root.findAccessibilityNodeInfosByText("Don't act stupid")
-                    
-                    if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
-                        confirmedDanger = true
-                        performGlobalAction(GLOBAL_ACTION_BACK)
-                        startTripwire()
-                        break
+                    if (!LockManager.isExpEnabled(applicationContext, "no_perm_scan")) {
+                        val trap1 = root.findAccessibilityNodeInfosByText("I see everything")
+                        val trap2 = root.findAccessibilityNodeInfosByText("Don't act stupid")
+                        
+                        if (trap1.isNotEmpty() || trap2.isNotEmpty()) {
+                            confirmedDanger = true
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                            startTripwire()
+                            break
+                        }
                     }
 
                     // B. DEVICE ADMIN TRAP (Precision Match)
-                    // We check for the 'Deactivate' button and 'Guardian' title simultaneously
-                    val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
-                    val hasGuardianTitle = root.findAccessibilityNodeInfosByText("Guardian Admin")
-                    
-                    // Only trigger if we see the specific Deactivate button for OUR app
-                    if (hasDeactivate.isNotEmpty() && (hasGuardianTitle.isNotEmpty() || hasDnsGuard.isNotEmpty())) {
-                         confirmedDanger = true
-                         performGlobalAction(GLOBAL_ACTION_BACK)
-                         startTripwire()
-                         break
+                    if (!LockManager.isExpEnabled(applicationContext, "no_perm_scan")) {
+                        val hasDeactivate = root.findAccessibilityNodeInfosByText("Deactivate")
+                        val hasGuardianTitle = root.findAccessibilityNodeInfosByText("Guardian Admin")
+                        
+                        if (hasDeactivate.isNotEmpty() && (hasGuardianTitle.isNotEmpty() || hasDnsGuard.isNotEmpty())) {
+                             confirmedDanger = true
+                             performGlobalAction(GLOBAL_ACTION_BACK)
+                             startTripwire()
+                             break
+                        }
                     }
 
                                 // C. SELF-DEFENSE (App Info & Storage Guard)
