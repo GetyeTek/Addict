@@ -27,8 +27,6 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
     private val shakeTimestamps = java.util.LinkedList<Long>()
     
     // SENSOR INTERLOCK STATE
-    private var lastVerifiedDistForStep = 0f
-    private var lastVerifiedStepForDist = 0
     private var lastLocation: android.location.Location? = null
 
     private val volumeReceiver = object : BroadcastReceiver() {
@@ -137,23 +135,16 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         // 2. STEP DETECTION (ENFORCEMENT)
         if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
             if (LockManager.isWhisperMode(ctx)) {
-                val currentDist = LockManager.currentDisplacement
+                LockManager.addWhisperStep(ctx)
+                // Add 2.5 meters of 'Movement Budget' per step detected
+                LockManager.whisperDistanceBudget += 2.5f
                 
-                // INTERLOCK 1: Step requires GPS progress
-                // We allow the first 2 steps to count without GPS to break the 'zero-zero' deadlock
-                val totalSteps = LockManager.getWhisperSteps(ctx)
-                if (currentDist > (lastVerifiedDistForStep + 0.4f) || totalSteps < 2) {
-                    LockManager.addWhisperStep(ctx)
-                    lastVerifiedDistForStep = currentDist
-                    
-                    val steps = LockManager.getWhisperSteps(ctx)
-                    if (steps >= 30 && currentDist >= 20f) {
-                        DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${currentDist}m")
-                        LockManager.stopWhisperMode(ctx)
-                        stopLocationTracking()
-                    }
-                } else {
-                    DebugLogger.log("EXORCIST_SYNC", "Step ignored: No GPS displacement detected.")
+                val steps = LockManager.getWhisperSteps(ctx)
+                val currentDist = LockManager.currentDisplacement
+                if (steps >= 30 && currentDist >= 20f) {
+                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${currentDist}m")
+                    LockManager.stopWhisperMode(ctx)
+                    stopLocationTracking()
                 }
             }
         }
@@ -176,39 +167,30 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
             
             // 3. ANCHOR STABILIZATION
             if (start == null) {
-                // Ignore first 3 updates to allow GPS to settle/discard cached data
-                if (locationSettlementCount < 3) {
-                    locationSettlementCount++
-                    DebugLogger.log("EXORCIST_GPS", "Settling GPS ($locationSettlementCount/3)...")
-                    return
-                }
-
-                if (location.accuracy <= 12f) {
+                // Loosened threshold: 25m accuracy required for anchor
+                if (location.accuracy <= 25f) {
                     LockManager.startLocation = location
                     LockManager.currentDisplacement = 0f
+                    LockManager.whisperDistanceBudget = 0f
                     DebugLogger.log("EXORCIST_GPS", "Stable Anchor Set (Acc: ${location.accuracy}m)")
                 } else {
-                    DebugLogger.log("EXORCIST_GPS", "Waiting for high accuracy lock... (Current: ${location.accuracy}m)")
+                    DebugLogger.log("EXORCIST_GPS", "Wait for accuracy... (Current: ${location.accuracy}m)")
                 }
             } else {
-                // 1. Calculate delta from the PREVIOUS update, not the start
                 val prev = lastLocation ?: start
                 val deltaDist = prev.distanceTo(location)
-                val totalFromStart = start.distanceTo(location)
                 
-                // 2. ANTI-SPOOF: Discard impossible jumps (> 15m in 1 sec = 54km/h)
-                if (deltaDist > 15f || totalFromStart > 1000f) return
-
-                // 3. INTERLOCK: Only accumulate distance if the user stepped
-                val currentSteps = LockManager.getWhisperSteps(applicationContext)
-                if (currentSteps > lastVerifiedStepForDist) {
-                    // User moved their legs! We can trust this delta.
-                    LockManager.currentDisplacement += deltaDist
-                    lastVerifiedStepForDist = currentSteps
-                    DebugLogger.log("EXORCIST_GPS", "Accumulated +${deltaDist.toInt()}m. Total: ${LockManager.currentDisplacement.toInt()}m")
-                } else {
-                    // Distance changed but steps didn't. This is jitter.
-                    DebugLogger.log("EXORCIST_SYNC", "Ignoring GPS Jitter (${deltaDist.toInt()}m) - No steps detected.")
+                // 1. Accuracy Scaling: Proportional filter to ignore drift
+                val minMovementRequired = location.accuracy * 0.7f
+                
+                if (deltaDist > minMovementRequired && deltaDist < 15f) {
+                    // 2. Budget Consumption: Only count GPS move if we have 'Step Credit'
+                    val allowedMove = Math.min(deltaDist, LockManager.whisperDistanceBudget)
+                    if (allowedMove > 0.1f) {
+                        LockManager.currentDisplacement += allowedMove
+                        LockManager.whisperDistanceBudget -= allowedMove
+                        DebugLogger.log("EXORCIST_GPS", "Valid Move: ${allowedMove.toInt()}m. Total: ${LockManager.currentDisplacement.toInt()}m")
+                    }
                 }
                 lastLocation = location
             }
@@ -217,12 +199,12 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
     private fun startLocationTracking() {
         try {
-            val provider = if (locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true) 
-                android.location.LocationManager.GPS_PROVIDER else android.location.LocationManager.NETWORK_PROVIDER
-            locationManager?.requestLocationUpdates(provider, 1000L, 1f, this)
-            DebugLogger.log("EXORCIST_GPS", "Tracker started using $provider")
-        } catch (e: SecurityException) {
-            DebugLogger.log("EXORCIST_ERR", "GPS Permission Denied")
+            // REQUEST FROM BOTH: GPS and Network for max responsiveness
+            locationManager?.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 0L, 0f, this)
+            locationManager?.requestLocationUpdates(android.location.LocationManager.NETWORK_PROVIDER, 0L, 0f, this)
+            DebugLogger.log("EXORCIST_GPS", "Dual-Tracker Engaged (0ms/0m)")
+        } catch (e: Exception) {
+            DebugLogger.log("EXORCIST_ERR", "GPS Failed: ${e.message}")
         }
     }
 
@@ -231,8 +213,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         LockManager.startLocation = null
         lastLocation = null
         LockManager.currentDisplacement = 0f
-        lastVerifiedDistForStep = 0f
-        lastVerifiedStepForDist = 0
+        LockManager.whisperDistanceBudget = 0f
         locationSettlementCount = 0
     }
 
