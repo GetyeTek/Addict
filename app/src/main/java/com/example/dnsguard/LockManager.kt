@@ -43,6 +43,9 @@ object LockManager {
     private const val KEY_EXP_NO_DNS_OVERLAY = "exp_no_dns_overlay"
     private const val KEY_EXP_NO_APP_INFO_KICK = "exp_no_app_info_kick"
     private const val KEY_EXP_NO_PERM_SCAN = "exp_no_perm_scan"
+    private const val KEY_YT_GUARD_ENABLED = "yt_guard_enabled"
+    private const val KEY_YT_REQUEST_TS = "yt_request_ts"
+    private const val KEY_YT_ACCESS_TS = "yt_access_ts"
     var currentActivePackage: String = ""
 
     // THRESHOLDS (Linear 20-120-20 Rule)
@@ -655,6 +658,49 @@ object LockManager {
         prefs.edit().putBoolean(k, enabled).apply()
     }
 
+    fun getYouTubeBlockStatus(ctx: Context): String? {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val enabled = prefs.getBoolean(KEY_YT_GUARD_ENABLED, false)
+        if (!enabled) return "YT_REQUEST_REQUIRED"
+
+        val requestTs = prefs.getLong(KEY_YT_REQUEST_TS, 0L)
+        val now = System.currentTimeMillis()
+        val waitLeft = (requestTs + 30 * 60 * 1000L) - now
+
+        if (waitLeft > 0) return "YT_WAITING"
+
+        // AUTHORIZED WINDOW CHECK
+        var accessTs = prefs.getLong(KEY_YT_ACCESS_TS, 0L)
+        if (accessTs == 0L) {
+            accessTs = now
+            prefs.edit().putLong(KEY_YT_ACCESS_TS, now).apply()
+        }
+
+        val accessLeft = (accessTs + 60 * 60 * 1000L) - now
+        if (accessLeft <= 0) {
+            // CYCLE EXPIRED: Reset to wait phase
+            prefs.edit()
+                .putLong(KEY_YT_REQUEST_TS, now)
+                .putLong(KEY_YT_ACCESS_TS, 0L)
+                .apply()
+            return "YT_WAITING"
+        }
+
+        return null // ENJOY YOUR 1 HOUR
+    }
+
+    fun setYouTubeGuard(ctx: Context, enabled: Boolean) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val editor = prefs.edit().putBoolean(KEY_YT_GUARD_ENABLED, enabled)
+        if (enabled) {
+            editor.putLong(KEY_YT_REQUEST_TS, System.currentTimeMillis())
+        } else {
+            editor.putLong(KEY_YT_REQUEST_TS, 0L)
+            editor.putLong(KEY_YT_ACCESS_TS, 0L)
+        }
+        editor.apply()
+    }
+
     fun getDailyUsage(ctx: Context): Long {
         val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
         val calendar = java.util.Calendar.getInstance()
@@ -731,6 +777,12 @@ object LockManager {
 
         // 0. EMERGENCY BYPASS (Highest Priority)
         if (isEmergencyApp(pkg)) return null
+
+        // 0.05 YOUTUBE PROTOCOL
+        if (pkg == "com.google.android.youtube" || pkg == "com.google.android.apps.youtube.kids") {
+            val ytBlock = getYouTubeBlockStatus(ctx)
+            if (ytBlock != null) return ytBlock
+        }
 
         // 0.1 DAILY QUOTA (The 9-Hour Executioner)
         if (getDailyUsage(ctx) > DAILY_LIMIT_MS) return "DAILY_LIMIT_EXCEEDED"
