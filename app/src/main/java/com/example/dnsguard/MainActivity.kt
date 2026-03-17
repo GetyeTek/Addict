@@ -1048,6 +1048,21 @@ class MainActivity : ComponentActivity() {
 
     private fun getMissingPermissions(ctx: Context): List<PermissionItem> {
         val list = mutableListOf<PermissionItem>()
+
+        // 1. LOCATION FIRST (Requires Scavenger Hunt for 'Allow all the time')
+        val hasFine = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasBackground = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else true
+
+        if (!hasFine || !hasBackground) {
+            list.add(PermissionItem("Location (Set to 'Allow all the time')") { 
+                val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                i.data = Uri.parse("package:$packageName")
+                it.startActivity(i)
+                android.widget.Toast.makeText(it, "Go to Permissions -> Location -> Allow all the time", android.widget.Toast.LENGTH_LONG).show()
+            })
+        }
         
         if (!Settings.canDrawOverlays(ctx)) {
             list.add(PermissionItem("Display Over Apps") { 
@@ -1065,6 +1080,20 @@ class MainActivity : ComponentActivity() {
         val enabledServices = Settings.Secure.getString(ctx.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
         if (!enabledServices.contains(expected)) {
             list.add(PermissionItem("Accessibility") { it.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
+        }
+
+        val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
+        }
+        if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
+            list.add(PermissionItem("Usage Access (Wellbeing)") { 
+                it.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                android.widget.Toast.makeText(it, "Find Guardian and allow Usage Access", android.widget.Toast.LENGTH_LONG).show()
+            })
         }
         
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -1090,34 +1119,6 @@ class MainActivity : ComponentActivity() {
                  val i = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
                  i.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, comp)
                  it.startActivity(i)
-            })
-        }
-
-        val appOps = ctx.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
-        } else {
-            @Suppress("DEPRECATION")
-            appOps.checkOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), ctx.packageName)
-        }
-        if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
-            list.add(PermissionItem("Usage Access (Wellbeing)") { 
-                it.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                android.widget.Toast.makeText(it, "Find Guardian and allow Usage Access", android.widget.Toast.LENGTH_LONG).show()
-            })
-        }
-
-        if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            list.add(PermissionItem("Location (Fine)") { 
-                (it as MainActivity).requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 103)
-            })
-        } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q && 
-                   ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            list.add(PermissionItem("Background Location") { 
-                val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                i.data = Uri.parse("package:$packageName")
-                it.startActivity(i)
-                android.widget.Toast.makeText(it, "Set Location to 'Allow all the time'", android.widget.Toast.LENGTH_LONG).show()
             })
         }
         
