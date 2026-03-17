@@ -461,8 +461,12 @@ class MainActivity : ComponentActivity() {
         val ctx = LocalContext.current
         var resurrect by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "resurrect")) }
         var noDns by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_dns")) }
-        var noAppInfo by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_app_info")) }
-        var noPermScan by remember { mutableStateOf(LockManager.isExpEnabled(ctx, "no_perm_scan")) }
+
+        // RESET: Ensure hidden experiments revert to strict mode
+        LaunchedEffect(Unit) {
+            LockManager.setExpEnabled(ctx, "no_app_info", false)
+            LockManager.setExpEnabled(ctx, "no_perm_scan", false)
+        }
 
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF111827)), border = BorderStroke(1.dp, Color(0xFF374151)), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -471,8 +475,6 @@ class MainActivity : ComponentActivity() {
                 
                 ExpToggle("Resurrection Protocol", "App fights back against Nuke/Kill signals.", resurrect) { resurrect = it; LockManager.setExpEnabled(ctx, "resurrect", it) }
                 ExpToggle("Silence DNS Warnings", "Disables the fix-it overlay for DNS.", noDns) { noDns = it; LockManager.setExpEnabled(ctx, "no_dns", it) }
-                ExpToggle("App Info Freedom", "Stops the kickback when opening App Info.", noAppInfo) { noAppInfo = it; LockManager.setExpEnabled(ctx, "no_app_info", it) }
-                ExpToggle("Stealth Mode", "Disables permission section scanning.", noPermScan) { noPermScan = it; LockManager.setExpEnabled(ctx, "no_perm_scan", it) }
             }
         }
     }
