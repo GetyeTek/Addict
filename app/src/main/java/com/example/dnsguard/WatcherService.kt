@@ -418,21 +418,25 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     
                     // CORRECTED: Use shared state from Accessibility Service via LockManager
                     val topPkg = LockManager.currentActivePackage
-                    val blockType = LockManager.getActiveBlockType(applicationContext, topPkg)
+                    val isCompromised = LockManager.isSystemCompromised(applicationContext)
+                    val penaltyActive = LockManager.getPenaltyRemaining(applicationContext) > 0
+                    
+                    // DETERMINISTIC BLOCK: If the system is compromised or in penalty, we ignore the package check.
+                    val effectiveBlock = if (isCompromised || penaltyActive) "PENALTY" 
+                                        else LockManager.getActiveBlockType(applicationContext, topPkg)
+                    
                     val isFixing = LockManager.isFixWindowActive(applicationContext)
-                    
-                    // DO NOT launch if we are in an emergency app OR if the package is empty
                     val isEmergency = LockManager.isEmergencyApp(topPkg) || topPkg.contains("systemui")
-                    
-                    // DIAGNOSTIC LOG: Only log if we are about to block something that looks like an emergency app
-                    if (blockType != null && (topPkg.contains("dialer") || topPkg.contains("clock") || topPkg.contains("telecom") || topPkg.contains("alarm"))) {
-                        DebugLogger.log("YANK_CHECK", "Pkg: $topPkg | Block: $blockType | isEmergency: $isEmergency")
-                    }
 
-                    if (blockType != null && !isFixing && topPkg.isNotBlank() && !isEmergency && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked) {
-                        DebugLogger.log("YANK_ENFORCE", "Yanking back from $topPkg because of $blockType")
+                    // NO NEGOTIATION: If it's a PENALTY/Compromised state, we fire regardless of topPkg/Emergency status.
+                    // Otherwise, we use surgical blocking.
+                    val shouldFire = effectiveBlock != null && !isFixing && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked &&
+                                     (effectiveBlock == "PENALTY" || (topPkg.isNotBlank() && !isEmergency))
+
+                    if (shouldFire) {
+                        DebugLogger.log("YANK_ENFORCE", "Hard Lock Triggered. Reason: $effectiveBlock | Pkg: $topPkg")
                         val i = Intent(applicationContext, LockdownActivity::class.java)
-                        i.putExtra("BLOCK_TYPE", blockType)
+                        i.putExtra("BLOCK_TYPE", effectiveBlock)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
                     } 
