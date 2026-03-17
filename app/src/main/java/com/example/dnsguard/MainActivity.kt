@@ -404,7 +404,7 @@ class MainActivity : ComponentActivity() {
             AlertDialog(
                 onDismissRequest = { showConfirmRequestDialog = false },
                 title = { Text("EXTREME CAUTION") },
-                text = { Text("You are initiating the Nuclear Option.\n\n1. A code will be generated.\n2. You MUST wait 3 hours before using it.\n3. Protection will only drop for 1 hour.\n\nDo not do this unless it is a genuine emergency.", color = Color.White) },
+                text = { Text("You are initiating the Nuclear Option.\n\n1. A code will be generated.\n2. You MUST wait 2 hours before using it.\n3. Protection will only drop for 1 hour.\n\nDo not do this unless it is a genuine emergency.", color = Color.White) },
                 confirmButton = { 
                     Button(onClick = { 
                         generatedOtp = NukeManager.generateOtp(ctx)
@@ -424,7 +424,7 @@ class MainActivity : ComponentActivity() {
                 title = { Text("PROTOCOL INITIATED") },
                 text = { 
                     Column {
-                        Text("SAVE THIS CODE. If you lose it, you cannot stop protection for 4 hours.", color = Color.LightGray)
+                        Text("SAVE THIS CODE. If you lose it, you cannot stop protection for 3 hours.", color = Color.LightGray)
                         Spacer(modifier = Modifier.height(16.dp))
                         SelectionContainer {
                              Text(generatedOtp, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFFF87171), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
