@@ -56,7 +56,7 @@ class GuardService : AccessibilityService() {
     }
 
     private fun checkPreBreakWarnings(usage: Long) {
-        val thresholds = listOf(LockManager.T1, LockManager.T2, LockManager.T3, LockManager.T4)
+        val thresholds = listOf(LockManager.T1, LockManager.T2, LockManager.T3, LockManager.T4, LockManager.T_RESET)
         var warningActive = false
         
         for (t in thresholds) {
