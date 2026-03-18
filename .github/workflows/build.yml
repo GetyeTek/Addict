@@ -24,27 +24,23 @@ jobs:
 
       - name: Manual Sign APK
         run: |
-          # 1. Decode Keystore
-          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > app/release.jks
+          # 1. Debug Secret Integrity
+          RAW_SECRET="${{ secrets.SIGNING_KEY }}"
+          echo "Secret Length: ${#RAW_SECRET} characters"
+          echo "Start of Secret: ${RAW_SECRET:0:10}..."
+          echo "End of Secret: ...${RAW_SECRET: -10}"
+
+          # 2. Decode
+          echo "$RAW_SECRET" | base64 -di > app/release.jks
           
-          # 2. Locate Tools (SDK 34)
-          BUILD_TOOLS_DIR=$(ls -d ${ANDROID_SDK_ROOT}/build-tools/34.* | head -1)
-          echo "Using Build Tools from: $BUILD_TOOLS_DIR"
+          # Check file size
+          FILE_SIZE=$(wc -c < app/release.jks)
+          echo "Decoded Keystore Size: $FILE_SIZE bytes"
           
-          # 3. Zipalign the unsigned APK
-          UNSIGNED_APK=$(find app/build/outputs/apk/release -name "*-unsigned.apk" -o -name "*-release.apk" | head -1)
-          $BUILD_TOOLS_DIR/zipalign -v 4 "$UNSIGNED_APK" app/build/outputs/apk/release/dns-guard-aligned.apk
-          
-          # 4. Sign the APK
-          $BUILD_TOOLS_DIR/apksigner sign --ks app/release.jks \
-            --ks-pass pass:"${{ secrets.KEY_STORE_PASSWORD }}" \
-            --ks-key-alias "${{ secrets.ALIAS }}" \
-            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
-            --out app/build/outputs/apk/release/dns-guard-v2-stable.apk \
-            app/build/outputs/apk/release/dns-guard-aligned.apk
-          
-          # 5. Verify
-          $BUILD_TOOLS_DIR/apksigner verify app/build/outputs/apk/release/dns-guard-v2-stable.apk
+          if [ "$FILE_SIZE" -lt 2000 ]; then
+            echo "ERROR: Keystore size mismatch. Expected ~2724, got $FILE_SIZE."
+            exit 1
+          fi
 
       - name: Upload Signed APK
         uses: actions/upload-artifact@v4
