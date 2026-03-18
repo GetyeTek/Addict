@@ -167,29 +167,44 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
             
             // 3. ANCHOR STABILIZATION
             if (start == null) {
-                // Loosened threshold: 25m accuracy required for anchor
+                // Initial anchor: 25m accuracy required
                 if (location.accuracy <= 25f) {
                     LockManager.startLocation = location
                     LockManager.currentDisplacement = 0f
                     LockManager.whisperDistanceBudget = 0f
-                    DebugLogger.log("EXORCIST_GPS", "Stable Anchor Set (Acc: ${location.accuracy}m)")
+                    DebugLogger.log("EXORCIST_GPS", "Anchor Set (Acc: ${location.accuracy}m)")
                 } else {
-                    DebugLogger.log("EXORCIST_GPS", "Wait for accuracy... (Current: ${location.accuracy}m)")
+                    DebugLogger.log("EXORCIST_GPS", "GPS Searching... (Acc: ${location.accuracy.toInt()}m)")
                 }
             } else {
+                // SELF-HEALING: If we get a significantly better accuracy lock, update the anchor
+                if (location.accuracy < start.accuracy - 5f && LockManager.currentDisplacement < 1f) {
+                    LockManager.startLocation = location
+                    DebugLogger.log("EXORCIST_GPS", "Anchor Refined (New Acc: ${location.accuracy.toInt()}m)")
+                }
+
                 val prev = lastLocation ?: start
                 val deltaDist = prev.distanceTo(location)
                 
-                // 1. Accuracy Scaling: Proportional filter to ignore drift
-                val minMovementRequired = location.accuracy * 0.7f
-                
-                if (deltaDist > minMovementRequired && deltaDist < 15f) {
-                    // 2. Budget Consumption: Only count GPS move if we have 'Step Credit'
-                    val allowedMove = Math.min(deltaDist, LockManager.whisperDistanceBudget)
-                    if (allowedMove > 0.1f) {
+                // 1. HUMAN SPEED FILTER: Discard jumps > 6m in ~1s (Impossible walking speed)
+                if (deltaDist > 6f) {
+                    DebugLogger.log("EXORCIST_GPS", "Discarded Jump: ${deltaDist.toInt()}m (Teleport detected)")
+                    lastLocation = location // Update pos but don't count distance
+                    return
+                }
+
+                // 2. DRIFT FILTER: Only count movement that exceeds current accuracy margin
+                val noiseThreshold = location.accuracy * 0.5f
+                if (deltaDist > noiseThreshold) {
+                    // 3. BUDGET CONSUMPTION: Consume earned steps
+                    // Cap consumption at 3m per update to keep UI smooth
+                    val potentialMove = Math.min(deltaDist, 3.0f)
+                    val allowedMove = Math.min(potentialMove, LockManager.whisperDistanceBudget)
+                    
+                    if (allowedMove > 0.2f) {
                         LockManager.currentDisplacement += allowedMove
                         LockManager.whisperDistanceBudget -= allowedMove
-                        DebugLogger.log("EXORCIST_GPS", "Valid Move: ${allowedMove.toInt()}m. Total: ${LockManager.currentDisplacement.toInt()}m")
+                        DebugLogger.log("EXORCIST_GPS", "Move: +${String.format("%.1f", allowedMove)}m. Total: ${LockManager.currentDisplacement.toInt()}m")
                     }
                 }
                 lastLocation = location
@@ -199,10 +214,9 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
     private fun startLocationTracking() {
         try {
-            // REQUEST FROM BOTH: GPS and Network for max responsiveness
-            locationManager?.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 0L, 0f, this)
-            locationManager?.requestLocationUpdates(android.location.LocationManager.NETWORK_PROVIDER, 0L, 0f, this)
-            DebugLogger.log("EXORCIST_GPS", "Dual-Tracker Engaged (0ms/0m)")
+            // PURE GPS ONLY: Disabling Network Provider to prevent teleports
+            locationManager?.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 500L, 0f, this)
+            DebugLogger.log("EXORCIST_GPS", "Pure GPS Tracker Engaged (500ms)")
         } catch (e: Exception) {
             DebugLogger.log("EXORCIST_ERR", "GPS Failed: ${e.message}")
         }
