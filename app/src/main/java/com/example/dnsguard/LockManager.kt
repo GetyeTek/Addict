@@ -140,7 +140,9 @@ object LockManager {
         "com.osp.app.signin",
         "com.trm.tunnel",
         "io.spck",
-        "com.imo.android.imoim"
+        "com.imo.android.imoim",
+        "com.flyersoft.moonreader",
+        "com.google.android.gm"
     )
 
     fun isUnlocked(ctx: Context): Boolean {
