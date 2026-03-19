@@ -57,6 +57,19 @@ object LockManager {
     const val DAILY_LIMIT_MS = 9 * 60 * 60 * 1000L
     const val DAILY_WARN_MS = 8 * 60 * 60 * 1000L
 
+    // APPS THAT DOUBLE-COUNT USAGE (System Overlays, Launchers, Keyboards)
+    private val GHOST_PACKAGES = setOf(
+        "com.android.systemui",
+        "com.sec.android.app.launcher",
+        "com.google.android.apps.nexuslauncher",
+        "com.android.launcher3",
+        "com.google.android.inputmethod.latin",
+        "com.samsung.android.honeyboard",
+        "com.sec.android.inputmethod",
+        "com.apple.android.music", // Known for ghost foreground time
+        "com.google.android.gms" // System services
+    )
+
     @Volatile
     var isVolumeUpHeld: Boolean = false
 
@@ -713,12 +726,43 @@ object LockManager {
         val stats = usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
         var totalTime = 0L
         for (usageStat in stats) {
-            // Only count other apps, not ourselves, to avoid feedback loops
-            if (usageStat.packageName != ctx.packageName) {
+            val pkg = usageStat.packageName
+            // 1. Don't count ourselves
+            if (pkg == ctx.packageName) continue
+            // 2. Don't count "Ghost" apps that run in parallel (Fixes the 3hr discrepancy)
+            if (GHOST_PACKAGES.any { pkg.contains(it) }) continue
+            
+            // 3. Only count if usage > 0 (Even if it's just 1ms, we keep it per your request)
+            if (usageStat.totalTimeInForeground > 0) {
                 totalTime += usageStat.totalTimeInForeground
             }
         }
         return totalTime
+    }
+
+    fun logUsageBreakdown(ctx: Context) {
+        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        
+        val stats = usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, calendar.timeInMillis, System.currentTimeMillis())
+        val sb = StringBuilder()
+        sb.append("\n--- HEAVY USAGE AUDIT (8HR MARK) ---\n")
+        
+        stats.filter { it.totalTimeInForeground > 0 && it.packageName != ctx.packageName }
+             .sortedByDescending { it.totalTimeInForeground }
+             .forEach { stat ->
+                 val mins = stat.totalTimeInForeground / 60000
+                 val isGhost = GHOST_PACKAGES.any { stat.packageName.contains(it) }
+                 sb.append("${if (isGhost) "[IGNORED]" else "[COUNTED]"} ${stat.packageName}: ${mins}m\n")
+             }
+        
+        val totalMins = getDailyUsage(ctx) / 60000
+        sb.append("TOTAL CALCULATED USAGE: ${totalMins}m\n")
+        sb.append("-----------------------------------")
+        DebugLogger.log("MATH_AUDIT", sb.toString())
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
