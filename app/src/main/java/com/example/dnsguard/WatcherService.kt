@@ -345,7 +345,9 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
 
                 if (dailyUsage >= LockManager.DAILY_WARN_MS && dailyUsage < LockManager.DAILY_LIMIT_MS) {
                     if (lastWarnDay != today) {
+                        // PRECISE TRIGGER: We fire the notification and the AUDIT LOG simultaneously
                         sendDailyWarningNotification()
+                        LockManager.logUsageBreakdown(applicationContext)
                         prefs.edit().putString("last_daily_warn_day", today).apply()
                     }
                 }
