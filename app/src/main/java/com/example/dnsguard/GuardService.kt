@@ -175,7 +175,10 @@ class GuardService : AccessibilityService() {
             className.contains("ChromeCustomTab", ignoreCase = true) ||
             className.contains("WebSettings", ignoreCase = true)) {
             
-            if (!LockManager.STANDARD_BROWSERS.contains(pkg) && pkg != packageName && !LockManager.isAppApproved(applicationContext, pkg)) {
+            val isKnownBrowser = LockManager.isBlacklistedBrowser(applicationContext, pkg) || 
+                                 LockManager.STANDARD_BROWSERS.contains(pkg)
+
+            if (!isKnownBrowser && pkg != packageName && !LockManager.isAppApproved(applicationContext, pkg)) {
                 LockManager.registerLearnedApp(applicationContext, pkg)
                 if (dynamicBrowsers.add(pkg)) {
                     managePolling(pkg)
