@@ -449,12 +449,15 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                                      (effectiveBlock == "PENALTY" || (!topPkg.isBlank() && !isEmergency))
 
                     if (shouldFire) {
-                        DebugLogger.log("YANK_ENFORCE", "Hard Lock Triggered. Reason: $effectiveBlock | Pkg: $topPkg")
+                        DebugLogger.log("ENFORCE_LOG", "BLOCK EVENT -> Pkg: [$topPkg] | Block: $effectiveBlock | isEmergency: $isEmergency | isFixing: $isFixing")
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", effectiveBlock)
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                         startActivity(i)
-                    } 
+                    } else if (effectiveBlock != null && isEmergency) {
+                        // This is a 'Squelch' log - it tells us the whitelist is working
+                        DebugLogger.log("ENFORCE_LOG", "BYPASS -> Pkg: [$topPkg] is whitelisted for $effectiveBlock")
+                    }
                     else if (!hasNotifs && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext) && !km.isKeyguardLocked) {
                         LockManager.startPermissionFixSession(applicationContext)
                         val i = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
