@@ -257,7 +257,7 @@ class LockdownActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT").contains(type)
+            val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT", "DAILY_LIMIT_EXCEEDED").contains(type)
             val showFixButton = LockManager.shouldShowFixButton(context, type)
 
             if (showFixButton) {
