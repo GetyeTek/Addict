@@ -446,7 +446,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     // NO NEGOTIATION: If it's a PENALTY/Compromised state, we fire regardless of topPkg/Emergency status.
                     // Otherwise, we use surgical blocking.
                     val shouldFire = effectiveBlock != null && !isFixing && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked &&
-                                     (effectiveBlock == "PENALTY" || (topPkg.isNotBlank() && !isEmergency))
+                                     (effectiveBlock == "PENALTY" || (!topPkg.isBlank() && !isEmergency))
 
                     if (shouldFire) {
                         DebugLogger.log("YANK_ENFORCE", "Hard Lock Triggered. Reason: $effectiveBlock | Pkg: $topPkg")
