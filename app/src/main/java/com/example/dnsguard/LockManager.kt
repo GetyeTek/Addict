@@ -768,8 +768,14 @@ object LockManager {
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
-        if (pkg.isBlank()) return false
+        if (pkg.isBlank()) return true // Assume safe during transition
         val p = pkg.lowercase()
+        
+        // Core System Whitelist (Prevents kickback loops)
+        if (p == "android" || p.contains("systemui") || p.contains("permissioncontroller")) {
+            return true
+        }
+
         val match = p.contains("dialer") || 
                p.contains("telecom") || 
                p.contains("incallui") || 
@@ -778,7 +784,7 @@ object LockManager {
                p.contains("contacts") ||
                p.contains("phone") ||
                p.contains("emergency") ||
-               p.contains("messaging") || // Added for SMS emergency coord
+               p.contains("messaging") || 
                p.contains("stk")
         
         if (match) DebugLogger.log("EMERGENCY_MATCH", "Package $pkg validated as Emergency Bypass")
