@@ -13,6 +13,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         DebugLogger.log("ALARM", "WAKE UP! Triggering Ringer.")
+        LockManager.setAlarmTriggerTs(context, System.currentTimeMillis())
         val i = Intent(context, AlarmRingerActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
