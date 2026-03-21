@@ -31,7 +31,8 @@ data class AlarmData(
 
 @Composable
 fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () -> Unit) {
-    val alarms = remember { mutableStateListOf<AlarmData>() } // Temporary until persistence added
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val alarms = remember { mutableStateListOf<AlarmData>().apply { addAll(AlarmStore.getAlarms(ctx)) } }
     
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(horizontal = 20.dp)) {
         Spacer(modifier = Modifier.height(60.dp))
