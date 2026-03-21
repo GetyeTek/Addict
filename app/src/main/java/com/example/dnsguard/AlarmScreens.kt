@@ -88,7 +88,25 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(alarms.size) { index ->
                 val alarm = alarms[index]
-                AlarmItem(alarm, onClick = { onEdit(alarm) }, onToggle = { alarm.enabled = it })
+                AlarmItem(
+                    alarm = alarm, 
+                    onClick = { onEdit(alarm) }, 
+                    onToggle = { isEnabled -> 
+                        alarm.enabled = isEnabled
+                        // Save immediately to disk so it survives a screen swap
+                        AlarmStore.saveAlarms(ctx, alarms.toList())
+                        
+                        // Optional: Show a quick toast if it's now enabled
+                        if (isEnabled) {
+                            val diff = AlarmScheduler.getTimeToAlarm(alarm)
+                            val mins = (diff / (1000 * 60)).toInt()
+                            val hours = (mins / 60)
+                            val m = mins % 60
+                            val msg = if (hours > 0) "Alarm set for $hours h $m m from now" else "Alarm set for $m m from now"
+                            android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
             }
         }
 
