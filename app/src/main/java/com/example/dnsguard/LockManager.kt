@@ -768,14 +768,8 @@ object LockManager {
     }
 
     fun isEmergencyApp(pkg: String): Boolean {
-        if (pkg.isBlank()) return true // Assume safe during transition
+        if (pkg.isBlank()) return false
         val p = pkg.lowercase()
-        
-        // Core System Whitelist (Prevents kickback loops)
-        if (p == "android" || p.contains("systemui") || p.contains("permissioncontroller")) {
-            return true
-        }
-
         val match = p.contains("dialer") || 
                p.contains("telecom") || 
                p.contains("incallui") || 
