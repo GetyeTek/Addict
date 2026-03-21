@@ -24,8 +24,7 @@ class WatcherService : Service(), SensorEventListener {
     private var lastShakeTimestamp = 0L
     private val shakeTimestamps = java.util.LinkedList<Long>()
     
-    // SENSOR INTERLOCK STATE
-    private var lastLocation: android.location.Location? = null
+
 
     private val volumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -76,7 +75,6 @@ class WatcherService : Service(), SensorEventListener {
         val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         sensorManager?.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
 
-        locationManager = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
         registerReceiver(volumeReceiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
     }
 
@@ -264,32 +262,17 @@ class WatcherService : Service(), SensorEventListener {
 
                 // WHISPER PENALTY CHECK
                 if (LockManager.isWhisperMode(applicationContext)) {
-                    val isGpsOn = locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true
-                    val isNetOn = locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
-                    
-                    if (!isGpsOn && !isNetOn) {
-                        val i = Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        }
-                        startActivity(i)
-                    }
-
                     val elapsed = LockManager.getWhisperElapsed(applicationContext)
                     val steps = LockManager.getWhisperSteps(applicationContext)
-                    val dist = LockManager.currentDisplacement
-                    val hasMovedEnough = dist >= 20f
                     
                     if (elapsed > 60000 && steps < 30) {
-                        // RESURRECTION LOGIC: 
-                        // If it should be playing but isn't (crashed/killed), start it again.
                         if (mediaPlayer == null || !mediaPlayer!!.isPlaying) {
                              DebugLogger.log("EXORCIST_RECOVER", "Penalty audio died. Restarting...")
                              startPenaltyAudio()
                         }
                         enforceMaxVolume()
                     } else {
-                        // User finished the task or is still in grace period
-                        if (steps >= 30 && hasMovedEnough) stopPenaltyAudio()
+                        if (steps >= 30) stopPenaltyAudio()
                     }
                 } else {
                     // Not in whisper mode at all
