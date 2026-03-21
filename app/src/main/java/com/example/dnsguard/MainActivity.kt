@@ -93,7 +93,9 @@ class MainActivity : ComponentActivity() {
     fun DashboardContent(isDark: Boolean, onThemeToggle: (Boolean) -> Unit) {
         val ctx = LocalContext.current
         var setupDone by remember { mutableStateOf(LockManager.isSetupComplete(ctx)) }
-        
+        var currentScreen by remember { mutableStateOf("DASHBOARD") }
+        var editingAlarm by remember { mutableStateOf<AlarmData?>(null) }
+
         if (!setupDone) {
             OnboardingGate(onSetupComplete = { setupDone = true })
         } else {
@@ -105,7 +107,23 @@ class MainActivity : ComponentActivity() {
                     ctx.startService(intent)
                 }
             }
-            DashboardMain(isDark, onThemeToggle)
+
+            when (currentScreen) {
+                "ALARM_HUB" -> AlarmHubScreen(
+                    onAdd = { editingAlarm = null; currentScreen = "ALARM_EDITOR" },
+                    onEdit = { alarm -> editingAlarm = alarm; currentScreen = "ALARM_EDITOR" },
+                    onBack = { currentScreen = "DASHBOARD" }
+                )
+                "ALARM_EDITOR" -> AlarmEditorScreen(
+                    alarm = editingAlarm,
+                    onCancel = { currentScreen = "ALARM_HUB" },
+                    onSave = { _ -> 
+                        // Save logic in next payload
+                        currentScreen = "ALARM_HUB" 
+                    }
+                )
+                else -> DashboardMain(isDark, onThemeToggle) { currentScreen = "ALARM_HUB" }
+            }
         }
     }
 
@@ -139,7 +157,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("• $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("â¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -154,7 +172,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DashboardMain(isDark: Boolean, onThemeToggle: (Boolean) -> Unit) {
+    fun DashboardMain(isDark: Boolean, onThemeToggle: (Boolean) -> Unit, onAlarmClick: () -> Unit) {
         val ctx = LocalContext.current
         var missingPerms by remember { mutableStateOf(listOf<PermissionItem>()) }
 
@@ -188,6 +206,8 @@ class MainActivity : ComponentActivity() {
             FocusCard()
             Spacer(modifier = Modifier.height(16.dp))
             DeepFocusCard()
+            Spacer(modifier = Modifier.height(16.dp))
+            AlarmCard(onAlarmClick)
             Spacer(modifier = Modifier.height(16.dp))
             AppManagerCard()
             Spacer(modifier = Modifier.height(16.dp))
@@ -514,6 +534,20 @@ class MainActivity : ComponentActivity() {
             }, confirmButton = {
                 Button(onClick = { if (pass == LockManager.ADMIN_PASS) { LockManager.unlock(applicationContext); showMainte = false } }) { Text("START WINDOW") }
             })
+        }
+    }
+
+    @Composable
+    fun AlarmCard(onClick: () -> Unit) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.Black), 
+            border = BorderStroke(2.dp, Color(0xFFFF5252)),
+            modifier = Modifier.fillMaxWidth().clickable { onClick() }
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("THE PANTS ALARM", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFF5252))
+                Text("Wake up or meet the devil.", color = Color.Gray, fontSize = 12.sp)
+            }
         }
     }
 
