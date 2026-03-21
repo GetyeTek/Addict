@@ -48,6 +48,32 @@ object AlarmScheduler {
         }
     }
 
+    fun getTimeToAlarm(alarm: AlarmData): Long {
+        val now = Calendar.getInstance()
+        val target = Calendar.getInstance().apply {
+            set(Calendar.HOUR, if(alarm.hour == 12) 0 else alarm.hour)
+            set(Calendar.MINUTE, alarm.minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.AM_PM, if(alarm.isAm) Calendar.AM else Calendar.PM)
+        }
+
+        var nextTime = Long.MAX_VALUE
+
+        if (alarm.days.isEmpty()) {
+            if (target.before(now)) target.add(Calendar.DAY_OF_YEAR, 1)
+            nextTime = target.timeInMillis
+        } else {
+            alarm.days.forEach { day ->
+                val dayTarget = target.clone() as Calendar
+                val calendarDay = if (day == 7) Calendar.SUNDAY else day + 1
+                dayTarget.set(Calendar.DAY_OF_WEEK, calendarDay)
+                if (dayTarget.before(now)) dayTarget.add(Calendar.WEEK_OF_YEAR, 1)
+                if (dayTarget.timeInMillis < nextTime) nextTime = dayTarget.timeInMillis
+            }
+        }
+        return (nextTime - now.timeInMillis).coerceAtLeast(0L)
+    }
+
     fun getNextAlarmTime(ctx: Context): Long {
         val alarms = AlarmStore.getAlarms(ctx).filter { it.enabled }
         if (alarms.isEmpty()) return 0L
