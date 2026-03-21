@@ -132,7 +132,11 @@ fun AlarmItem(alarm: AlarmData, onClick: () -> Unit, onToggle: (Boolean) -> Unit
                 Text(if (alarm.isAm) "am" else "pm", color = if(isChecked) Color.White else Color.Gray, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
             }
             val dayNames = listOf("M", "T", "W", "T", "F", "S", "S")
-            val activeDays = dayNames.filterIndexed { index, _ -> alarm.days.contains(index + 1) }.joinToString(" ")
+            val activeDays = when {
+                alarm.days.size == 7 -> "Every day"
+                alarm.days.isEmpty() -> "Once"
+                else -> dayNames.filterIndexed { index, _ -> alarm.days.contains(index + 1) }.joinToString(" ")
+            }
             Text("${alarm.name} | $activeDays", color = Color.Gray, fontSize = 12.sp)
         }
         Switch(checked = isChecked, onCheckedChange = { isChecked = it; onToggle(it) })
@@ -174,10 +178,10 @@ fun AlarmEditorScreen(alarm: AlarmData?, onSave: (AlarmData) -> Unit, onCancel: 
                 Surface(
                     modifier = Modifier.size(36.dp).clickable { if(isSelected) selectedDays.remove(dayNum) else selectedDays.add(dayNum) },
                     shape = CircleShape, 
-                    color = if(isSelected) Color.Transparent else Color.Transparent
+                    color = if(isSelected) Color(0xFFFB7185) else Color.Transparent
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(day, color = if(isSelected) Color(0xFFFB7185) else Color.White, fontWeight = FontWeight.Bold)
+                        Text(day, color = if(isSelected) Color.Black else Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
