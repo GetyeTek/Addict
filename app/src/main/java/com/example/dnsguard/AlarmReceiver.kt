@@ -14,7 +14,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         DebugLogger.log("ALARM", "WAKE UP! Triggering Ringer.")
         val i = Intent(context, AlarmRingerActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_FULLSCREEN)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(i)
         // Reschedule next recurring alarm if needed
