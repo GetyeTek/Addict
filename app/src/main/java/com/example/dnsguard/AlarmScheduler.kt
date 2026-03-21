@@ -47,4 +47,34 @@ object AlarmScheduler {
             DebugLogger.log("ALARM", "Next alarm scheduled for: ${Date(nextTime)}")
         }
     }
+
+    fun getNextAlarmTime(ctx: Context): Long {
+        val alarms = AlarmStore.getAlarms(ctx).filter { it.enabled }
+        if (alarms.isEmpty()) return 0L
+
+        val now = Calendar.getInstance()
+        var nextTime: Long = Long.MAX_VALUE
+
+        alarms.forEach { alarm ->
+            val target = Calendar.getInstance().apply {
+                set(Calendar.HOUR, if(alarm.hour == 12) 0 else alarm.hour)
+                set(Calendar.MINUTE, alarm.minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.AM_PM, if(alarm.isAm) Calendar.AM else Calendar.PM)
+            }
+            if (alarm.days.isEmpty()) {
+                if (target.before(now)) target.add(Calendar.DAY_OF_YEAR, 1)
+                if (target.timeInMillis < nextTime) nextTime = target.timeInMillis
+            } else {
+                alarm.days.forEach { day ->
+                    val dayTarget = target.clone() as Calendar
+                    val calendarDay = if (day == 7) Calendar.SUNDAY else day + 1
+                    dayTarget.set(Calendar.DAY_OF_WEEK, calendarDay)
+                    if (dayTarget.before(now)) dayTarget.add(Calendar.WEEK_OF_YEAR, 1)
+                    if (dayTarget.timeInMillis < nextTime) nextTime = dayTarget.timeInMillis
+                }
+            }
+        }
+        return if (nextTime == Long.MAX_VALUE) 0L else nextTime
+    }
 }
