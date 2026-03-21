@@ -117,8 +117,11 @@ class MainActivity : ComponentActivity() {
                 "ALARM_EDITOR" -> AlarmEditorScreen(
                     alarm = editingAlarm,
                     onCancel = { currentScreen = "ALARM_HUB" },
-                    onSave = { _ -> 
-                        // Save logic in next payload
+                    onSave = { updated -> 
+                        val list = AlarmStore.getAlarms(ctx).toMutableList()
+                        list.removeIf { it.id == updated.id }
+                        list.add(updated)
+                        AlarmStore.saveAlarms(ctx, list)
                         currentScreen = "ALARM_HUB" 
                     }
                 )
@@ -157,7 +160,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("â¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("Ã¢ÂÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
