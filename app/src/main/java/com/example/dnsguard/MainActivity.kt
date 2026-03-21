@@ -122,6 +122,15 @@ class MainActivity : ComponentActivity() {
                         list.removeIf { it.id == updated.id }
                         list.add(updated)
                         AlarmStore.saveAlarms(ctx, list)
+                        
+                        // Show Toast with remaining time
+                        val diff = AlarmScheduler.getTimeToAlarm(updated)
+                        val hours = (diff / (1000 * 60 * 60)).toInt()
+                        val mins = ((diff / (1000 * 60)) % 60).toInt()
+                        val toastMsg = if (hours > 0) "Alarm set for $hours hours and $mins minutes from now" 
+                                       else "Alarm set for $mins minutes from now"
+                        android.widget.Toast.makeText(ctx, toastMsg, android.widget.Toast.LENGTH_LONG).show()
+                        
                         currentScreen = "ALARM_HUB" 
                     }
                 )
@@ -160,7 +169,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("ÃÂ¢ÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
