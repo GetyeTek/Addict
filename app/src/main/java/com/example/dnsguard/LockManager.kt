@@ -46,6 +46,8 @@ object LockManager {
     private const val KEY_YT_GUARD_ENABLED = "yt_guard_enabled"
     private const val KEY_YT_REQUEST_TS = "yt_request_ts"
     private const val KEY_YT_ACCESS_TS = "yt_access_ts"
+    private const val KEY_ALARM_TRIGGER_TS = "last_alarm_trigger_ts"
+    private const val EXORCISM_MAX_DURATION = 30 * 60 * 1000L // 30 Minutes
     var currentActivePackage: String = ""
 
     // THRESHOLDS (Linear 20-120-20 Rule)
@@ -802,7 +804,19 @@ object LockManager {
             .apply()
     }
 
-    fun isWhisperMode(ctx: Context): Boolean = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_WHISPER_ACTIVE, false)
+    fun isWhisperMode(ctx: Context): Boolean {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val active = prefs.getBoolean(KEY_WHISPER_ACTIVE, false)
+        if (!active) return false
+
+        val triggerTs = prefs.getLong(KEY_ALARM_TRIGGER_TS, 0L)
+        if (triggerTs > 0 && (System.currentTimeMillis() - triggerTs > EXORCISM_MAX_DURATION)) {
+            // Mercy Threshold reached. Auto-killing protocol.
+            prefs.edit().putBoolean(KEY_WHISPER_ACTIVE, false).apply()
+            return false
+        }
+        return true
+    }
     
     fun getWhisperSteps(ctx: Context): Int = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_WHISPER_STEPS, 0)
     
@@ -810,6 +824,11 @@ object LockManager {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val current = prefs.getInt(KEY_WHISPER_STEPS, 0)
         prefs.edit().putInt(KEY_WHISPER_STEPS, current + 1).apply()
+    }
+
+    fun setAlarmTriggerTs(ctx: Context, ts: Long) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_ALARM_TRIGGER_TS, ts).apply()
     }
 
     fun getWhisperElapsed(ctx: Context): Long {
