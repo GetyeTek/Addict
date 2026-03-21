@@ -179,7 +179,7 @@ fun AlarmEditorScreen(alarm: AlarmData?, onSave: (AlarmData) -> Unit, onCancel: 
 @Composable
 fun VerticalWheelPicker(range: Any, initial: Int, onSelect: (Int) -> Unit) {
     val list = if (range is IntRange) range.toList() else range as List<*>
-    val state = rememberLazyListState(initialIndex = initial)
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = initial)
     
     // Crude snapping logic for now
     LaunchedEffect(state.isScrollInProgress) {
