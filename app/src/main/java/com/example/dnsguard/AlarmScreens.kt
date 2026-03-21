@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.* 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,7 +35,16 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val alarms = remember { mutableStateListOf<AlarmData>().apply { addAll(AlarmStore.getAlarms(ctx)) } }
     
-    val nextAlarmTime = AlarmScheduler.getNextAlarmTime(ctx)
+    var nextAlarmTime by remember { mutableStateOf(AlarmScheduler.getNextAlarmTime(ctx)) }
+    
+    // Ticker to update countdown every minute
+    LaunchedEffect(Unit) {
+        while(true) {
+            nextAlarmTime = AlarmScheduler.getNextAlarmTime(ctx)
+            kotlinx.coroutines.delay(60000)
+        }
+    }
+
     val countdownText = if (nextAlarmTime == 0L) "No upcoming\nalarms" else {
         val diff = nextAlarmTime - System.currentTimeMillis()
         val hours = (diff / (1000 * 60 * 60)).toInt()
@@ -113,15 +123,15 @@ fun AlarmEditorScreen(alarm: AlarmData?, onSave: (AlarmData) -> Unit, onCancel: 
         // The Time Picker Wheel Area
         Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                VerticalWheelPicker(range = 1..12, initial = workingAlarm.hour % 12) { workingAlarm.hour = it }
+                VerticalWheelPicker(range = 1..12, initial = if(workingAlarm.hour == 0 || workingAlarm.hour == 12) 11 else (workingAlarm.hour % 12) - 1) { workingAlarm.hour = if(workingAlarm.isAm) (if(it == 12) 0 else it) else (if(it == 12) 12 else it + 12) }
                 Text(":", color = Color.White, fontSize = 40.sp, modifier = Modifier.padding(horizontal = 10.dp))
                 VerticalWheelPicker(range = 0..59, initial = workingAlarm.minute) { workingAlarm.minute = it }
                 Spacer(Modifier.width(20.dp))
                 VerticalWheelPicker(range = listOf("am", "pm"), initial = if(workingAlarm.isAm) 0 else 1) { workingAlarm.isAm = it == 0 }
             }
             // Selection indicators
-            Divider(modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp).align(Alignment.Center).offset(y = (-25).dp), color = Color.DarkGray)
-            Divider(modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp).align(Alignment.Center).offset(y = 25.dp), color = Color.DarkGray)
+            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp).align(Alignment.Center).offset(y = (-25).dp), color = Color.DarkGray)
+            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp).align(Alignment.Center).offset(y = 25.dp), color = Color.DarkGray)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
