@@ -12,7 +12,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.* 
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -181,10 +191,16 @@ fun VerticalWheelPicker(range: Any, initial: Int, onSelect: (Int) -> Unit) {
     val list = if (range is IntRange) range.toList() else range as List<*>
     val itemHeight = 50.dp
     val state = rememberLazyListState(initialFirstVisibleItemIndex = initial)
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
     
-    // Snapping logic: find the item closest to the center
+    var isEditing by remember { mutableStateOf(false) }
+    var editValue by remember { mutableStateOf("") }
+
+    // Snapping logic
     LaunchedEffect(state.isScrollInProgress) {
-        if (!state.isScrollInProgress) {
+        if (!state.isScrollInProgress && !isEditing) {
             val layoutInfo = state.layoutInfo
             val center = layoutInfo.viewportEndOffset / 2
             val closestItem = layoutInfo.visibleItemsInfo.minByOrNull { 
@@ -197,24 +213,51 @@ fun VerticalWheelPicker(range: Any, initial: Int, onSelect: (Int) -> Unit) {
         }
     }
 
-    Box(modifier = Modifier.height(150.dp).width(70.dp)) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 50.dp) // Allows end items to reach center
-        ) {
-            items(list.size) { index ->
-                Box(
-                    modifier = Modifier.height(itemHeight).fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = list[index].toString().let { if(it.all { c -> c.isDigit() }) it.padStart(2, '0') else it },
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center
-                    )
+    Box(modifier = Modifier.height(150.dp).width(75.dp).clickable { 
+        if (list[0] is Int) {
+            isEditing = true
+            editValue = ""
+        } else {
+            // AM/PM Toggle
+            val nextIndex = (state.firstVisibleItemIndex + 1) % list.size
+            scope.launch { state.animateScrollToItem(nextIndex) }
+            onSelect(nextIndex)
+        }
+    }, contentAlignment = Alignment.Center) {
+        if (isEditing) {
+            BasicTextField(
+                value = editValue,
+                onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) editValue = it },
+                modifier = Modifier.focusRequester(focusRequester).width(60.dp),
+                textStyle = TextStyle(color = Color.White, fontSize = 32.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold),
+                cursorBrush = SolidColor(Color.White),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    val num = editValue.toIntOrNull()
+                    if (num != null) {
+                        val targetIndex = list.indexOfFirst { it == num }.coerceAtLeast(0)
+                        scope.launch { state.animateScrollToItem(targetIndex) }
+                        onSelect(num)
+                    }
+                    isEditing = false
+                    focusManager.clearFocus()
+                })
+            )
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+        } else {
+            LazyColumn(
+                state = state,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 50.dp), 
+                userScrollEnabled = !isEditing
+            ) {
+                items(list.size) { index ->
+                    Box(modifier = Modifier.height(itemHeight).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = list[index].toString().let { if(it.all { c -> c.isDigit() }) it.padStart(2, '0') else it },
+                            color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
