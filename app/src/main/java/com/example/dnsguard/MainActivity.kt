@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("Ã¢ÂÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("ÃÂ¢ÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -1167,6 +1167,15 @@ class MainActivity : ComponentActivity() {
             if (!nm.isNotificationPolicyAccessGranted) {
                 list.add(PermissionItem("Do Not Disturb Access") { 
                     it.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                })
+            }
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val am = ctx.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            if (!am.canScheduleExactAlarms()) {
+                list.add(PermissionItem("Exact Alarms (Allow in Settings)") { 
+                    it.startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName")))
                 })
             }
         }
