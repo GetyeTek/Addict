@@ -43,11 +43,17 @@ data class AlarmData(
 @Composable
 fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () -> Unit) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+@Composable
+fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     val alarms = remember { mutableStateListOf<AlarmData>().apply { addAll(AlarmStore.getAlarms(ctx)) } }
     
-    var nextAlarmTime by remember { mutableStateOf(AlarmScheduler.getNextAlarmTime(ctx)) }
-    
-    // Ticker to update countdown every minute
+    var isSelectionMode by remember { mutableStateOf(false) }
+    val selectedIds = remember { mutableStateListOf<String>() }
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(horizontal = 20.dp)) {
     LaunchedEffect(Unit) {
         while(true) {
             nextAlarmTime = AlarmScheduler.getNextAlarmTime(ctx)
@@ -80,30 +86,49 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
         Spacer(modifier = Modifier.height(40.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            IconButton(onClick = onAdd) { Icon(Icons.Default.Add, null, tint = Color.White) }
-            IconButton(onClick = { /* More options */ }) { Icon(Icons.Default.MoreVert, null, tint = Color.White) }
+            if (!isSelectionMode) {
+                IconButton(onClick = onAdd) { Icon(Icons.Default.Add, null, tint = Color.White) }
+            }
+            Box {
+                IconButton(onClick = { if (isSelectionMode) { isSelectionMode = false; selectedIds.clear() } else showMenu = true }) {
+                    Icon(if (isSelectionMode) Icons.Default.Close else Icons.Default.MoreVert, null, tint = Color.White)
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, modifier = Modifier.background(Color(0xFF1E1E1E))) {
+                    DropdownMenuItem(
+                        text = { Text("Edit", color = Color.White) },
+                        onClick = { isSelectionMode = true; showMenu = false }
+                    )
+                }
+            }
         }
 
         // Alarm List
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(alarms.size) { index ->
                 val alarm = alarms[index]
+                val isSelected = selectedIds.contains(alarm.id)
+                
                 AlarmItem(
-                    alarm = alarm, 
-                    onClick = { onEdit(alarm) }, 
-                    onToggle = { isEnabled -> 
+                    alarm = alarm,
+                    isSelectionMode = isSelectionMode,
+                    isSelected = isSelected,
+                    onClick = {
+                        if (isSelectionMode) {
+                            if (isSelected) selectedIds.remove(alarm.id) else selectedIds.add(alarm.id)
+                        } else {
+                            onEdit(alarm)
+                        }
+                    },
+                    onToggle = { isEnabled ->
                         alarm.enabled = isEnabled
-                        // Save immediately to disk so it survives a screen swap
                         AlarmStore.saveAlarms(ctx, alarms.toList())
-                        
-                        // Optional: Show a quick toast if it's now enabled
                         if (isEnabled) {
-                            val diff = AlarmScheduler.getTimeToAlarm(alarm)
-                            val mins = (diff / (1000 * 60)).toInt()
-                            val hours = (mins / 60)
-                            val m = mins % 60
-                            val msg = if (hours > 0) "Alarm set for $hours h $m m from now" else "Alarm set for $m m from now"
-                            android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+                             val diff = AlarmScheduler.getTimeToAlarm(alarm)
+                             val mins = (diff / (1000 * 60)).toInt()
+                             val hours = mins / 60
+                             val m = mins % 60
+                             val msg = if (hours > 0) "Alarm set for $hours h $m m" else "Alarm set for $m m"
+                             android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
@@ -111,25 +136,74 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
         }
 
         // Minimalist Bottom Nav Placeholder
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalArrangement = Arrangement.Center) {
-            Text("Alarm", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
-            Text("Settings", color = Color.Gray, modifier = Modifier.padding(horizontal = 12.dp).clickable { onBack() })
+        if (!isSelectionMode) {
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalArrangement = Arrangement.Center) {
+                Text("Alarm", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp))
+                Text("Settings", color = Color.Gray, modifier = Modifier.padding(horizontal = 12.dp).clickable { onBack() })
+            }
         }
     }
+
+    // FLOATING SELECTION BAR
+    if (isSelectionMode && selectedIds.isNotEmpty()) {
+        Box(modifier = Modifier.fillMaxSize().padding(bottom = 20.dp), contentAlignment = Alignment.BottomCenter) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.9f).height(70.dp),
+                shape = RoundedCornerShape(35.dp),
+                color = Color(0xFF1E1E1E),
+                tonalElevation = 8.dp
+            ) {
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = {
+                         alarms.forEach { if(selectedIds.contains(it.id)) it.enabled = false }
+                         AlarmStore.saveAlarms(ctx, alarms.toList())
+                         isSelectionMode = false
+                         selectedIds.clear()
+                    }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Block, null, tint = Color.White)
+                            Text("Turn off", color = Color.White, fontSize = 10.sp)
+                        }
+                    }
+                    TextButton(onClick = {
+                         alarms.removeIf { selectedIds.contains(it.id) }
+                         AlarmStore.saveAlarms(ctx, alarms.toList())
+                         isSelectionMode = false
+                         selectedIds.clear()
+                    }) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Delete, null, tint = Color.Red)
+                            Text("Delete", color = Color.Red, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+  }
 }
 
 @Composable
-fun AlarmItem(alarm: AlarmData, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
-    var isChecked by remember { mutableStateOf(alarm.enabled) }
+fun AlarmItem(alarm: AlarmData, isSelectionMode: Boolean = false, isSelected: Boolean = false, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
+    val isEnabled = alarm.enabled
     Row(
         modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected, 
+                onCheckedChange = null, // Handled by row click
+                colors = CheckboxDefaults.colors(checkedColor = Color(0xFFFB7185))
+            )
+            Spacer(Modifier.width(12.dp))
+        }
+
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Bottom) {
                 val displayHour = if (alarm.hour == 0) 12 else if (alarm.hour > 12) alarm.hour - 12 else alarm.hour
-                Text("$displayHour:${alarm.minute.toString().padStart(2, '0')}", color = if(isChecked) Color.White else Color.Gray, fontSize = 32.sp, fontWeight = FontWeight.Medium)
-                Text(if (alarm.isAm) "am" else "pm", color = if(isChecked) Color.White else Color.Gray, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
+                Text("$displayHour:${alarm.minute.toString().padStart(2, '0')}", color = if(isEnabled) Color.White else Color.Gray, fontSize = 32.sp, fontWeight = FontWeight.Medium)
+                Text(if (alarm.isAm) "am" else "pm", color = if(isEnabled) Color.White else Color.Gray, fontSize = 16.sp, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
             }
             val dayNames = listOf("M", "T", "W", "T", "F", "S", "S")
             val activeDays = when {
@@ -139,7 +213,10 @@ fun AlarmItem(alarm: AlarmData, onClick: () -> Unit, onToggle: (Boolean) -> Unit
             }
             Text("${alarm.name} | $activeDays", color = Color.Gray, fontSize = 12.sp)
         }
-        Switch(checked = isChecked, onCheckedChange = { isChecked = it; onToggle(it) })
+
+        if (!isSelectionMode) {
+            Switch(checked = isEnabled, onCheckedChange = { onToggle(it) })
+        }
     }
 }
 
