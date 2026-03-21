@@ -54,10 +54,12 @@ class AlarmRingerActivity : ComponentActivity() {
                 ) {
                     val now = Calendar.getInstance()
                     Text(
-                        String.format("%02d:%02d", now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE)),
-                        color = Color.White, fontSize = 80.sp, fontWeight = FontWeight.Bold
+                    val displayHour = now.get(Calendar.HOUR).let { if (it == 0) 12 else it }
+                    val amPm = if (now.get(Calendar.AM_PM) == Calendar.AM) "am" else "pm"
+                    Text(
+                        String.format("%d:%02d %s", displayHour, now.get(Calendar.MINUTE), amPm),
+                        color = Color.White, fontSize = 60.sp, fontWeight = FontWeight.Bold
                     )
-                    Spacer(Modifier.height(100.dp))
                     
                     Button(
                         onClick = { snoozeAndPants() },
