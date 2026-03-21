@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -557,7 +557,7 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxWidth().clickable { onClick() }
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("THE PANTS ALARM", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFF5252))
+                Text("THE RECKONING", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFFFF5252))
                 Text("Wake up or meet the devil.", color = Color.Gray, fontSize = 12.sp)
             }
         }
