@@ -179,26 +179,43 @@ fun AlarmEditorScreen(alarm: AlarmData?, onSave: (AlarmData) -> Unit, onCancel: 
 @Composable
 fun VerticalWheelPicker(range: Any, initial: Int, onSelect: (Int) -> Unit) {
     val list = if (range is IntRange) range.toList() else range as List<*>
+    val itemHeight = 50.dp
     val state = rememberLazyListState(initialFirstVisibleItemIndex = initial)
     
-    // Crude snapping logic for now
+    // Snapping logic: find the item closest to the center
     LaunchedEffect(state.isScrollInProgress) {
         if (!state.isScrollInProgress) {
-            val index = state.firstVisibleItemIndex
-            onSelect(if(list[index] is Int) list[index] as Int else index)
+            val layoutInfo = state.layoutInfo
+            val center = layoutInfo.viewportEndOffset / 2
+            val closestItem = layoutInfo.visibleItemsInfo.minByOrNull { 
+                Math.abs((it.offset + it.size / 2) - center) 
+            }
+            closestItem?.let {
+                state.animateScrollToItem(it.index)
+                onSelect(if(list[it.index] is Int) list[it.index] as Int else it.index)
+            }
         }
     }
 
-    Box(modifier = Modifier.height(150.dp).width(60.dp)) {
-        LazyColumn(state = state, modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.height(150.dp).width(70.dp)) {
+        LazyColumn(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 50.dp) // Allows end items to reach center
+        ) {
             items(list.size) { index ->
-                Text(
-                    text = list[index].toString().padStart(2, '0'),
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)
-                )
+                Box(
+                    modifier = Modifier.height(itemHeight).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = list[index].toString().let { if(it.all { c -> c.isDigit() }) it.padStart(2, '0') else it },
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
