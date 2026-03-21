@@ -34,12 +34,19 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val alarms = remember { mutableStateListOf<AlarmData>().apply { addAll(AlarmStore.getAlarms(ctx)) } }
     
+    val nextAlarmTime = AlarmScheduler.getNextAlarmTime(ctx)
+    val countdownText = if (nextAlarmTime == 0L) "No upcoming\nalarms" else {
+        val diff = nextAlarmTime - System.currentTimeMillis()
+        val hours = (diff / (1000 * 60 * 60)).toInt()
+        val mins = ((diff / (1000 * 60)) % 60).toInt()
+        if (hours > 0) "Alarm in $hours hours\n$mins minutes" else "Alarm in $mins minutes"
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(horizontal = 20.dp)) {
         Spacer(modifier = Modifier.height(60.dp))
         
-        // The "Samsung" Header
         Text(
-            "Alarm in 18 hours\n27 minutes", 
+            countdownText, 
             color = Color.White, 
             fontSize = 32.sp, 
             fontWeight = FontWeight.Light, 
@@ -47,7 +54,8 @@ fun AlarmHubScreen(onAdd: () -> Unit, onEdit: (AlarmData) -> Unit, onBack: () ->
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-        Text("Sun, 22 Mar, 5:30 am", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        val dateStr = java.text.SimpleDateFormat("EEE, d MMM, h:mm a", java.util.Locale.US).format(java.util.Date(if (nextAlarmTime == 0L) System.currentTimeMillis() else nextAlarmTime))
+        Text(dateStr, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
 
         Spacer(modifier = Modifier.height(40.dp))
 
