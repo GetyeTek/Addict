@@ -160,7 +160,6 @@ class LockdownActivity : ComponentActivity() {
 
             if (type == "WHISPER_PROTOCOL") {
                 val steps = LockManager.getWhisperSteps(context)
-                val dist = LockManager.currentDisplacement
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("PENALTY ACTIVE", color = Color.Red, fontSize = 24.sp, fontWeight = FontWeight.Black)
@@ -169,36 +168,13 @@ class LockdownActivity : ComponentActivity() {
                     // Step Progress
                     LinearProgressIndicator(
                         progress = (steps / 30f).coerceIn(0f, 1f),
-                        modifier = Modifier.fillMaxWidth().height(16.dp).background(Color(0xFF331111), RoundedCornerShape(8.dp)),
+                        modifier = Modifier.fillMaxWidth().height(24.dp).background(Color(0xFF331111), RoundedCornerShape(12.dp)),
                         color = Color.Red
                     )
-                    Text("STEPS: $steps / 30", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                    Text("STEPS: $steps / 30", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 8.dp))
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Distance Progress
-                    LinearProgressIndicator(
-                        progress = (dist / 20f).coerceIn(0f, 1f),
-                        modifier = Modifier.fillMaxWidth().height(16.dp).background(Color(0xFF331111), RoundedCornerShape(8.dp)),
-                        color = Color(0xFFEF4444)
-                    )
-                    Text("DISTANCE: ${dist.toInt()}m / 20m", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
-
-                    val lm = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
-                    val locDisabled = !lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) && 
-                                      !lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    if (locDisabled) {
-                        Text("ENABLE LOCATION TO STOP MUSIC", color = Color.Red, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                    } else {
-                        val isStalled = (steps > 0 && dist < 1f) || (dist > 2f && steps < 2)
-                        if (isStalled) {
-                            Text("SENSOR SYNCING... MOVE YOUR LEGS", color = Color.Yellow, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        } else {
-                            Text("MUSIC STOPS WHEN TASKS COMPLETE", color = Color.Gray, fontSize = 11.sp)
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text("WALK TO SILENCE THE VOICES", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // SOCIAL FAIL-SAFE: 10s Cancel Button (Reflex Only)
