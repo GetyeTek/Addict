@@ -13,13 +13,11 @@ import android.media.MediaPlayer
 import android.media.AudioManager
 import kotlinx.coroutines.*
 
-class WatcherService : Service(), SensorEventListener, android.location.LocationListener {
+class WatcherService : Service(), SensorEventListener {
     private val job = SupervisorJob()
     private var mediaPlayer: MediaPlayer? = null
     private var sensorManager: SensorManager? = null
-    private var locationManager: android.location.LocationManager? = null
     private val scope = CoroutineScope(Dispatchers.Main + job)
-    private var locationSettlementCount = 0
 
     private val shakeThreshold = 30.0f // Requires ~3G of force
     private val shakeWindow = 1000L
@@ -42,12 +40,10 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         if (LockManager.isWhisperMode(applicationContext)) {
-            val elapsed = LockManager.getWhisperElapsed(applicationContext)
-            val steps = LockManager.getWhisperSteps(applicationContext)
-            val dist = LockManager.currentDisplacement
-            val hasMovedEnough = dist >= 20f
-
-            if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
+                            val elapsed = LockManager.getWhisperElapsed(applicationContext)
+                val steps = LockManager.getWhisperSteps(applicationContext)
+                
+                if (elapsed > 60000 && steps < 30) {
                 val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
                 val currentVol = am.getStreamVolume(AudioManager.STREAM_ALARM)
 
@@ -124,7 +120,6 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                             putExtra("BLOCK_TYPE", "WHISPER_PROTOCOL")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                         }
-                        startLocationTracking()
                         startActivity(intent)
                         }
                     }
@@ -136,99 +131,14 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
         if (event?.sensor?.type == Sensor.TYPE_STEP_DETECTOR) {
             if (LockManager.isWhisperMode(ctx)) {
                 LockManager.addWhisperStep(ctx)
-                // Add 2.5 meters of 'Movement Budget' per step detected
-                LockManager.whisperDistanceBudget += 2.5f
                 
                 val steps = LockManager.getWhisperSteps(ctx)
-                val currentDist = LockManager.currentDisplacement
-                if (steps >= 30 && currentDist >= 20f) {
-                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps, Dist: ${currentDist}m")
+                if (steps >= 30) {
+                    DebugLogger.log("EXORCIST", "Release Authorized. Steps: $steps")
                     LockManager.stopWhisperMode(ctx)
-                    stopLocationTracking()
                 }
             }
         }
-    }
-
-    override fun onLocationChanged(location: android.location.Location) {
-        if (LockManager.isWhisperMode(applicationContext)) {
-            // 1. ANTI-SPOOFING
-            val isMock = if (android.os.Build.VERSION.SDK_INT >= 31) location.isMock else @Suppress("DEPRECATION") location.isFromMockProvider
-            if (isMock) return
-
-            // 2. ACCURACY FILTER: Ignore garbage data (Drift)
-            // Anything worse than 25m is usually a bounce off a wall.
-            if (location.accuracy > 25f) {
-                DebugLogger.log("GPS_DRIFT", "Ignored low accuracy: ${location.accuracy}m")
-                return
-            }
-
-            val start = LockManager.startLocation
-            
-            // 3. ANCHOR STABILIZATION
-            if (start == null) {
-                // Initial anchor: 25m accuracy required
-                if (location.accuracy <= 25f) {
-                    LockManager.startLocation = location
-                    LockManager.currentDisplacement = 0f
-                    LockManager.whisperDistanceBudget = 0f
-                    DebugLogger.log("EXORCIST_GPS", "Anchor Set (Acc: ${location.accuracy}m)")
-                } else {
-                    DebugLogger.log("EXORCIST_GPS", "GPS Searching... (Acc: ${location.accuracy.toInt()}m)")
-                }
-            } else {
-                // SELF-HEALING: If we get a significantly better accuracy lock, update the anchor
-                if (location.accuracy < start.accuracy - 5f && LockManager.currentDisplacement < 1f) {
-                    LockManager.startLocation = location
-                    DebugLogger.log("EXORCIST_GPS", "Anchor Refined (New Acc: ${location.accuracy.toInt()}m)")
-                }
-
-                val prev = lastLocation ?: start
-                val deltaDist = prev.distanceTo(location)
-                
-                // 1. HUMAN SPEED FILTER: Discard jumps > 6m in ~1s (Impossible walking speed)
-                if (deltaDist > 6f) {
-                    DebugLogger.log("EXORCIST_GPS", "Discarded Jump: ${deltaDist.toInt()}m (Teleport detected)")
-                    lastLocation = location // Update pos but don't count distance
-                    return
-                }
-
-                // 2. DRIFT FILTER: Only count movement that exceeds current accuracy margin
-                val noiseThreshold = location.accuracy * 0.5f
-                if (deltaDist > noiseThreshold) {
-                    // 3. BUDGET CONSUMPTION: Consume earned steps
-                    // Cap consumption at 3m per update to keep UI smooth
-                    val potentialMove = Math.min(deltaDist, 3.0f)
-                    val allowedMove = Math.min(potentialMove, LockManager.whisperDistanceBudget)
-                    
-                    if (allowedMove > 0.2f) {
-                        LockManager.currentDisplacement += allowedMove
-                        LockManager.whisperDistanceBudget -= allowedMove
-                        DebugLogger.log("EXORCIST_GPS", "Move: +${String.format("%.1f", allowedMove)}m. Total: ${LockManager.currentDisplacement.toInt()}m")
-                    }
-                }
-                lastLocation = location
-            }
-        }
-    }
-
-    private fun startLocationTracking() {
-        try {
-            // PURE GPS ONLY: Disabling Network Provider to prevent teleports
-            locationManager?.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 500L, 0f, this)
-            DebugLogger.log("EXORCIST_GPS", "Pure GPS Tracker Engaged (500ms)")
-        } catch (e: Exception) {
-            DebugLogger.log("EXORCIST_ERR", "GPS Failed: ${e.message}")
-        }
-    }
-
-    private fun stopLocationTracking() {
-        locationManager?.removeUpdates(this)
-        LockManager.startLocation = null
-        lastLocation = null
-        LockManager.currentDisplacement = 0f
-        LockManager.whisperDistanceBudget = 0f
-        locationSettlementCount = 0
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -369,7 +279,7 @@ class WatcherService : Service(), SensorEventListener, android.location.Location
                     val dist = LockManager.currentDisplacement
                     val hasMovedEnough = dist >= 20f
                     
-                    if (elapsed > 60000 && (steps < 30 || !hasMovedEnough)) {
+                    if (elapsed > 60000 && steps < 30) {
                         // RESURRECTION LOGIC: 
                         // If it should be playing but isn't (crashed/killed), start it again.
                         if (mediaPlayer == null || !mediaPlayer!!.isPlaying) {
