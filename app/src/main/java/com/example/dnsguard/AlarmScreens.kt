@@ -212,8 +212,8 @@ fun AlarmEditorScreen(alarm: AlarmData?, onSave: (AlarmData) -> Unit, onCancel: 
         
         Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                VerticalWheelPicker(range = 1..12, initial = if(workingAlarm.hour == 0 || workingAlarm.hour == 12) 11 else (workingAlarm.hour % 12) - 1) { 
-                    workingAlarm.hour = if(workingAlarm.isAm) (if(it == 12) 0 else it) else (if(it == 12) 12 else it + 12) 
+                VerticalWheelPicker(range = 1..12, initial = workingAlarm.hour - 1) { 
+                    workingAlarm.hour = it
                 }
                 Text(":", color = Color.White, fontSize = 40.sp, modifier = Modifier.padding(horizontal = 10.dp))
                 VerticalWheelPicker(range = 0..59, initial = workingAlarm.minute) { workingAlarm.minute = it }
