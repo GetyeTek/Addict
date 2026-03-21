@@ -17,7 +17,7 @@ object AlarmScheduler {
 
         alarms.forEach { alarm ->
             val target = Calendar.getInstance().apply {
-                set(Calendar.HOUR, if(alarm.hour == 12) 0 else alarm.hour)
+                set(Calendar.HOUR, alarm.hour % 12)
                 set(Calendar.MINUTE, alarm.minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.AM_PM, if(alarm.isAm) Calendar.AM else Calendar.PM)
@@ -51,7 +51,8 @@ object AlarmScheduler {
     fun getTimeToAlarm(alarm: AlarmData): Long {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
-            set(Calendar.HOUR, if(alarm.hour == 12) 0 else alarm.hour)
+            // Calendar.HOUR is 0-11. We map 1-12 to 0-11.
+            set(Calendar.HOUR, alarm.hour % 12)
             set(Calendar.MINUTE, alarm.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.AM_PM, if(alarm.isAm) Calendar.AM else Calendar.PM)
