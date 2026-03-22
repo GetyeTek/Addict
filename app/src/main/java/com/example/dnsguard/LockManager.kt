@@ -805,8 +805,10 @@ object LockManager {
         if (!active) return false
 
         val triggerTs = prefs.getLong(KEY_ALARM_TRIGGER_TS, 0L)
-        if (triggerTs > 0 && (System.currentTimeMillis() - triggerTs > EXORCISM_MAX_DURATION)) {
-            // Mercy Threshold reached. Auto-killing protocol.
+        
+        // HEALING LOGIC: If timestamp is missing (old version) or expired, kill the protocol.
+        if (triggerTs == 0L || (System.currentTimeMillis() - triggerTs > EXORCISM_MAX_DURATION)) {
+            DebugLogger.log("ALARM_HEAL", "Stale or missing timestamp detected. Purging Ghost Alarm.")
             prefs.edit().putBoolean(KEY_WHISPER_ACTIVE, false).apply()
             return false
         }
