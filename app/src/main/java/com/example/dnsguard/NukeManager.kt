@@ -157,37 +157,40 @@ object NukeManager {
         return NukeStatus(disabled, isWaiting, isReady, isExpired, remaining, isActiveRound, windowOpen)
     }
 
-    fun generateOtp(ctx: Context): String {
-        val otp = UUID.randomUUID().toString().substring(0, 6).uppercase()
+    fun startQuitterTimer(ctx: Context) {
         val now = System.currentTimeMillis()
-        
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_OTP, otp)
             .putLong(KEY_OTP_TS, now)
             .putBoolean(KEY_OTP_NOTIFIED, false)
             .apply()
-        
-        return otp
     }
 
-    fun verifyOtp(ctx: Context, inputOtp: String): String {
+    fun handleAutoTransition(ctx: Context) {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val savedOtp = prefs.getString(KEY_OTP, null)
         val ts = prefs.getLong(KEY_OTP_TS, 0L)
+        if (ts == 0L) return
+
         val now = System.currentTimeMillis()
+        val elapsed = now - ts
 
-        if (savedOtp == null) return "No OTP generated."
-        if (savedOtp != inputOtp.trim().uppercase()) return "Invalid OTP."
-
-        val diff = now - ts
-        if (diff < WAIT_TIME) {
-            val remaining = (WAIT_TIME - diff) / 60000
-            return "Too early. Wait $remaining minutes."
+        when {
+            // Window 1: Waiting (0-2 hours) -> Ensure protection is ON
+            elapsed < WAIT_TIME -> {
+                if (prefs.getBoolean(KEY_DISABLED, false)) setProtectionDisabled(ctx, false)
+            }
+            // Window 2: Protection Dropped (2-3 hours) -> Ensure protection is OFF
+            elapsed >= WAIT_TIME && elapsed < (WAIT_TIME + AUTO_RE_ENABLE_MS) -> {
+                if (!prefs.getBoolean(KEY_DISABLED, false)) {
+                    setProtectionDisabled(ctx, true)
+                    DebugLogger.log("NUKE", "Timer reached. Protection Dropped automatically.")
+                }
+            }
+            // Window 3: Finished (3+ hours) -> Reset everything
+            elapsed >= (WAIT_TIME + AUTO_RE_ENABLE_MS) -> {
+                setProtectionDisabled(ctx, false)
+                prefs.edit().remove(KEY_OTP_TS).remove(KEY_OTP_NOTIFIED).apply()
+                DebugLogger.log("NUKE", "Window closed. Protection Restored.")
+            }
         }
-        if (diff > EXPIRY_TIME) {
-            return "OTP Expired. Generate a new one."
-        }
-
-        return "OK"
     }
 }
