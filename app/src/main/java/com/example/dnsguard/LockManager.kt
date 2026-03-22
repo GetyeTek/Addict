@@ -254,6 +254,11 @@ object LockManager {
     }
 
     fun isBootGraceActive(): Boolean {
+        // 20 Minutes = 1,200,000 ms
+        return android.os.SystemClock.elapsedRealtime() < 20 * 60 * 1000
+    }
+
+    fun isBerserkerActive(): Boolean {
         // 10 Minutes = 600,000 ms
         return android.os.SystemClock.elapsedRealtime() < 10 * 60 * 1000
     }
