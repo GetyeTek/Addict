@@ -238,6 +238,30 @@ class WatcherService : Service(), SensorEventListener {
         
         scope.launch {
             while (isActive) {
+                // BERSERKER MODE: Close Settings instantly during laggy boot phase
+                if (LockManager.isBerserkerActive()) {
+                    val usm = getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+                    val time = System.currentTimeMillis()
+                    val events = usm.queryEvents(time - 1000, time)
+                    val event = android.app.usage.UsageEvents.Event()
+                    var topPackage = ""
+                    while (events.hasNextEvent()) {
+                        events.getNextEvent(event)
+                        if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                            topPackage = event.packageName
+                        }
+                    }
+                    
+                    if (topPackage == "com.android.settings" || topPackage == "com.android.packageinstaller") {
+                        DebugLogger.log("BERSERKER", "Neutralizing Settings during Lag Phase.")
+                        val home = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_HOME)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(home)
+                    }
+                }
+
                 // 4th Suggestion: Self-Healing Cleanup
                 LockManager.cleanupExpiredLocks(applicationContext)
                 
@@ -367,9 +391,9 @@ class WatcherService : Service(), SensorEventListener {
                     }
                 }
                 
-                // Harmonized Polling: 2s when active, 10s when sleeping
+                // Harmonized Polling: High frequency during Berserker window
                 if (pm.isInteractive) {
-                    delay(2000)
+                    if (LockManager.isBerserkerActive()) delay(150) else delay(2000)
                 } else {
                     delay(10000)
                 }
