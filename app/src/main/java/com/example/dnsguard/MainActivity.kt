@@ -351,9 +351,15 @@ class MainActivity : ComponentActivity() {
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                if (status.isProtectionDisabled) {
-                    Text("CONGRATS, YOU'RE WEAK", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text("You have 60 minutes of 'freedom' before I cage you again.", color = Color.Gray, fontSize = 12.sp)
+                                if (status.isProtectionDisabled) {
+                    val prefs = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE)
+                    val ts = prefs.getLong("nuke_ts", 0L)
+                    val remaining = ((ts + 3 * 3600000L) - System.currentTimeMillis()).coerceAtLeast(0)
+                    val mins = (remaining / 60000)
+                    val secs = (remaining % 60000) / 1000
+                    
+                    Text("PROTECTION DROPPED", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text(String.format("Restoring in %02d:%02d", mins, secs), color = Color.Gray, fontSize = 14.sp)
                 } 
                 else if (status.isWaiting) {
                     val hours = status.remainingWaitMs / 3600000
@@ -362,55 +368,9 @@ class MainActivity : ComponentActivity() {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(String.format("%02d:%02d:%02d", hours, mins, secs), 
                             color = Color(0xFFFCD34D), fontSize = 32.sp, fontWeight = FontWeight.Black, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                        Text("PROTOCOL COOLDOWN", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { }, enabled = false, 
-                            colors = ButtonDefaults.buttonColors(disabledContainerColor = Color(0xFF2A1A1A), disabledContentColor = Color(0xFF555555)),
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text("STILL TOO EARLY")
-                        }
-                    }
-                } 
-                else if (status.isExpired) {
-                    Column {
-                        Text("OTP EXPIRED", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
-                        Text("You missed the 1-hour window. Try again.", color = Color.Gray, fontSize = 12.sp)
+                        Text("PROTOCOL FUSE BURNING", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { showConfirmRequestDialog = true }, 
-                            enabled = status.isWindowOpen,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF450A0A)),
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text("RE-INITIATE")
-                        }
-                    }
-                }
-                else if (status.isReady) {
-                    Column {
-                        Text("READY TO STOP", color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { showEntryDialog = true }, 
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626), contentColor = Color.White),
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text("EXECUTE PROTOCOL")
-                        }
-                    }
-                }
-                else if (status.otpGenerated) { 
-                    // This is the 'Viewing' state before the 3-hour wait is over or during ready
-                    Column {
-                        Text("CODE ACTIVE", color = Color.Gray, fontSize = 12.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { 
-                                val saved = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE).getString("nuke_otp", "????")
-                                generatedOtp = saved ?: "????"
-                                showOtpDialog = true 
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("VIEW GENERATED CODE")
-                        }
+                        Text("Guard will drop automatically when timer hits zero.", color = Color.DarkGray, fontSize = 10.sp, textAlign = TextAlign.Center)
                     }
                 }
                 else {
@@ -450,9 +410,8 @@ class MainActivity : ComponentActivity() {
                 text = { Text("You are initiating the Nuclear Option.\n\n1. A code will be generated.\n2. You MUST wait 2 hours before using it.\n3. Protection will only drop for 1 hour.\n\nDo not do this unless it is a genuine emergency.", color = Color.White) },
                 confirmButton = { 
                     Button(onClick = { 
-                        generatedOtp = NukeManager.generateOtp(ctx)
+                        NukeManager.startQuitterTimer(ctx)
                         showConfirmRequestDialog = false
-                        showOtpDialog = true
                     }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
                         Text("INITIATE PROTOCOL")
                     }
