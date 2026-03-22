@@ -847,7 +847,13 @@ object LockManager {
         }
 
         // 0.1 DAILY QUOTA (The 9-Hour Executioner)
-        if (getDailyUsage(ctx) > DAILY_LIMIT_MS) return "DAILY_LIMIT_EXCEEDED"
+        if (getDailyUsage(ctx) > DAILY_LIMIT_MS) {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val isNightTime = hour >= 23 || hour < 5
+            if (!(isNightTime && isTonightPassed(ctx))) {
+                return "DAILY_LIMIT_EXCEEDED"
+            }
+        }
 
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
