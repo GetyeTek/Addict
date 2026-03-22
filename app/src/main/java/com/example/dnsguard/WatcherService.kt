@@ -258,11 +258,12 @@ class WatcherService : Service(), SensorEventListener {
                              // Stand down, let the intent work
                         } else {
                             DebugLogger.log("BERSERKER", "Neutralizing Settings during Lag Phase.")
-                        val home = Intent(Intent.ACTION_MAIN).apply {
-                            addCategory(Intent.CATEGORY_HOME)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            val home = Intent(Intent.ACTION_MAIN).apply {
+                                addCategory(Intent.CATEGORY_HOME)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(home)
                         }
-                        startActivity(home)
                     }
                 }
 
