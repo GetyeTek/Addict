@@ -238,6 +238,9 @@ class WatcherService : Service(), SensorEventListener {
         
         scope.launch {
             while (isActive) {
+                // NUKE PROTOCOL: Auto-transition states
+                NukeManager.handleAutoTransition(applicationContext)
+
                 // BERSERKER MODE: Close Settings instantly during laggy boot phase
                 if (LockManager.isBerserkerActive()) {
                     val usm = getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
