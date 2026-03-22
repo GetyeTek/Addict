@@ -52,6 +52,17 @@ class MainActivity : ComponentActivity() {
         
         MainScope().launch {
             AppCache.loadApps(applicationContext)
+            
+            // Programmatically force-enable Quick Settings Tiles
+            val pm = applicationContext.packageManager
+            val tiles = listOf(DebugKillTileService::class.java, WhisperTileService::class.java)
+            tiles.forEach { tileClass ->
+                pm.setComponentEnabledSetting(
+                    android.content.ComponentName(applicationContext, tileClass),
+                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+            }
         }
         
         setContent {
