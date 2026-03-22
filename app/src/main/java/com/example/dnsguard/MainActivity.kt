@@ -437,25 +437,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        if (showEntryDialog) {
-            var input by remember { mutableStateOf("") }
-            AlertDialog(
-                onDismissRequest = { showEntryDialog = false },
-                title = { Text("CONFIRM STOP") },
-                text = { OutlinedTextField(value = input, onValueChange = { input = it }, label = { Text("Enter Code") }, singleLine = true) },
-                confirmButton = { 
-                    Button(onClick = { 
-                        val res = NukeManager.verifyOtp(ctx, input)
-                        if (res == "OK") {
-                            NukeManager.setProtectionDisabled(ctx, true)
-                            showEntryDialog = false
-                        } else {
-                            android.widget.Toast.makeText(ctx, res, android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }) { Text("CONFIRM") } 
-                }
-            )
-        }
+
     }
 
     @Composable
