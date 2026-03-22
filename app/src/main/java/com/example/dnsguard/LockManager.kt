@@ -721,7 +721,7 @@ object LockManager {
     var lastNagTs: Long = 0
 
     fun getNextPermissionIntent(ctx: Context): android.content.Intent? {
-        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.notification.NotificationManager
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
         val adminComp = android.content.ComponentName(ctx, AdminReceiver::class.java)
