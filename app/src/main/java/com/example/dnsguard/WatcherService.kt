@@ -253,7 +253,11 @@ class WatcherService : Service(), SensorEventListener {
                     }
                     
                     if (topPackage == "com.android.settings" || topPackage == "com.android.packageinstaller") {
-                        DebugLogger.log("BERSERKER", "Neutralizing Settings during Lag Phase.")
+                        // RELAX BERSERKER IF WE JUST NAGGED (Give user 8s to work)
+                        if (System.currentTimeMillis() - LockManager.lastNagTs < 8000) {
+                             // Stand down, let the intent work
+                        } else {
+                            DebugLogger.log("BERSERKER", "Neutralizing Settings during Lag Phase.")
                         val home = Intent(Intent.ACTION_MAIN).apply {
                             addCategory(Intent.CATEGORY_HOME)
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -327,6 +331,20 @@ class WatcherService : Service(), SensorEventListener {
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
 
                 if (isSetupDone) {
+                    val isGrace = LockManager.isBootGraceActive()
+                    
+                    if (isGrace) {
+                        val nextIntent = LockManager.getNextPermissionIntent(applicationContext)
+                        if (nextIntent != null) {
+                            val now = System.currentTimeMillis()
+                            if (now - LockManager.lastNagTs > 8000) {
+                                LockManager.lastNagTs = now
+                                nextIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                                try { startActivity(nextIntent) } catch (e: Exception) {}
+                            }
+                        }
+                    }
+
                     val isCompromised = LockManager.isSystemCompromised(applicationContext)
                     val isLocked = LockManager.getPenaltyRemaining(applicationContext) > 0
 
