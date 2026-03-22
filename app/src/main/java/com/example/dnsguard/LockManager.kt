@@ -718,6 +718,44 @@ object LockManager {
         editor.apply()
     }
 
+    var lastNagTs: Long = 0
+
+    fun getNextPermissionIntent(ctx: Context): android.content.Intent? {
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.notification.NotificationManager
+        val pm = ctx.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+        val adminComp = android.content.ComponentName(ctx, AdminReceiver::class.java)
+
+        // 1. Accessibility (The Core)
+        val expected = "${ctx.packageName}/${GuardService::class.java.canonicalName}"
+        val enabledServices = android.provider.Settings.Secure.getString(ctx.contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+        if (!enabledServices.contains(expected)) return android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+
+        // 2. Overlay
+        if (!android.provider.Settings.canDrawOverlays(ctx)) {
+            return android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${ctx.packageName}"))
+        }
+
+        // 3. Battery
+        if (!pm.isIgnoringBatteryOptimizations(ctx.packageName)) {
+            return android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${ctx.packageName}"))
+        }
+
+        // 4. Admin
+        if (!dpm.isAdminActive(adminComp)) {
+            return android.content.Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComp)
+            }
+        }
+
+        // 5. Notifications (DND Access & Channel check)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && !nm.isNotificationPolicyAccessGranted) {
+            return android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+        }
+
+        return null
+    }
+
     fun getDailyUsage(ctx: Context): Long {
         val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
         val calendar = java.util.Calendar.getInstance()
