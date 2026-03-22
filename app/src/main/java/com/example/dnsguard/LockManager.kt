@@ -514,7 +514,7 @@ object LockManager {
 
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
         // 1. Fast path: Static checks
-        if (pkg == "com.android.chrome") return false
+        if (pkg == "com.android.chrome") return true
         if (ROGUE_APPS.contains(pkg)) return true
         if (MANUAL_BLACKLIST.contains(pkg)) return true
 
