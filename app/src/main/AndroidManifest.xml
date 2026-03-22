@@ -123,7 +123,7 @@
 
         <service
             android:name=".WhisperTileService"
-            android:enabled="false"
+            android:enabled="true"
             android:label="The Whisper"
             android:icon="@drawable/app_icon"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
@@ -146,7 +146,7 @@
 
         <service
             android:name=".DebugKillTileService"
-            android:enabled="false"
+            android:enabled="true"
             android:label="DEBUG: Kill Guardian"
             android:icon="@android:drawable/ic_menu_close_clear_cancel"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
