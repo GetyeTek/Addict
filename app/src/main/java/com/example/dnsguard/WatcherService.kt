@@ -333,6 +333,36 @@ class WatcherService : Service(), SensorEventListener {
                 val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val hasBattery = pm.isIgnoringBatteryOptimizations(packageName)
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
+                val isCompromised = LockManager.isSystemCompromised(applicationContext)
+
+                // --- THE PERMISSION DICTATOR (Startup Enforcement) ---
+                if (isCompromised) {
+                    val expected = "${packageName}/${GuardService::class.java.canonicalName}"
+                    val enabledServices = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                    val hasAcc = enabledServices.contains(expected)
+
+                    if (!hasAcc) {
+                        // PHASE 1: NO ACCESSIBILITY = THE DUNGEON
+                        val i = Intent(applicationContext, LockdownActivity::class.java).apply {
+                            putExtra("BLOCK_TYPE", "PENALTY")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        }
+                        startActivity(i)
+                    } else {
+                        // PHASE 2: ACCESSIBILITY OK, BUT OTHERS MISSING = THE DASHBOARD
+                        // Only force if we aren't currently fixing something or in an emergency app
+                        val topPkg = LockManager.currentActivePackage
+                        if (!LockManager.isPermissionFixActive(applicationContext) && 
+                            topPkg != packageName && !LockManager.isEmergencyApp(topPkg)) {
+                            val i = Intent(applicationContext, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                            }
+                            startActivity(i)
+                        }
+                    }
+                    delay(1000) // High frequency during enforcement
+                    continue 
+                }
 
                 if (isSetupDone) {
                     val isGrace = LockManager.isBootGraceActive()
