@@ -341,11 +341,12 @@ class WatcherService : Service(), SensorEventListener {
                 val topPkg = LockManager.currentActivePackage
                 val isSettings = topPkg.contains("settings") || topPkg.contains("accessibility")
                 val isFixing = LockManager.isPermissionFixActive(applicationContext)
+                val isLockdownVisible = topPkg == packageName
 
                 if (!km.isKeyguardLocked && pm.isInteractive) {
                     if (LockManager.isSettlingActive()) {
-                        // PHASE 1: Absolute Lockout for 10 minutes
-                        if (topPkg != packageName && !LockManager.isEmergencyApp(topPkg)) {
+                        // PHASE 1: 0-10m Absolute Lockout
+                        if (!isLockdownVisible && !LockManager.isEmergencyApp(topPkg)) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "BOOT_SETTLING")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -355,9 +356,9 @@ class WatcherService : Service(), SensorEventListener {
                             continue
                         }
                     } else if (LockManager.isStrictGraceActive()) {
-                        // PHASE 2: 10-20 Minutes - Check Accessibility & Block Settings
+                        // PHASE 2: 10-20m Strict Rules
                         val hasAcc = isAccessibilityEnabled(applicationContext)
-                        if (!hasAcc && topPkg != packageName) {
+                        if (!hasAcc && !isLockdownVisible) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "PENALTY")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -365,8 +366,7 @@ class WatcherService : Service(), SensorEventListener {
                             startActivity(i)
                             delay(1000)
                             continue
-                        } else if (isSettings && !isFixing) {
-                            // BLOCK MANUAL SETTINGS ACCESS
+                        } else if (isSettings && !isFixing && !isLockdownVisible) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "BOOT_SETTLING")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -378,9 +378,11 @@ class WatcherService : Service(), SensorEventListener {
                     }
                 }
 
-                // Standard operation check if not in boot phase or if boot phase passed checks
+                // CASUAL ZONE: Normal Enforcement (20m+)
                 if (isCompromised && !LockManager.isStrictGraceActive()) {
-                    if (topPkg != packageName && !isFixing) {
+                    // If it's broken, they go to the Dungeon. NO DASHBOARD NAG in Casual Zone.
+                    if (!isLockdownVisible && !isFixing) {
+                        DebugLogger.log("SECURITY", "Casual Zone Tamper: Compromised state detected. Launching Dungeon.")
                         val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                             putExtra("BLOCK_TYPE", "PENALTY")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -394,7 +396,9 @@ class WatcherService : Service(), SensorEventListener {
                 if (isSetupDone) {
                     val isGrace = LockManager.isBootGraceActive()
                     
-                    if (isGrace) {
+                    // ONLY NAG with the Dashboard if we are in the 20m Boot Grace and NOT compromised
+                    // (If compromised, the Gauntlet logic above already handled it)
+                    if (isGrace && !isCompromised) {
                         val nextIntent = LockManager.getNextPermissionIntent(applicationContext)
                         if (nextIntent != null) {
                             val now = System.currentTimeMillis()
