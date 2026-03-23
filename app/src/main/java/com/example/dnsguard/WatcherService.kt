@@ -336,32 +336,30 @@ class WatcherService : Service(), SensorEventListener {
                 val isCompromised = LockManager.isSystemCompromised(applicationContext)
 
                 // --- THE PERMISSION DICTATOR (Startup Enforcement) ---
-                if (isCompromised && !LockManager.isBootGraceActive()) {
-                    val expected = "${packageName}/${GuardService::class.java.canonicalName}"
-                    val enabledServices = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-                    val hasAcc = enabledServices.contains(expected)
+                if (isCompromised) {
+                    val isGrace = LockManager.isBootGraceActive()
+                    val topPkg = LockManager.currentActivePackage
 
-                    if (!hasAcc && LockManager.currentActivePackage != packageName) {
-                        // PHASE 1: NO ACCESSIBILITY = THE DUNGEON
-                        val i = Intent(applicationContext, LockdownActivity::class.java).apply {
-                            putExtra("BLOCK_TYPE", "PENALTY")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        }
-                        startActivity(i)
-                    } else {
-                        // PHASE 2: ACCESSIBILITY OK, BUT OTHERS MISSING = THE DASHBOARD
-                        // Only force if we aren't currently fixing something or in an emergency app
-                        val topPkg = LockManager.currentActivePackage
-                        if (!LockManager.isPermissionFixActive(applicationContext) && 
-                            topPkg != packageName && !LockManager.isEmergencyApp(topPkg)) {
+                    if (isGrace) {
+                        // BOOT ZONE: Nag the user in the Dashboard
+                        if (topPkg != packageName && !LockManager.isPermissionFixActive(applicationContext) && !LockManager.isEmergencyApp(topPkg)) {
                             val i = Intent(applicationContext, MainActivity::class.java).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                             }
                             startActivity(i)
                         }
+                    } else {
+                        // NORMAL ZONE: Force the Penalty Dungeon
+                        if (topPkg != packageName) {
+                            val i = Intent(applicationContext, LockdownActivity::class.java).apply {
+                                putExtra("BLOCK_TYPE", "PENALTY")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                            }
+                            startActivity(i)
+                        }
                     }
-                    delay(1000) // High frequency during enforcement
-                    continue 
+                    delay(1000)
+                    continue
                 }
 
                 if (isSetupDone) {
