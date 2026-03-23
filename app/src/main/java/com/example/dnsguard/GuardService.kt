@@ -263,6 +263,22 @@ class GuardService : AccessibilityService() {
         // 1. INTERACTION DETECTED: Pause the background loop if we are in Settings
         if (pkg == "com.android.settings" || pkg == "com.samsung.accessibility") {
             lastSettingsInteraction = System.currentTimeMillis()
+            
+            // ANTI-DRIFT PROTOCOL: If we are in the middle of a fix session, don't let them wander
+            if (LockManager.isSystemCompromised(applicationContext) && LockManager.isPermissionFixActive(applicationContext)) {
+                val cls = event.className?.toString() ?: ""
+                // If they back into the main Settings dashboard or Top-level categories
+                if (cls.contains("Settings\$SettingsDashboardActivity") || 
+                    cls.contains("Settings\$AccessibilitySettingsActivity") ||
+                    cls.endsWith(".Settings")) {
+                    DebugLogger.log("ANTI_DRIFT", "Drift detected to main Settings. Relaunching Dashboard.")
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    val i = Intent(applicationContext, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                    }
+                    startActivity(i)
+                }
+            }
         }
 
         // 3. NUKE CHECK: If Nuke Protocol is active, we STOP here.
