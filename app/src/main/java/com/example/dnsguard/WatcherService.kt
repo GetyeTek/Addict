@@ -335,42 +335,57 @@ class WatcherService : Service(), SensorEventListener {
                 val isSetupDone = LockManager.isSetupComplete(applicationContext)
                 val isCompromised = LockManager.isSystemCompromised(applicationContext)
 
-                // --- THE PERMISSION DICTATOR (Startup Enforcement) ---
-                if (isCompromised) {
-                    val isGrace = LockManager.isBootGraceActive()
-                    val topPkg = LockManager.currentActivePackage
-                    
-                    // Check Accessibility specifically
-                    val expected = "${packageName}/${GuardService::class.java.canonicalName}"
-                    val enabledServices = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-                    val hasAcc = enabledServices.contains(expected)
+                // --- THE BOOT GAUNTLET (Multi-Stage Enforcement) ---
+                val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                val topPkg = LockManager.currentActivePackage
+                val isSettings = topPkg.contains("settings") || topPkg.contains("accessibility")
+                val isFixing = LockManager.isPermissionFixActive(applicationContext)
 
-                    if (!hasAcc) {
-                        // ACCESSIBILITY MISSING: Straight to the Dungeon, no matter what.
-                        if (topPkg != packageName) {
+                if (!km.isKeyguardLocked && pm.isInteractive) {
+                    if (LockManager.isSettlingActive()) {
+                        // PHASE 1: Absolute Lockout for 10 minutes
+                        if (topPkg != packageName && !LockManager.isEmergencyApp(topPkg)) {
+                            val i = Intent(applicationContext, LockdownActivity::class.java).apply {
+                                putExtra("BLOCK_TYPE", "BOOT_SETTLING")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                            }
+                            startActivity(i)
+                            delay(1000)
+                            continue
+                        }
+                    } else if (LockManager.isStrictGraceActive()) {
+                        // PHASE 2: 10-20 Minutes - Check Accessibility & Block Settings
+                        val hasAcc = isAccessibilityEnabled(applicationContext)
+                        if (!hasAcc && topPkg != packageName) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "PENALTY")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                             }
                             startActivity(i)
-                        }
-                    } else if (isGrace) {
-                        // ACCESSIBILITY OK, BUT OTHERS MISSING (IN BOOT ZONE): Dashboard Nag
-                        if (topPkg != packageName && !LockManager.isPermissionFixActive(applicationContext) && !LockManager.isEmergencyApp(topPkg)) {
-                            val i = Intent(applicationContext, MainActivity::class.java).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                            }
-                            startActivity(i)
-                        }
-                    } else {
-                        // NORMAL ZONE: Any compromise = Penalty
-                        if (topPkg != packageName) {
+                            delay(1000)
+                            continue
+                        } else if (isSettings && !isFixing) {
+                            // BLOCK MANUAL SETTINGS ACCESS
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
-                                putExtra("BLOCK_TYPE", "PENALTY")
+                                putExtra("BLOCK_TYPE", "BOOT_SETTLING")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
                             }
                             startActivity(i)
+                            delay(1000)
+                            continue
                         }
+                    }
+                }
+
+                // Standard operation check if not in boot phase or if boot phase passed checks
+                if (isCompromised && !LockManager.isStrictGraceActive()) {
+                    if (topPkg != packageName && !isFixing) {
+                        val i = Intent(applicationContext, LockdownActivity::class.java).apply {
+                            putExtra("BLOCK_TYPE", "PENALTY")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        }
+                        startActivity(i)
                     }
                     delay(1000)
                     continue
