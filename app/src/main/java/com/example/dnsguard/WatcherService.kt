@@ -17,7 +17,7 @@ class WatcherService : Service(), SensorEventListener {
     private val job = SupervisorJob()
     private var mediaPlayer: MediaPlayer? = null
     private var sensorManager: SensorManager? = null
-    private val scope = CoroutineScope(Dispatchers.Main + job)
+    private val scope = CoroutineScope(Dispatchers.Default + job)
 
     private val shakeThreshold = 30.0f // Requires ~3G of force
     private val shakeWindow = 1000L
