@@ -337,7 +337,6 @@ class WatcherService : Service(), SensorEventListener {
 
                 // --- THE BOOT GAUNTLET (Multi-Stage Enforcement) ---
                 val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
-                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val topPkg = LockManager.currentActivePackage
                 val isSettings = topPkg.contains("settings") || topPkg.contains("accessibility")
                 val isFixing = LockManager.isPermissionFixActive(applicationContext)
