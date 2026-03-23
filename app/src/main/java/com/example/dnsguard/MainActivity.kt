@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 while(true) {
                     // DASHBOARD NAG: Only force to front during the 20m Boot Grace.
-                    if (LockManager.isBootGraceActive(applicationContext) && 
+                    if (LockManager.isBootGraceActive() && 
                         LockManager.isSystemCompromised(applicationContext) && 
                         !LockManager.isPermissionFixActive(applicationContext)) {
                          val intent = Intent(applicationContext, MainActivity::class.java).apply {
