@@ -113,9 +113,10 @@ class MainActivity : ComponentActivity() {
             // Keep Dashboard alive if permissions are broken (and accessibility is already granted)
             LaunchedEffect(Unit) {
                 while(true) {
-                    if (LockManager.isSystemCompromised(applicationContext) && 
+                    // DASHBOARD NAG: Only force to front during the 20m Boot Grace.
+                    if (LockManager.isBootGraceActive(applicationContext) && 
+                        LockManager.isSystemCompromised(applicationContext) && 
                         !LockManager.isPermissionFixActive(applicationContext)) {
-                         // Bring to front if user tries to leave without fixing
                          val intent = Intent(applicationContext, MainActivity::class.java).apply {
                              addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                          }
