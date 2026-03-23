@@ -637,6 +637,20 @@ class GuardService : AccessibilityService() {
             val root = window.root ?: continue
             
             if (isBrowser) {
+                // --- YOUTUBE PROTOCOL INTERCEPT ---
+                val ytDomains = listOf("youtube.com", "m.youtube.com")
+                for (yt in ytDomains) {
+                    if (root.findAccessibilityNodeInfosByText(yt).isNotEmpty()) {
+                        val ytStatus = LockManager.getYouTubeBlockStatus(applicationContext)
+                        if (ytStatus != null) {
+                            DebugLogger.log("YT_GUARD", "Browser YT access detected. Status: $ytStatus")
+                            showInstantOverlay(ytStatus)
+                            performGlobalAction(GLOBAL_ACTION_BACK)
+                            return
+                        }
+                    }
+                }
+
                 val blacklist = listOf(
                     "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
                     "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
