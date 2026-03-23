@@ -253,9 +253,18 @@ object LockManager {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_USAGE_ACCUMULATED, 0L)
     }
 
-    fun isBootGraceActive(): Boolean {
-        // 20 Minutes = 1,200,000 ms
+    fun isSettlingActive(): Boolean {
+        // Phase 1: 0-10 Minutes
+        return android.os.SystemClock.elapsedRealtime() < 10 * 60 * 1000
+    }
+
+    fun isStrictGraceActive(): Boolean {
+        // Phase 2: 10-20 Minutes
         return android.os.SystemClock.elapsedRealtime() < 20 * 60 * 1000
+    }
+
+    fun isBootGraceActive(): Boolean {
+        return isStrictGraceActive()
     }
 
     fun isBerserkerActive(): Boolean {
