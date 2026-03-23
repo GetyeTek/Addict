@@ -336,8 +336,8 @@ class WatcherService : Service(), SensorEventListener {
                 val isCompromised = LockManager.isSystemCompromised(applicationContext)
 
                 // --- THE BOOT GAUNTLET (Multi-Stage Enforcement) ---
-                val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
+                val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val topPkg = LockManager.currentActivePackage
                 val isSettings = topPkg.contains("settings") || topPkg.contains("accessibility")
                 val isFixing = LockManager.isPermissionFixActive(applicationContext)
@@ -429,8 +429,7 @@ class WatcherService : Service(), SensorEventListener {
                     }
 
                     // If we are in penalty, ENFORCE UI via Overlay (Respecting Grace Period)
-                    val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-                    val km = getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
+                    // Managers inherited from top of loop
                     
                     // CORRECTED: Use shared state from Accessibility Service via LockManager
                     val topPkg = LockManager.currentActivePackage
@@ -475,7 +474,8 @@ class WatcherService : Service(), SensorEventListener {
                 }
                 
                 // Harmonized Polling: High frequency during Berserker window
-                if (pm.isInteractive) {
+                val isInteractive = try { pm.isInteractive } catch (e: Exception) { false }
+                if (isInteractive) {
                     if (LockManager.isBerserkerActive()) delay(150) else delay(2000)
                 } else {
                     delay(10000)
