@@ -339,9 +339,23 @@ class WatcherService : Service(), SensorEventListener {
                 if (isCompromised) {
                     val isGrace = LockManager.isBootGraceActive()
                     val topPkg = LockManager.currentActivePackage
+                    
+                    // Check Accessibility specifically
+                    val expected = "${packageName}/${GuardService::class.java.canonicalName}"
+                    val enabledServices = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                    val hasAcc = enabledServices.contains(expected)
 
-                    if (isGrace) {
-                        // BOOT ZONE: Nag the user in the Dashboard
+                    if (!hasAcc) {
+                        // ACCESSIBILITY MISSING: Straight to the Dungeon, no matter what.
+                        if (topPkg != packageName) {
+                            val i = Intent(applicationContext, LockdownActivity::class.java).apply {
+                                putExtra("BLOCK_TYPE", "PENALTY")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                            }
+                            startActivity(i)
+                        }
+                    } else if (isGrace) {
+                        // ACCESSIBILITY OK, BUT OTHERS MISSING (IN BOOT ZONE): Dashboard Nag
                         if (topPkg != packageName && !LockManager.isPermissionFixActive(applicationContext) && !LockManager.isEmergencyApp(topPkg)) {
                             val i = Intent(applicationContext, MainActivity::class.java).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -349,7 +363,7 @@ class WatcherService : Service(), SensorEventListener {
                             startActivity(i)
                         }
                     } else {
-                        // NORMAL ZONE: Force the Penalty Dungeon
+                        // NORMAL ZONE: Any compromise = Penalty
                         if (topPkg != packageName) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "PENALTY")
