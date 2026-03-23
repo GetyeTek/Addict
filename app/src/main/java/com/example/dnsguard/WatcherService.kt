@@ -456,20 +456,7 @@ class WatcherService : Service(), SensorEventListener {
                         // This is a 'Squelch' log - it tells us the whitelist is working
                         DebugLogger.log("ENFORCE_LOG", "BYPASS -> Pkg: [$topPkg] is whitelisted for $effectiveBlock")
                     }
-                    else if (!hasNotifs && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext) && !km.isKeyguardLocked) {
-                        LockManager.startPermissionFixSession(applicationContext)
-                        val i = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                        i.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        try { startActivity(i) } catch (e: Exception) {}
-                    }
-                    else if (!hasOverlay && !LockManager.isBootGraceActive() && !LockManager.isPermissionFixActive(applicationContext) && !km.isKeyguardLocked) {
-                        LockManager.startPermissionFixSession(applicationContext)
-                        val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                        i.data = Uri.parse("package:$packageName")
-                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                        try { startActivity(i) } catch (e: Exception) {}
-                    }
+
                 }
                 
                 // Harmonized Polling: High frequency during Berserker window
