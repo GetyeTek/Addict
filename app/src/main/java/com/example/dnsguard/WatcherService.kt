@@ -336,12 +336,12 @@ class WatcherService : Service(), SensorEventListener {
                 val isCompromised = LockManager.isSystemCompromised(applicationContext)
 
                 // --- THE PERMISSION DICTATOR (Startup Enforcement) ---
-                if (isCompromised) {
+                if (isCompromised && !LockManager.isBootGraceActive()) {
                     val expected = "${packageName}/${GuardService::class.java.canonicalName}"
                     val enabledServices = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
                     val hasAcc = enabledServices.contains(expected)
 
-                    if (!hasAcc) {
+                    if (!hasAcc && LockManager.currentActivePackage != packageName) {
                         // PHASE 1: NO ACCESSIBILITY = THE DUNGEON
                         val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                             putExtra("BLOCK_TYPE", "PENALTY")
@@ -417,7 +417,7 @@ class WatcherService : Service(), SensorEventListener {
                     val shouldFire = effectiveBlock != null && !isFixing && !LockManager.isBootGraceActive() && pm.isInteractive && !km.isKeyguardLocked &&
                                      (effectiveBlock == "PENALTY" || (topPkg.isNotBlank() && !isEmergency))
 
-                    if (shouldFire) {
+                    if (shouldFire && topPkg != packageName) {
                         DebugLogger.log("ENFORCE_LOG", "BLOCK EVENT -> Pkg: [$topPkg] | Block: $effectiveBlock | isEmergency: $isEmergency | isFixing: $isFixing")
                         val i = Intent(applicationContext, LockdownActivity::class.java)
                         i.putExtra("BLOCK_TYPE", effectiveBlock)
