@@ -758,7 +758,7 @@ class GuardService : AccessibilityService() {
  val prioritizedType = LockManager.getActiveBlockType(applicationContext, activePackage) ?: type
 
  // STRICT EMERGENCY BYPASS
- if (LockManager.isEmergencyApp(activePackage)) return
+ if (LockManager.isEmergencyApp(activePackage) || activePackage == packageName) return
 
  if (!android.provider.Settings.canDrawOverlays(this)) return
 
