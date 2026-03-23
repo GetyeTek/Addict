@@ -126,7 +126,6 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
-            LaunchedEffect(Unit) {
                 val intent = Intent(ctx, WatcherService::class.java)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     ctx.startForegroundService(intent)
