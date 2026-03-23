@@ -334,6 +334,7 @@ class LockdownActivity : ComponentActivity() {
                     "USER_LOCKOUT" -> !LockManager.isUserLockedOut(ctx)
                     "EXORCISM_COUNTDOWN" -> !LockManager.isWhisperMode(ctx) || LockManager.getWhisperElapsed(ctx) > 60000
                     "WHISPER_PROTOCOL" -> !LockManager.isWhisperMode(ctx)
+                    "BOOT_SETTLING" -> !LockManager.isSettlingActive() && !(LockManager.isStrictGraceActive() && LockManager.currentActivePackage.contains("settings"))
                     "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
                     "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
                     "TELEGRAM_SUSPENDED" -> !LockManager.isTelegramBanned(ctx)
@@ -382,6 +383,7 @@ class LockdownActivity : ComponentActivity() {
             "DAILY_LIMIT_EXCEEDED" -> UiConfig(Icons.Default.Bedtime, Color(0xFF4B5563), "DAWN OF THE DEAD", "9 HOURS. You've spent more time with this screen than your own thoughts. Go to sleep before you forget how to blink.")
             "YT_REQUEST_REQUIRED" -> UiConfig(Icons.Default.VideoSettings, Color(0xFFEF4444), "PERMISSION DENIED", "YouTube is off-limits. Go to Experimental UI to request a viewing session.")
             "YT_WAITING" -> UiConfig(Icons.Default.HourglassTop, Color(0xFFFBBF24), "PATIENCE, GRASSHOPPER", "The 30-minute delay is active. Go contemplate your existence or read a book.")
+            "BOOT_SETTLING" -> UiConfig(Icons.Default.Sync, Color(0xFF60A5FA), "SYSTEM OPTIMIZING", "The device is settling after boot. Guardian is calibrating security protocols. Please wait.")
             else -> UiConfig(Icons.Filled.Shield, Color(0xFFEF4565), "FIX IT OR ROT", "Your DNS is compromised. Obey the rules or stare at this wall.")
         }
     }
