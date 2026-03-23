@@ -7,7 +7,7 @@ import android.provider.Settings
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_LOCKED_BOOT_COMPLETED) {
             // GRACE PERIOD ACTIVE: We do NOT launch the lockdown overlay immediately.
             // We only ensure the services are primed.
             val i = Intent(context, WatcherService::class.java)
