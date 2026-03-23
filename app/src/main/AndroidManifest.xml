@@ -77,9 +77,13 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".BootReceiver" android:exported="true">
-            <intent-filter>
+        <receiver 
+            android:name=".BootReceiver" 
+            android:directBootAware="true"
+            android:exported="true">
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
@@ -94,6 +98,7 @@
         <!-- ENGINE: Accessibility Service (Used for monitoring) -->
          
  <service android:name=".WatcherService"
+ android:directBootAware="true"
  android:foregroundServiceType="specialUse"
  android:exported="false">
  <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" 
@@ -101,6 +106,7 @@
  </service>
 
         <service android:name=".GuardService"
+            android:directBootAware="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:foregroundServiceType="specialUse"
             android:exported="true">
