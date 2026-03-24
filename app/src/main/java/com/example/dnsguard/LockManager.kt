@@ -68,8 +68,10 @@ object LockManager {
         "com.google.android.inputmethod.latin",
         "com.samsung.android.honeyboard",
         "com.sec.android.inputmethod",
-        "com.apple.android.music", // Known for ghost foreground time
-        "com.google.android.gms" // System services
+        "com.apple.android.music",
+        "com.google.android.gms",
+        "com.android.vending",
+        "com.google.android.projection.gearhead" // Android Auto
     )
 
     @Volatile
@@ -767,28 +769,61 @@ object LockManager {
 
     fun getDailyUsage(ctx: Context): Long {
         val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
-        val calendar = java.util.Calendar.getInstance()
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        calendar.set(java.util.Calendar.MINUTE, 0)
-        calendar.set(java.util.Calendar.SECOND, 0)
+        val calendar = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
         val startTime = calendar.timeInMillis
         val endTime = System.currentTimeMillis()
 
-        val stats = usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-        var totalTime = 0L
-        for (usageStat in stats) {
-            val pkg = usageStat.packageName
-            // 1. Don't count ourselves
-            if (pkg == ctx.packageName) continue
-            // 2. Don't count "Ghost" apps that run in parallel (Fixes the 3hr discrepancy)
-            if (GHOST_PACKAGES.any { pkg.contains(it) }) continue
+        val events = usm.queryEvents(startTime, endTime)
+        val event = android.app.usage.UsageEvents.Event()
+        
+        var totalUsage = 0L
+        var lastEventTime = startTime
+        var currentForegroundPkg: String? = null
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
             
-            // 3. Only count if usage > 0 (Even if it's just 1ms, we keep it per your request)
-            if (usageStat.totalTimeInForeground > 0) {
-                totalTime += usageStat.totalTimeInForeground
+            // Calculate time elapsed since last event for the PREVIOUSLY active app
+            val timeDelta = event.timeStamp - lastEventTime
+            
+            if (currentForegroundPkg != null && 
+                currentForegroundPkg != ctx.packageName &&
+                !GHOST_PACKAGES.any { currentForegroundPkg!!.contains(it) }) {
+                totalUsage += timeDelta
+            }
+
+            lastEventTime = event.timeStamp
+
+            when (event.eventType) {
+                android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    currentForegroundPkg = event.packageName
+                }
+                android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    // If the app we were tracking just went to background, stop tracking
+                    if (event.packageName == currentForegroundPkg) {
+                        currentForegroundPkg = null
+                    }
+                }
+                android.app.usage.UsageEvents.Event.SCREEN_INTERACTIVE -> { /* Potentially useful for SOT sync */ }
+                android.app.usage.UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+                    currentForegroundPkg = null // Stop counting when screen is off
+                }
             }
         }
-        return totalTime
+        
+        // Catch the very last slice of time from the last event until 'now'
+        if (currentForegroundPkg != null && 
+            currentForegroundPkg != ctx.packageName &&
+            !GHOST_PACKAGES.any { currentForegroundPkg!!.contains(it) }) {
+            totalUsage += (endTime - lastEventTime)
+        }
+
+        return totalUsage
     }
 
     fun logUsageBreakdown(ctx: Context) {
