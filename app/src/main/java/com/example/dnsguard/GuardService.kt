@@ -396,25 +396,25 @@ class GuardService : AccessibilityService() {
             if (confirmedDanger) {
             if (confirmedDanger) {
                 DebugLogger.log("BLOCK", "Tamper Detected! Quarantine initiated.")
+                lastDangerTs = System.currentTimeMillis()
+                verifiedSafeAppInfoSession = false
                 LockManager.triggerSettingsQuarantine(applicationContext)
+                
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 
                 val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-                val targets = listOf("com.android.settings", "com.samsung.accessibility", "com.android.packageinstaller")
-                targets.forEach { am.killBackgroundProcesses(it) }
-                
-                startTripwire()
-            }
+                val targets = listOf(
                     "com.android.settings", 
                     "com.google.android.settings",
                     "com.samsung.accessibility", 
                     "com.android.packageinstaller",
                     "com.google.android.packageinstaller",
-                    "com.miui.securitycenter" // Bonus for Xiaomi users
+                    "com.miui.securitycenter"
                 )
                 targets.forEach { am.killBackgroundProcesses(it) }
                 
                 startTripwire()
+            }
             } else if (isAppInfoPage && !LockManager.isExpEnabled(applicationContext, "no_app_info")) {
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
                 if (!verifiedSafeAppInfoSession && !hasAnchor) {
