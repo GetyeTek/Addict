@@ -394,14 +394,17 @@ class GuardService : AccessibilityService() {
  }
  
             if (confirmedDanger) {
-                DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
-                lastDangerTs = System.currentTimeMillis()
-                verifiedSafeAppInfoSession = false
-                
+            if (confirmedDanger) {
+                DebugLogger.log("BLOCK", "Tamper Detected! Quarantine initiated.")
+                LockManager.triggerSettingsQuarantine(applicationContext)
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 
                 val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-                val targets = listOf(
+                val targets = listOf("com.android.settings", "com.samsung.accessibility", "com.android.packageinstaller")
+                targets.forEach { am.killBackgroundProcesses(it) }
+                
+                startTripwire()
+            }
                     "com.android.settings", 
                     "com.google.android.settings",
                     "com.samsung.accessibility", 
