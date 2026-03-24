@@ -143,18 +143,29 @@ object NukeManager {
         val ts = prefs.getLong(KEY_OTP_TS, 0L)
         val now = System.currentTimeMillis()
         
-        val isWaiting = ts > 0 && (now - ts < WAIT_TIME)
-        val isReady = ts > 0 && (now - ts >= WAIT_TIME) && (now - ts <= EXPIRY_TIME)
-        val isExpired = ts > 0 && (now - ts > EXPIRY_TIME)
-        val remaining = if (isWaiting) WAIT_TIME - (now - ts) else 0L
-        
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val windowOpen = hour in 6..17
-        
-        // An OTP is only 'Generated' if it hasn't expired yet
-        val isActiveRound = isWaiting || isReady
-        
-        return NukeStatus(disabled, isWaiting, isReady, isExpired, remaining, isActiveRound, windowOpen)
+
+        // If no protocol is active, check if we are manually disabled (via Debug Tile)
+        if (ts == 0L) {
+            return NukeStatus(disabled, false, false, false, 0L, false, windowOpen)
+        }
+
+        val elapsed = now - ts
+        return when {
+            elapsed < WAIT_TIME -> {
+                // PHASE 1: Fuse Burning (Waiting 2 hours)
+                NukeStatus(disabled, true, false, false, WAIT_TIME - elapsed, true, windowOpen)
+            }
+            elapsed < EXPIRY_TIME -> {
+                // PHASE 2: Protection Dropped (The 1-hour window)
+                NukeStatus(true, false, true, false, EXPIRY_TIME - elapsed, true, windowOpen)
+            }
+            else -> {
+                // PHASE 3: Expired
+                NukeStatus(false, false, false, true, 0L, false, windowOpen)
+            }
+        }
     }
 
     fun startQuitterTimer(ctx: Context) {
