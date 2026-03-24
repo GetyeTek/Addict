@@ -332,7 +332,7 @@ class LockdownActivity : ComponentActivity() {
                     "USER_LOCKOUT" -> !LockManager.isUserLockedOut(ctx)
                     "EXORCISM_COUNTDOWN" -> !LockManager.isWhisperMode(ctx) || LockManager.getWhisperElapsed(ctx) > 60000
                     "WHISPER_PROTOCOL" -> !LockManager.isWhisperMode(ctx)
-                    "BOOT_SETTLING" -> !LockManager.isSettlingActive() && !(LockManager.isStrictGraceActive() && LockManager.currentActivePackage.contains("settings"))
+                    "BOOT_SETTLING" -> !LockManager.isSettlingActive()
                     "PENALTY" -> LockManager.getPenaltyRemaining(ctx) <= 0 && !LockManager.isSystemCompromised(ctx)
                     "BROWSER_VIOLATION" -> !LockManager.isBrowserBanned(ctx)
                     "TELEGRAM_SUSPENDED" -> !LockManager.isTelegramBanned(ctx)
