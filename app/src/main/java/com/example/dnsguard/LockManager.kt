@@ -47,6 +47,7 @@ object LockManager {
     private const val KEY_YT_REQUEST_TS = "yt_request_ts"
     private const val KEY_YT_ACCESS_TS = "yt_access_ts"
     private const val KEY_ALARM_TRIGGER_TS = "last_alarm_trigger_ts"
+    private const val KEY_SETTINGS_QUARANTINE_TS = "settings_quarantine_ts"
     private const val EXORCISM_MAX_DURATION = 30 * 60 * 1000L // 30 Minutes
     var currentActivePackage: String = ""
 
@@ -479,10 +480,27 @@ object LockManager {
     }
 
     fun isPermissionFixActive(ctx: Context): Boolean {
-        val lastFix = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_FIX_TS, 0L)
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val lastFix = prefs.getLong(KEY_FIX_TS, 0L)
+        val quarantineTs = prefs.getLong(KEY_SETTINGS_QUARANTINE_TS, 0L)
         val now = System.currentTimeMillis()
+        
+        // If Settings is in quarantine (last 2 mins), permission fix window is REVOKED.
+        if (now - quarantineTs < 120000) return false
+        
         // Blind Grace Window: Allow 15 seconds for the system to transition to Settings
         return (now - lastFix < 15000)
+    }
+
+    fun triggerSettingsQuarantine(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_SETTINGS_QUARANTINE_TS, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun isSettingsQuarantined(ctx: Context): Boolean {
+        val ts = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_SETTINGS_QUARANTINE_TS, 0L)
+        return (System.currentTimeMillis() - ts < 120000)
     }
 
     fun resetUsage(ctx: Context) {
@@ -948,10 +966,14 @@ object LockManager {
         if (isFixWindowActive(ctx)) return null
 
         // 0.6 MAINTENANCE DISCIPLINE: Only Chrome allowed for DNS lookup
-        // Even if not a standard browser, Google Search can show explicit images/feeds.
         val isGoogleSearch = pkg == "com.google.android.googlequicksearchbox"
         if (isUnlocked(ctx) && pkg != "com.android.chrome" && (isBlacklistedBrowser(ctx, pkg) || isGoogleSearch)) {
             return "MAINTENANCE_BROWSER_ILLEGAL"
+        }
+
+        // 0.7 SETTINGS QUARANTINE: If you tried to tamper, Settings is dead for 2 mins
+        if (isSettingsQuarantined(ctx) && (pkg.contains("settings") || pkg.contains("accessibility"))) {
+            return "SECURITY_TRIPWIRE"
         }
 
         // 1. HARD BLOCKERS (Never bypassed)
