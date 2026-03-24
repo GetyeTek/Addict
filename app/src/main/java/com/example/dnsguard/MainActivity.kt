@@ -340,10 +340,7 @@ class MainActivity : ComponentActivity() {
         val ctx = LocalContext.current
         val isDark = MaterialTheme.colorScheme.background == Color.Black
         var status by remember { mutableStateOf(NukeManager.getStatus(ctx)) }
-        var showOtpDialog by remember { mutableStateOf(false) }
         var showConfirmRequestDialog by remember { mutableStateOf(false) }
-        var showEntryDialog by remember { mutableStateOf(false) }
-        var generatedOtp by remember { mutableStateOf("") }
 
         // Poll Status
         LaunchedEffect(Unit) {
@@ -426,7 +423,7 @@ class MainActivity : ComponentActivity() {
             AlertDialog(
                 onDismissRequest = { showConfirmRequestDialog = false },
                 title = { Text("EXTREME CAUTION") },
-                text = { Text("You are initiating the Nuclear Option.\n\n1. A code will be generated.\n2. You MUST wait 2 hours before using it.\n3. Protection will only drop for 1 hour.\n\nDo not do this unless it is a genuine emergency.", color = Color.White) },
+                text = { Text("You are initiating the Nuclear Option.\n\n1. You MUST wait 2 hours while the fuse burns.\n2. Protection will automatically drop for exactly 1 hour.\n3. Do not do this unless it is a genuine emergency.", color = Color.White) },
                 confirmButton = { 
                     Button(onClick = { 
                         NukeManager.startQuitterTimer(ctx)
@@ -436,23 +433,6 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 dismissButton = { TextButton(onClick = { showConfirmRequestDialog = false }) { Text("CANCEL") } }
-            )
-        }
-
-        if (showOtpDialog) {
-            AlertDialog(
-                onDismissRequest = { showOtpDialog = false },
-                title = { Text("PROTOCOL INITIATED") },
-                text = { 
-                    Column {
-                        Text("SAVE THIS CODE. If you lose it, you cannot stop protection for 3 hours.", color = Color.LightGray)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        SelectionContainer {
-                             Text(generatedOtp, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFFF87171), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                        }
-                    }
-                },
-                confirmButton = { Button(onClick = { showOtpDialog = false }) { Text("I HAVE SAVED IT") } }
             )
         }
 
