@@ -344,7 +344,7 @@ class WatcherService : Service(), SensorEventListener {
 
                 if (!km.isKeyguardLocked && pm.isInteractive) {
                     if (LockManager.isSettlingActive()) {
-                        // PHASE 1: 0-10m Absolute Lockout
+                        // PHASE 1: 0-10m Absolute Lockout (Settling Overlay)
                         if (!isLockdownVisible && !LockManager.isEmergencyApp(topPkg)) {
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "BOOT_SETTLING")
@@ -358,6 +358,7 @@ class WatcherService : Service(), SensorEventListener {
                         // PHASE 2: 10-20m Strict Rules
                         val hasAcc = isAccessibilityEnabled(applicationContext)
                         if (!hasAcc && !isLockdownVisible) {
+                            // If Accessibility is missing, they go to the Dungeon
                             val i = Intent(applicationContext, LockdownActivity::class.java).apply {
                                 putExtra("BLOCK_TYPE", "PENALTY")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -365,12 +366,14 @@ class WatcherService : Service(), SensorEventListener {
                             startActivity(i)
                             delay(1000)
                             continue
-                        } else if (isSettings && !isFixing && !isLockdownVisible) {
-                            val i = Intent(applicationContext, LockdownActivity::class.java).apply {
-                                putExtra("BLOCK_TYPE", "BOOT_SETTLING")
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                        } else if (isSettings && !isFixing) {
+                            // If Accessibility is there, but they touch Settings, kick them Home
+                            DebugLogger.log("GAUNTLET", "Settings forbidden in Phase 2. Redirecting Home.")
+                            val home = Intent(Intent.ACTION_MAIN).apply {
+                                addCategory(Intent.CATEGORY_HOME)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
-                            startActivity(i)
+                            startActivity(home)
                             delay(1000)
                             continue
                         }
