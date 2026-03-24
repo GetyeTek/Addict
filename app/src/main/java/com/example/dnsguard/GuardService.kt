@@ -91,6 +91,9 @@ class GuardService : AccessibilityService() {
     private var lastCloudSync: Long = 0L
     // SESSION: Remembers if the current App Info page has been proven innocent
     private var verifiedSafeAppInfoSession = false
+    
+    // ANTI-RECENTS: Prevents the 'Recents -> Quick Tap' exploit
+    private var lastDangerTs = 0L
 
     // DYNAMIC LEARNING: Remembers any app that has shown a WebView during this session
     private val dynamicBrowsers = mutableSetOf<String>()
@@ -141,6 +144,16 @@ class GuardService : AccessibilityService() {
         // 1. EVENT-DRIVEN SECURITY (High Priority)
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             verifiedSafeAppInfoSession = false
+
+            // RECENTS GUARD: If we just detected danger, block access to Recents/SystemUI for 5 seconds
+            if (pkg == "com.android.systemui") {
+                if (System.currentTimeMillis() - lastDangerTs < 5000) {
+                    DebugLogger.log("SECURITY", "Recents Guard: Blocking exploit attempt.")
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                    return
+                }
+            }
+
             val isGraceActive = LockManager.isBootGraceActive()
 
             if (!NukeManager.isProtectionDisabled(applicationContext) && !isGraceActive) {
@@ -382,11 +395,22 @@ class GuardService : AccessibilityService() {
  
             if (confirmedDanger) {
                 DebugLogger.log("BLOCK", "Tamper Detected! Neutralizing Settings.")
+                lastDangerTs = System.currentTimeMillis()
+                verifiedSafeAppInfoSession = false
+                
                 performGlobalAction(GLOBAL_ACTION_HOME)
+                
                 val am = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-                am.killBackgroundProcesses("com.android.settings")
-                am.killBackgroundProcesses("com.samsung.accessibility")
-                am.killBackgroundProcesses("com.android.packageinstaller")
+                val targets = listOf(
+                    "com.android.settings", 
+                    "com.google.android.settings",
+                    "com.samsung.accessibility", 
+                    "com.android.packageinstaller",
+                    "com.google.android.packageinstaller",
+                    "com.miui.securitycenter" // Bonus for Xiaomi users
+                )
+                targets.forEach { am.killBackgroundProcesses(it) }
+                
                 startTripwire()
             } else if (isAppInfoPage && !LockManager.isExpEnabled(applicationContext, "no_app_info")) {
                 val hasAnchor = rootInActiveWindow?.findAccessibilityNodeInfosByText("Notifications")?.isNotEmpty() == true
