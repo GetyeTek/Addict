@@ -8,10 +8,8 @@ import java.util.UUID
 object NukeManager {
 
     private const val PREFS = "nuke_prefs"
-    private const val KEY_OTP = "nuke_otp"
     private const val KEY_OTP_TS = "nuke_ts"
     private const val KEY_DISABLED = "protection_disabled"
-    private const val KEY_OTP_NOTIFIED = "otp_notified"
     private const val KEY_LOCK_NOTIFIED = "lock_notified"
     private const val KEY_DISABLED_TS = "protection_disabled_ts"
     private const val AUTO_RE_ENABLE_MS = 60 * 60 * 1000L // 1 Hour
@@ -35,8 +33,8 @@ object NukeManager {
               .putBoolean(KEY_LOCK_NOTIFIED, false)
         
         if (disabled) {
-            // Round completed successfully, clear OTP for next time
-            editor.remove(KEY_OTP).remove(KEY_OTP_TS).remove(KEY_OTP_NOTIFIED)
+            // Round completed successfully, clear timestamps
+            editor.remove(KEY_OTP_TS)
         }
         editor.apply()
         
@@ -48,14 +46,6 @@ object NukeManager {
     fun checkNotifications(ctx: Context) {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
-
-        val otpTs = prefs.getLong(KEY_OTP_TS, 0L)
-        if (otpTs > 0 && !prefs.getBoolean(KEY_OTP_NOTIFIED, false)) {
-            if (now - otpTs >= WAIT_TIME) {
-                showNotification(ctx, "USE IT OR LOSE IT", "The wait is over. Do it now, or I reset the timer.")
-                prefs.edit().putBoolean(KEY_OTP_NOTIFIED, true).apply()
-            }
-        }
 
         val disabledAt = prefs.getLong(KEY_DISABLED_TS, 0L)
         val isDisabled = prefs.getBoolean(KEY_DISABLED, false)
@@ -133,7 +123,7 @@ object NukeManager {
         val isReady: Boolean,
         val isExpired: Boolean,
         val remainingWaitMs: Long,
-        val otpGenerated: Boolean,
+        val isProtocolActive: Boolean,
         val isWindowOpen: Boolean
     )
 
@@ -172,7 +162,6 @@ object NukeManager {
         val now = System.currentTimeMillis()
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putLong(KEY_OTP_TS, now)
-            .putBoolean(KEY_OTP_NOTIFIED, false)
             .apply()
     }
 
@@ -199,7 +188,7 @@ object NukeManager {
             // Window 3: Finished (3+ hours) -> Reset everything
             elapsed >= (WAIT_TIME + AUTO_RE_ENABLE_MS) -> {
                 setProtectionDisabled(ctx, false)
-                prefs.edit().remove(KEY_OTP_TS).remove(KEY_OTP_NOTIFIED).apply()
+                prefs.edit().remove(KEY_OTP_TS).apply()
                 DebugLogger.log("NUKE", "Window closed. Protection Restored.")
             }
         }
