@@ -367,17 +367,8 @@ class MainActivity : ComponentActivity() {
                 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                                if (status.isProtectionDisabled) {
-                    val prefs = ctx.getSharedPreferences("nuke_prefs", Context.MODE_PRIVATE)
-                    val ts = prefs.getLong("nuke_ts", 0L)
-                    val remaining = ((ts + 3 * 3600000L) - System.currentTimeMillis()).coerceAtLeast(0)
-                    val mins = (remaining / 60000)
-                    val secs = (remaining % 60000) / 1000
-                    
-                    Text("PROTECTION DROPPED", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
-                    Text(String.format("Restoring in %02d:%02d", mins, secs), color = Color.Gray, fontSize = 14.sp)
-                } 
-                else if (status.isWaiting) {
+                                if (status.isWaiting) {
+                    // PHASE 1: Waiting for 2-hour fuse
                     val hours = status.remainingWaitMs / 3600000
                     val mins = (status.remainingWaitMs % 3600000) / 60000
                     val secs = (status.remainingWaitMs % 60000) / 1000
@@ -387,6 +378,18 @@ class MainActivity : ComponentActivity() {
                         Text("PROTOCOL FUSE BURNING", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Guard will drop automatically when timer hits zero.", color = Color.DarkGray, fontSize = 10.sp, textAlign = TextAlign.Center)
+                    }
+                } 
+                else if (status.isProtectionDisabled) {
+                    // PHASE 2: Freedom window (or manual Debug kill)
+                    val mins = (status.remainingWaitMs / 60000)
+                    val secs = (status.remainingWaitMs % 60000) / 1000
+                    
+                    Text("PROTECTION DROPPED", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    if (status.remainingWaitMs > 0) {
+                        Text(String.format("Restoring in %02d:%02d", mins, secs), color = Color.Gray, fontSize = 14.sp)
+                    } else {
+                        Text("MANUAL OVERRIDE ACTIVE", color = Color.Gray, fontSize = 14.sp)
                     }
                 }
                 else {
