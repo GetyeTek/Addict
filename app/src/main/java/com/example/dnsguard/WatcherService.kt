@@ -437,9 +437,12 @@ class WatcherService : Service(), SensorEventListener {
                     val topPkg = LockManager.currentActivePackage
                     val penaltyActive = LockManager.getPenaltyRemaining(applicationContext) > 0
                     
-                    // DETERMINISTIC BLOCK: If the system is compromised or in penalty, we ignore the package check.
-                    val effectiveBlock = if (isCompromised || penaltyActive) "PENALTY" 
-                                        else LockManager.getActiveBlockType(applicationContext, topPkg)
+                                    // DETERMINISTIC BLOCK: If the system is compromised, in penalty, or quarantined, we ignore the package check.
+                val effectiveBlock = when {
+                    isCompromised || penaltyActive -> "PENALTY"
+                    LockManager.isSettingsQuarantined(applicationContext) && (topPkg.contains("settings") || topPkg.contains("accessibility")) -> "SECURITY_TRIPWIRE"
+                    else -> LockManager.getActiveBlockType(applicationContext, topPkg)
+                }
                     
                     val isFixing = LockManager.isFixWindowActive(applicationContext)
                     val isEmergency = LockManager.isEmergencyApp(topPkg) || topPkg.contains("systemui")
@@ -462,10 +465,11 @@ class WatcherService : Service(), SensorEventListener {
 
                 }
                 
-                // Harmonized Polling: High frequency during Berserker window
+                // Harmonized Polling: High frequency during Berserker window OR Settings Quarantine
                 val isInteractive = try { pm.isInteractive } catch (e: Exception) { false }
                 if (isInteractive) {
-                    if (LockManager.isBerserkerActive()) delay(150) else delay(2000)
+                    val highAlert = LockManager.isBerserkerActive() || LockManager.isSettingsQuarantined(applicationContext)
+                    if (highAlert) delay(150) else delay(2000)
                 } else {
                     delay(10000)
                 }
