@@ -196,7 +196,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 missing.forEach { 
-                    Text("ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("• $it", color = Color(0xFFEF4444), fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(vertical = 4.dp))
                 }
                 
                 Spacer(modifier = Modifier.height(32.dp))
