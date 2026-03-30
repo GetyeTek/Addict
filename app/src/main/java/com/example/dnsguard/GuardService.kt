@@ -679,13 +679,32 @@ class GuardService : AccessibilityService() {
                 }
 
                 val blacklist = listOf(
+                    // Mainstream & Social Media
                     "bsky.app", "twitter.com", "x.com", "reddit.com", "tumblr.com", "threads.net", "plurk.com", "hive.social",
                     "mastodon.social", "pawoo.net", "misskey.io", "pleroma.site", "lemmy.world", "truthsocial.com", "gab.com",
                     "web.telegram.org", "t.me", "telegram.org", "discord.com", "kik.com", "snapchat.com", "slack.com",
+                    "vero.co", "mewe.com", "minds.com", "bereal.com",
+
+                    // Art, Image Boards & Community Sites
                     "pixiv.net", "deviantart.com", "newgrounds.com", "artstation.com", "furaffinity.net", "hentai-foundry.com", "gelbooru.com", "danbooru.donmai.us",
+                    "4chan.org", "8kun.top", "2ch.hk", "2chan.net", "rule34.paheal.net", "imgbash.com", "b3ta.com", "7chan.org",
+
+                    // Creator & Monetization Platforms
                     "onlyfans.com", "fansly.com", "patreon.com", "subscribestar.com", "fanbox.cc", "unifans.io", "buymeacoffee.com", "ko-fi.com",
+                    "fanvue.com", "sunroom.so", "gumroad.com", "manyvids.com",
+
+                    // Microblogs & Decentralized Networks (Fediverse/Web3)
+                    "baraag.net", "smutlandia.com", "pillowfort.social", "dreamwidth.org", "akkoma.social", "firefish.social",
+                    "pixelfed.social", "lens.xyz", "hey.xyz", "farcaster.xyz", "warpcast.com", "steemit.com", "hive.blog", "blurt.blog", "cohost.org", "odysee.com", "lbry.tv",
+
+                    // Community, Kink, Dating & Miscellaneous Video
+                    "fetlife.com", "lips.social", "f95zone.to", "loverslab.com",
+                    "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", 
                     "kick.com", "bitchute.com", "rumble.com", "vimeo.com", "dailymotion.com", "dlive.tv", "picarto.tv",
-                    "fetlife.com", "badoo.com", "tinder.com", "yubo.live", "instagram.com", "tiktok.com", "pornhub", "xnxx"
+                    "pornhub", "xnxx",
+
+                    // Text & Fiction Platforms
+                    "archiveofourown.org", "ao3.org", "squidgeworld.org", "literotica.com", "royalroad.com", "novelupdates.com"
                 )
                 
                 for (site in blacklist) {
