@@ -142,7 +142,9 @@ object LockManager {
         "io.spck",
         "com.imo.android.imoim",
         "com.flyersoft.moonreader",
-        "com.google.android.gm"
+        "com.google.android.gm",
+        "com.camerasideas.trimmer",
+        "com.addismatric.addismatric"
     )
 
     fun isUnlocked(ctx: Context): Boolean {
