@@ -220,7 +220,7 @@ class GuardService : AccessibilityService() {
  }
 
  // 0. BROWSER BAN ENFORCEMENT
- val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg) || pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox"
+ val isBrowserCheck = LockManager.isBlacklistedBrowser(applicationContext, pkg)
  if (isBrowserCheck && LockManager.isBrowserBanned(applicationContext)) {
  if (!LockManager.isFixWindowActive(applicationContext)) {
  showInstantOverlay("BROWSER_VIOLATION")
