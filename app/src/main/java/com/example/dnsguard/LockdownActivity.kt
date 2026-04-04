@@ -231,6 +231,19 @@ class LockdownActivity : ComponentActivity() {
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
+                
+                // EXPERIMENTAL: Silence Warning Toggle inside the DNS Fix screen
+                var noDnsSilence by remember { mutableStateOf(LockManager.isExpEnabled(context, "no_dns")) }
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Silence Warning", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Stop showing this screen for DNS issues.", color = Color.Gray, fontSize = 11.sp)
+                    }
+                    Switch(checked = noDnsSilence, onCheckedChange = {
+                        noDnsSilence = it
+                        LockManager.setExpEnabled(context, "no_dns", it)
+                    }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF00FFFF)))
+                }
             }
 
             val hasEmergencyBypass = listOf("NIGHT_LOCK", "BREAK_TIME", "PENALTY", "USER_LOCKOUT", "DAILY_LIMIT_EXCEEDED").contains(type)
