@@ -673,7 +673,18 @@ class MainActivity : ComponentActivity() {
         Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.fillMaxSize().padding(16.dp), shape = RoundedCornerShape(28.dp), color = Color(0xFF0F172A)) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("Learned Web Apps", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Learned Web Apps", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                        IconButton(onClick = {
+                            val approvedList = learnedApps.keys.filter { LockManager.isAppApproved(ctx, it) }
+                            val textToCopy = if (approvedList.isEmpty()) "No approved learned apps." else approvedList.joinToString("\n")
+                            val cb = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cb.setPrimaryClip(android.content.ClipData.newPlainText("ApprovedApps", textToCopy))
+                            android.widget.Toast.makeText(ctx, "Copied ${approvedList.size} approved apps", android.widget.Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(Icons.Default.ContentCopy, null, tint = Color(0xFF10B981))
+                        }
+                    }
                     Text("Apps caught using WebViews. 1-hour quarantine required.", color = Color.Gray, fontSize = 12.sp)
                     
                     Spacer(modifier = Modifier.height(16.dp))
