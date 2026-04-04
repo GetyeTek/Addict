@@ -50,6 +50,19 @@ class MainActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
         
+        // Update Detection Logic
+        try {
+            val prefs = getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+            val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
+            val savedVersion = prefs.getInt("last_run_version", -1)
+            
+            if (currentVersion > savedVersion && savedVersion != -1) {
+                DebugLogger.log("UPGRADE", "System upgraded from v$savedVersion to v$currentVersion")
+                // You could trigger a cleanup or a specific "Thank you for updating" nag here
+            }
+            prefs.edit().putInt("last_run_version", currentVersion).apply()
+        } catch (e: Exception) { }
+
         MainScope().launch {
             AppCache.loadApps(applicationContext)
             
