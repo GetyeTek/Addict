@@ -548,7 +548,7 @@ object LockManager {
 
     fun isBlacklistedBrowser(ctx: Context, pkg: String): Boolean {
         // 1. Fast path: Static checks
-        if (pkg == "com.android.chrome") return true
+        if (pkg == "com.android.chrome" || pkg == "com.google.android.googlequicksearchbox") return true
         if (ROGUE_APPS.contains(pkg)) return true
         if (MANUAL_BLACKLIST.contains(pkg)) return true
 
@@ -965,9 +965,9 @@ object LockManager {
         // 0.5 CONTENT FIX WINDOW (60s Grace)
         if (isFixWindowActive(ctx)) return null
 
-        // 0.6 MAINTENANCE DISCIPLINE: Only Chrome allowed for DNS lookup
+        // 0.6 MAINTENANCE DISCIPLINE: No browsers allowed for DNS lookup
         val isGoogleSearch = pkg == "com.google.android.googlequicksearchbox"
-        if (isUnlocked(ctx) && pkg != "com.android.chrome" && (isBlacklistedBrowser(ctx, pkg) || isGoogleSearch)) {
+        if (isUnlocked(ctx) && (isBlacklistedBrowser(ctx, pkg) || isGoogleSearch)) {
             return "MAINTENANCE_BROWSER_ILLEGAL"
         }
 
