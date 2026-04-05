@@ -69,10 +69,10 @@ class MainActivity : ComponentActivity() {
             // Programmatically manage Quick Settings Tiles
             val pm = applicationContext.packageManager
 
-            // Force Disable the Kill Switch (Neutralize functionality)
+            // Enable the Kill Switch (Debug Mode Active)
             pm.setComponentEnabledSetting(
                 android.content.ComponentName(applicationContext, DebugKillTileService::class.java),
-                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 android.content.pm.PackageManager.DONT_KILL_APP
             )
 
