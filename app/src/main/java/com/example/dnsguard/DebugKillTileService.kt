@@ -9,6 +9,19 @@ class DebugKillTileService : TileService() {
         super.onClick()
         val ctx = applicationContext
         
+        val updateTs = ctx.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE).getLong("last_update_ts", 0L)
+        val elapsed = System.currentTimeMillis() - updateTs
+        if (elapsed < 3600000L) { // 1 Hour
+            val mins = 60 - (elapsed / 60000)
+            DebugLogger.log("ANTI_BYPASS", "Kill switch denied. App updated recently. $mins mins left.")
+            android.widget.Toast.makeText(ctx, "Nice try. Wait $mins mins.", android.widget.Toast.LENGTH_LONG).show()
+            try {
+                val closeIntent = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
+                ctx.sendBroadcast(closeIntent)
+            } catch(e: Exception){}
+            return
+        }
+        
         // 1. Force Nuke Protocol State
         NukeManager.setProtectionDisabled(ctx, true)
         
