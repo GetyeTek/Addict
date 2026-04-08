@@ -244,6 +244,25 @@ object LockManager {
         return getLockoutRemainingMillis(ctx) > 0
     }
 
+    fun scheduleUserLockout(ctx: Context, delayMins: Int, durationMins: Int) {
+        val safeDelay = delayMins.coerceAtLeast(0)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong("sched_lockout_start_ts", System.currentTimeMillis() + (safeDelay * 60 * 1000L))
+            .putInt("sched_lockout_mins", durationMins)
+            .apply()
+    }
+
+    fun checkScheduledLockout(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val startTs = prefs.getLong("sched_lockout_start_ts", 0L)
+        if (startTs > 0 && System.currentTimeMillis() >= startTs) {
+            val mins = prefs.getInt("sched_lockout_mins", 15)
+            setUserLockout(ctx, mins)
+            prefs.edit().remove("sched_lockout_start_ts").remove("sched_lockout_mins").apply()
+            DebugLogger.log("LOCKOUT", "Scheduled Focus Session Activated for $mins mins.")
+        }
+    }
+
     // LADDER IS NOW MANDATORY
     fun isLadderEnabled(ctx: Context): Boolean = true
 
