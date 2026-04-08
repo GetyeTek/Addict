@@ -510,8 +510,13 @@ class GuardService : AccessibilityService() {
 
                 // USAGE TRACKING TICK
                 val nowTick = System.currentTimeMillis()
-                val delta = nowTick - lastUsageTick
+                var delta = nowTick - lastUsageTick
                 lastUsageTick = nowTick
+                
+                // ANTI-DOZE CLAMP: Prevent massive phantom jumps from deep sleep or clock tampering
+                if (delta > 15000L || delta < 0L) {
+                    delta = 2000L // Cap at standard 2-second loop interval
+                }
                 
                 val powerManager = getSystemService(android.os.PowerManager::class.java)
                 val isInteractive = powerManager.isInteractive
