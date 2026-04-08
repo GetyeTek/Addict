@@ -272,6 +272,7 @@ class WatcherService : Service(), SensorEventListener {
 
                 // 4th Suggestion: Self-Healing Cleanup
                 LockManager.cleanupExpiredLocks(applicationContext)
+                LockManager.checkScheduledLockout(applicationContext)
                 
                 // 5th Suggestion: Dynamic Notification Update
                 val statusLine = LockManager.getStatusLine(applicationContext)
