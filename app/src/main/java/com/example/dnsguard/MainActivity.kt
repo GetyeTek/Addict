@@ -624,7 +624,10 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun FocusCard() {
         var showDialog by remember { mutableStateOf(false) }
+        var isScheduling by remember { mutableStateOf(false) }
         var mins by remember { mutableStateOf("15") }
+        var delayMins by remember { mutableStateOf("60") }
+        
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.Black), 
             border = BorderStroke(2.dp, Color(0xFF6366F1)),
@@ -633,7 +636,7 @@ class MainActivity : ComponentActivity() {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("CHAIN TO THE DESK", fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, color = Color(0xFF6366F1))
                 Button(
-                    onClick = { showDialog = true }, 
+                    onClick = { showDialog = true; isScheduling = false }, 
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
                     shape = RoundedCornerShape(4.dp),
                     border = BorderStroke(1.dp, Color.White),
@@ -645,11 +648,50 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (showDialog) {
-            AlertDialog(onDismissRequest = { showDialog = false }, title = { Text("Focus Session") }, text = {
-                OutlinedTextField(value = mins, onValueChange = { if (it.all { c -> c.isDigit() }) mins = it }, label = { Text("Duration (Minutes)") })
-            }, confirmButton = {
-                Button(onClick = { LockManager.setUserLockout(applicationContext, mins.toIntOrNull() ?: 0); showDialog = false }) { Text("BEGIN") }
-            })
+            AlertDialog(
+                onDismissRequest = { showDialog = false }, 
+                title = { Text(if (isScheduling) "Schedule Lockdown" else "Focus Session") }, 
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = mins, 
+                            onValueChange = { if (it.all { c -> c.isDigit() }) mins = it }, 
+                            label = { Text("Duration (Minutes)") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (isScheduling) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = delayMins, 
+                                onValueChange = { if (it.all { c -> c.isDigit() }) delayMins = it }, 
+                                label = { Text("Start In (Minutes)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }, 
+                confirmButton = {
+                    if (isScheduling) {
+                        Button(onClick = { 
+                            LockManager.scheduleUserLockout(applicationContext, delayMins.toIntOrNull() ?: 0, mins.toIntOrNull() ?: 0)
+                            android.widget.Toast.makeText(applicationContext, "Lockdown scheduled in $delayMins mins", android.widget.Toast.LENGTH_LONG).show()
+                            showDialog = false 
+                        }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))) { Text("CONFIRM") }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { isScheduling = true }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("SCHEDULE") }
+                            Button(onClick = { LockManager.setUserLockout(applicationContext, mins.toIntOrNull() ?: 0); showDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))) { Text("BEGIN") }
+                        }
+                    }
+                },
+                dismissButton = {
+                    if (isScheduling) {
+                        TextButton(onClick = { isScheduling = false }) { Text("BACK") }
+                    } else {
+                        TextButton(onClick = { showDialog = false }) { Text("CANCEL") }
+                    }
+                }
+            )
         }
     }
 
