@@ -9,7 +9,11 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         if (action == Intent.ACTION_BOOT_COMPLETED || action == Intent.ACTION_LOCKED_BOOT_COMPLETED || action == Intent.ACTION_MY_PACKAGE_REPLACED) {
-            if (action == Intent.ACTION_MY_PACKAGE_REPLACED) DebugLogger.log("SYSTEM", "Self-Update Detected. Restarting Guardian.")
+            if (action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                DebugLogger.log("SYSTEM", "Self-Update Detected. Restarting Guardian.")
+                context.getSharedPreferences("admin_prefs", Context.MODE_PRIVATE)
+                    .edit().putLong("last_update_ts", System.currentTimeMillis()).apply()
+            }
             // GRACE PERIOD ACTIVE: We do NOT launch the lockdown overlay immediately.
             // We only ensure the services are primed.
             val i = Intent(context, WatcherService::class.java)
